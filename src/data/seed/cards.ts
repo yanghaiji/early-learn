@@ -1,0 +1,726 @@
+/**
+ * 内置卡片种子（501 张）。
+ * 内容口径与清单见 FR/v0.1/内容体系与首批卡片清单.md §5
+ * 图片路径约定：assets/images/{categoryId}/{slug}.webp（相对部署根路径，配合 Hash 路由）
+ */
+
+import type { Card, Difficulty } from '../../domain/entities/card';
+import { SEED_TIME } from './categories';
+import { ALL_STORIES, buildStories } from './stories';
+
+const IMAGE_ROOT = 'assets/images';
+
+const GENERATED_SOURCE = {
+  provider: 'generated',
+  license: 'AI 生成素材，仅限本项目使用',
+} as const;
+
+type Row = readonly [slug: string, zh: string, pinyin: string, en: string, difficulty: Difficulty];
+type CharRow = readonly [
+  slug: string,
+  zh: string,
+  pinyin: string,
+  en: string,
+  strokes: number,
+  words: readonly string[],
+  difficulty?: Difficulty,
+];
+
+const ANIMALS: readonly Row[] = [
+  ['cat', '猫', 'māo', 'cat', 1],
+  ['dog', '狗', 'gǒu', 'dog', 1],
+  ['pig', '猪', 'zhū', 'pig', 1],
+  ['cow', '牛', 'niú', 'cow', 1],
+  ['sheep', '羊', 'yáng', 'sheep', 1],
+  ['horse', '马', 'mǎ', 'horse', 1],
+  ['rabbit', '兔', 'tù', 'rabbit', 1],
+  ['chicken', '鸡', 'jī', 'chicken', 1],
+  ['duck', '鸭', 'yā', 'duck', 1],
+  ['fish', '鱼', 'yú', 'fish', 1],
+  ['bird', '鸟', 'niǎo', 'bird', 1],
+  ['elephant', '大象', 'dà xiàng', 'elephant', 2],
+  ['tiger', '老虎', 'lǎo hǔ', 'tiger', 2],
+  ['bear', '熊', 'xióng', 'bear', 1],
+  ['monkey', '猴子', 'hóu zi', 'monkey', 2],
+  ['panda', '熊猫', 'xióng māo', 'panda', 2],
+  ['lion', '狮子', 'shī zi', 'lion', 2],
+  ['giraffe', '长颈鹿', 'cháng jǐng lù', 'giraffe', 3],
+  ['frog', '青蛙', 'qīng wā', 'frog', 2],
+  ['turtle', '乌龟', 'wū guī', 'turtle', 2],
+  ['bee', '蜜蜂', 'mì fēng', 'bee', 2],
+  ['butterfly', '蝴蝶', 'hú dié', 'butterfly', 2],
+];
+
+const FRUIT: readonly Row[] = [
+  ['apple', '苹果', 'píng guǒ', 'apple', 1],
+  ['banana', '香蕉', 'xiāng jiāo', 'banana', 1],
+  ['watermelon', '西瓜', 'xī guā', 'watermelon', 3],
+  ['grape', '葡萄', 'pú tao', 'grape', 2],
+  ['orange', '橘子', 'jú zi', 'orange', 2],
+  ['strawberry', '草莓', 'cǎo méi', 'strawberry', 3],
+  ['pear', '梨', 'lí', 'pear', 2],
+  ['peach', '桃', 'táo', 'peach', 2],
+  ['pineapple', '菠萝', 'bō luó', 'pineapple', 3],
+  ['lemon', '柠檬', 'níng méng', 'lemon', 3],
+  ['cherry', '樱桃', 'yīng táo', 'cherry', 2],
+  ['mango', '芒果', 'máng guǒ', 'mango', 2],
+  ['coconut', '椰子', 'yē zi', 'coconut', 2],
+  ['kiwi', '猕猴桃', 'mí hóu táo', 'kiwi', 3],
+  ['blueberry', '蓝莓', 'lán méi', 'blueberry', 3],
+  ['avocado', '牛油果', 'niú yóu guǒ', 'avocado', 3],
+];
+
+const VEGETABLES: readonly Row[] = [
+  ['carrot', '胡萝卜', 'hú luó bo', 'carrot', 3],
+  ['tomato', '西红柿', 'xī hóng shì', 'tomato', 3],
+  ['cucumber', '黄瓜', 'huáng guā', 'cucumber', 3],
+  ['potato', '土豆', 'tǔ dòu', 'potato', 2],
+  ['cabbage', '白菜', 'bái cài', 'cabbage', 2],
+  ['corn', '玉米', 'yù mǐ', 'corn', 2],
+  ['eggplant', '茄子', 'qié zi', 'eggplant', 3],
+  ['mushroom', '蘑菇', 'mó gu', 'mushroom', 2],
+  ['pumpkin', '南瓜', 'nán guā', 'pumpkin', 2],
+  ['pepper', '青椒', 'qīng jiāo', 'pepper', 2],
+  ['broccoli', '西兰花', 'xī lán huā', 'broccoli', 3],
+  ['onion', '洋葱', 'yáng cōng', 'onion', 3],
+  ['garlic', '大蒜', 'dà suàn', 'garlic', 3],
+];
+
+const VEHICLES: readonly Row[] = [
+  ['car', '汽车', 'qì chē', 'car', 1],
+  ['bus', '公交车', 'gōng jiāo chē', 'bus', 2],
+  ['bicycle', '自行车', 'zì xíng chē', 'bicycle', 3],
+  ['train', '火车', 'huǒ chē', 'train', 2],
+  ['plane', '飞机', 'fēi jī', 'airplane', 2],
+  ['boat', '船', 'chuán', 'boat', 1],
+  ['motorcycle', '摩托车', 'mó tuō chē', 'motorcycle', 3],
+  ['ambulance', '救护车', 'jiù hù chē', 'ambulance', 3],
+  ['fire-truck', '消防车', 'xiāo fáng chē', 'fire truck', 3],
+  ['police-car', '警车', 'jǐng chē', 'police car', 2],
+  ['truck', '卡车', 'kǎ chē', 'truck', 2],
+  ['subway', '地铁', 'dì tiě', 'subway', 2],
+  ['rocket', '火箭', 'huǒ jiàn', 'rocket', 2],
+  ['helicopter', '直升机', 'zhí shēng jī', 'helicopter', 3],
+  ['ship', '轮船', 'lún chuán', 'ship', 2],
+  ['taxi', '出租车', 'chū zū chē', 'taxi', 3],
+];
+
+const DAILY: readonly Row[] = [
+  ['cup', '杯子', 'bēi zi', 'cup', 1],
+  ['bowl', '碗', 'wǎn', 'bowl', 1],
+  ['spoon', '勺子', 'sháo zi', 'spoon', 2],
+  ['chair', '椅子', 'yǐ zi', 'chair', 2],
+  ['table', '桌子', 'zhuō zi', 'table', 2],
+  ['book', '书', 'shū', 'book', 1],
+  ['ball', '球', 'qiú', 'ball', 1],
+  ['umbrella', '伞', 'sǎn', 'umbrella', 3],
+  ['toothbrush', '牙刷', 'yá shuā', 'toothbrush', 3],
+  ['towel', '毛巾', 'máo jīn', 'towel', 2],
+  ['shoes', '鞋子', 'xié zi', 'shoes', 2],
+  ['hat', '帽子', 'mào zi', 'hat', 2],
+  ['clock', '钟表', 'zhōng biǎo', 'clock', 2],
+  ['key', '钥匙', 'yào shi', 'key', 2],
+  ['backpack', '书包', 'shū bāo', 'backpack', 2],
+];
+
+const BODY: readonly Row[] = [
+  ['eyes', '眼睛', 'yǎn jing', 'eyes', 2],
+  ['nose', '鼻子', 'bí zi', 'nose', 2],
+  ['mouth', '嘴巴', 'zuǐ ba', 'mouth', 2],
+  ['ears', '耳朵', 'ěr duo', 'ears', 2],
+  ['hand', '手', 'shǒu', 'hand', 1],
+  ['foot', '脚', 'jiǎo', 'foot', 1],
+  ['head', '头', 'tóu', 'head', 1],
+  ['hair', '头发', 'tóu fa', 'hair', 2],
+  ['teeth', '牙齿', 'yá chǐ', 'teeth', 2],
+  ['tummy', '肚子', 'dù zi', 'tummy', 2],
+  ['leg', '腿', 'tuǐ', 'leg', 1],
+  ['arm', '胳膊', 'gē bo', 'arm', 2],
+];
+
+const COLORS: readonly Row[] = [
+  ['red', '红色', 'hóng sè', 'red', 1],
+  ['yellow', '黄色', 'huáng sè', 'yellow', 1],
+  ['blue', '蓝色', 'lán sè', 'blue', 1],
+  ['green', '绿色', 'lǜ sè', 'green', 1],
+  ['orange', '橙色', 'chéng sè', 'orange', 2],
+  ['purple', '紫色', 'zǐ sè', 'purple', 2],
+  ['black', '黑色', 'hēi sè', 'black', 1],
+  ['white', '白色', 'bái sè', 'white', 1],
+];
+
+const SHAPES: readonly Row[] = [
+  ['circle', '圆形', 'yuán xíng', 'circle', 1],
+  ['square', '正方形', 'zhèng fāng xíng', 'square', 2],
+  ['triangle', '三角形', 'sān jiǎo xíng', 'triangle', 2],
+  ['rectangle', '长方形', 'cháng fāng xíng', 'rectangle', 2],
+  ['star', '星形', 'xīng xíng', 'star', 1],
+  ['heart', '心形', 'xīn xíng', 'heart', 1],
+  ['oval', '椭圆形', 'tuǒ yuán xíng', 'oval', 3],
+  ['diamond', '菱形', 'líng xíng', 'diamond', 3],
+];
+
+const NUMBERS: readonly Row[] = [
+  ['one', '一', 'yī', 'one', 1],
+  ['two', '二', 'èr', 'two', 1],
+  ['three', '三', 'sān', 'three', 1],
+  ['four', '四', 'sì', 'four', 2],
+  ['five', '五', 'wǔ', 'five', 2],
+  ['six', '六', 'liù', 'six', 2],
+  ['seven', '七', 'qī', 'seven', 2],
+  ['eight', '八', 'bā', 'eight', 2],
+  ['nine', '九', 'jiǔ', 'nine', 2],
+  ['ten', '十', 'shí', 'ten', 2],
+];
+
+/** v0.1.3 主题分类：家人 Family */
+const FAMILY: readonly Row[] = [
+  ['dad', '爸爸', 'bà ba', 'dad', 1],
+  ['mom', '妈妈', 'mā ma', 'mom', 1],
+  ['baby', '宝宝', 'bǎo bao', 'baby', 1],
+  ['grandpa', '爷爷', 'yé ye', 'grandpa', 2],
+  ['grandma', '奶奶', 'nǎi nai', 'grandma', 2],
+  ['brother', '哥哥', 'gē ge', 'brother', 2],
+  ['sister', '姐姐', 'jiě jie', 'sister', 2],
+  ['uncle', '叔叔', 'shū shu', 'uncle', 3],
+  ['aunt', '阿姨', 'ā yí', 'aunt', 3],
+  ['family', '家人', 'jiā rén', 'family', 2],
+  ['friend', '朋友', 'péng you', 'friend', 2],
+  ['teacher', '老师', 'lǎo shī', 'teacher', 2],
+];
+
+/** v0.1.3 主题分类：天气 Weather */
+const WEATHER: readonly Row[] = [
+  ['sunny', '晴天', 'qíng tiān', 'sunny', 1],
+  ['cloudy', '阴天', 'yīn tiān', 'cloudy', 2],
+  ['rainy', '下雨', 'xià yǔ', 'rainy', 2],
+  ['snowy', '下雪', 'xià xuě', 'snowy', 2],
+  ['windy', '刮风', 'guā fēng', 'windy', 2],
+  ['hot', '热', 'rè', 'hot', 1],
+  ['cold', '冷', 'lěng', 'cold', 1],
+  ['rainbow', '彩虹', 'cǎi hóng', 'rainbow', 2],
+  ['thunder', '打雷', 'dǎ léi', 'thunder', 3],
+  ['storm', '暴风雨', 'bào fēng yǔ', 'storm', 3],
+  ['foggy', '雾', 'wù', 'foggy', 3],
+  ['moon', '月亮', 'yuè liang', 'moon', 1],
+];
+
+/** v0.1.3 主题分类：动作 Verbs */
+const VERBS: readonly Row[] = [
+  ['run', '跑', 'pǎo', 'run', 1],
+  ['jump', '跳', 'tiào', 'jump', 1],
+  ['walk', '走', 'zǒu', 'walk', 1],
+  ['swim', '游泳', 'yóu yǒng', 'swim', 2],
+  ['eat', '吃', 'chī', 'eat', 1],
+  ['drink', '喝', 'hē', 'drink', 1],
+  ['sleep', '睡觉', 'shuì jiào', 'sleep', 1],
+  ['sing', '唱歌', 'chàng gē', 'sing', 2],
+  ['dance', '跳舞', 'tiào wǔ', 'dance', 2],
+  ['read', '读书', 'dú shū', 'read', 2],
+  ['write', '写字', 'xiě zì', 'write', 2],
+  ['draw', '画画', 'huà huà', 'draw', 2],
+];
+
+/** v0.1.3 主题分类：食物 Food */
+const FOOD: readonly Row[] = [
+  ['rice', '米饭', 'mǐ fàn', 'rice', 1],
+  ['noodles', '面条', 'miàn tiáo', 'noodles', 2],
+  ['bread', '面包', 'miàn bāo', 'bread', 1],
+  ['egg', '鸡蛋', 'jī dàn', 'egg', 1],
+  ['milk', '牛奶', 'niú nǎi', 'milk', 1],
+  ['water', '白开水', 'bái kāi shuǐ', 'water', 1],
+  ['fish-dish', '鱼肉', 'yú ròu', 'fish', 1],
+  ['meat', '肉', 'ròu', 'meat', 1],
+  ['cake', '蛋糕', 'dàn gāo', 'cake', 2],
+  ['candy', '糖果', 'táng guǒ', 'candy', 2],
+  ['juice', '果汁', 'guǒ zhī', 'juice', 2],
+  ['soup', '汤', 'tāng', 'soup', 1],
+];
+
+/** v0.1.3 主题分类：学校用品 School */
+const SCHOOL: readonly Row[] = [
+  ['pencil', '铅笔', 'qiān bǐ', 'pencil', 1],
+  ['pen', '钢笔', 'gāng bǐ', 'pen', 2],
+  ['ruler', '尺子', 'chǐ zi', 'ruler', 2],
+  ['eraser', '橡皮', 'xiàng pí', 'eraser', 2],
+  ['crayon', '蜡笔', 'là bǐ', 'crayon', 2],
+  ['notebook', '本子', 'běn zi', 'notebook', 2],
+  ['map', '地图', 'dì tú', 'map', 2],
+  ['blackboard', '黑板', 'hēi bǎn', 'blackboard', 2],
+  ['glue', '胶水', 'jiāo shuǐ', 'glue', 3],
+  ['scissors', '剪刀', 'jiǎn dāo', 'scissors', 3],
+  ['classroom', '教室', 'jiào shì', 'classroom', 3],
+  ['playground', '操场', 'cāo chǎng', 'playground', 3],
+];
+
+const CHARACTERS: readonly CharRow[] = [
+  // 一、数字（1–10）
+  ['yi', '一', 'yī', 'one', 1, ['一个', '第一'], 1],
+  ['er', '二', 'èr', 'two', 2, ['二月', '二十'], 1],
+  ['san', '三', 'sān', 'three', 3, ['三个', '三角'], 1],
+  ['si', '四', 'sì', 'four', 5, ['四月', '四方'], 1],
+  ['wu', '五', 'wǔ', 'five', 4, ['五个', '五月'], 1],
+  ['liu', '六', 'liù', 'six', 4, ['六月', '六一'], 1],
+  ['qi', '七', 'qī', 'seven', 2, ['七天', '七月'], 1],
+  ['ba', '八', 'bā', 'eight', 2, ['八月', '八只'], 1],
+  ['jiu', '九', 'jiǔ', 'nine', 2, ['九月', '九天'], 1],
+  ['shi', '十', 'shí', 'ten', 2, ['十个', '十月'], 1],
+
+  // 二、人与身体
+  ['ren', '人', 'rén', 'person', 2, ['大人', '人们'], 1],
+  ['kou', '口', 'kǒu', 'mouth', 3, ['开口', '人口'], 1],
+  ['shou', '手', 'shǒu', 'hand', 4, ['小手', '手心'], 1],
+  ['mu', '目', 'mù', 'eye', 5, ['目光', '耳目'], 2],
+  ['ear', '耳', 'ěr', 'ear', 6, ['耳朵', '木耳'], 2],
+  ['xin', '心', 'xīn', 'heart', 4, ['开心', '小心'], 2],
+  ['head', '头', 'tóu', 'head', 5, ['头发', '石头'], 2],
+  ['foot', '足', 'zú', 'foot', 7, ['足球', '手足'], 2],
+  ['li', '力', 'lì', 'strength', 2, ['用力', '力气'], 2],
+  ['nv', '女', 'nǚ', 'girl', 3, ['女儿', '女生'], 2],
+
+  // 三、自然
+  ['shan', '山', 'shān', 'mountain', 3, ['大山', '山上'], 1],
+  ['shui', '水', 'shuǐ', 'water', 4, ['喝水', '水果'], 1],
+  ['huo', '火', 'huǒ', 'fire', 4, ['火车', '大火'], 1],
+  ['ri', '日', 'rì', 'sun', 4, ['生日', '日子'], 2],
+  ['yue', '月', 'yuè', 'moon', 4, ['月亮', '月光'], 2],
+  ['wood', '木', 'mù', 'tree', 4, ['木头', '树木'], 2],
+  ['sky', '天', 'tiān', 'sky', 4, ['天空', '白天'], 1],
+  ['earth', '地', 'dì', 'ground', 6, ['地面', '大地'], 2],
+  ['stone', '石', 'shí', 'stone', 5, ['石头', '山石'], 2],
+  ['field', '田', 'tián', 'field', 5, ['田地', '水田'], 3],
+  ['cloud', '云', 'yún', 'cloud', 4, ['白云', '乌云'], 3],
+  ['rain', '雨', 'yǔ', 'rain', 8, ['下雨', '雨天'], 3],
+  ['wind', '风', 'fēng', 'wind', 4, ['大风', '风筝'], 3],
+
+  // 四、动物与植物
+  ['niu', '牛', 'niú', 'cow', 4, ['牛奶', '小牛'], 1],
+  ['yang', '羊', 'yáng', 'sheep', 6, ['山羊', '羊毛'], 1],
+  ['horse', '马', 'mǎ', 'horse', 3, ['小马', '马车'], 1],
+  ['bird', '鸟', 'niǎo', 'bird', 5, ['小鸟', '鸟窝'], 2],
+  ['fish', '鱼', 'yú', 'fish', 8, ['金鱼', '鱼儿'], 2],
+  ['insect', '虫', 'chóng', 'insect', 6, ['虫子', '小虫'], 2],
+  ['flower', '花', 'huā', 'flower', 7, ['花朵', '红花'], 2],
+  ['grass', '草', 'cǎo', 'grass', 9, ['小草', '草地'], 3],
+  ['bamboo', '竹', 'zhú', 'bamboo', 6, ['竹子', '竹叶'], 3],
+  ['rice', '米', 'mǐ', 'rice', 6, ['大米', '米饭'], 2],
+
+  // 五、大小与方位
+  ['da', '大', 'dà', 'big', 3, ['大人', '大小'], 1],
+  ['xiao', '小', 'xiǎo', 'small', 3, ['小马', '大小'], 1],
+  ['shang', '上', 'shàng', 'up', 3, ['上面', '上下'], 1],
+  ['xia', '下', 'xià', 'down', 3, ['下面', '上下'], 1],
+  ['duo', '多', 'duō', 'many', 6, ['多少', '很多'], 2],
+  ['shao', '少', 'shǎo', 'few', 4, ['多少', '很少'], 2],
+  ['gao', '高', 'gāo', 'high', 10, ['高兴', '高高'], 2],
+  ['zhong', '中', 'zhōng', 'middle', 4, ['中间', '中国'], 2],
+
+  // 六、家人与动作
+  ['wo', '我', 'wǒ', 'I', 7, ['我们', '自我'], 1],
+  ['ni', '你', 'nǐ', 'you', 7, ['你们', '你好'], 1],
+  ['ta', '他', 'tā', 'he', 5, ['他们', '其他'], 1],
+  ['baba', '爸', 'bà', 'dad', 8, ['爸爸', '爸妈'], 1],
+  ['mama', '妈', 'mā', 'mom', 6, ['妈妈', '爸妈'], 1],
+  ['walk', '走', 'zǒu', 'walk', 7, ['走路', '行走'], 2],
+  ['run', '跑', 'pǎo', 'run', 12, ['跑步', '跑车'], 2],
+  ['look', '看', 'kàn', 'look', 9, ['看见', '看书'], 2],
+  ['listen', '听', 'tīng', 'listen', 7, ['听话', '听见'], 2],
+  ['speak', '说', 'shuō', 'speak', 9, ['说话', '说明'], 2],
+  ['eat', '吃', 'chī', 'eat', 6, ['吃饭', '好吃'], 2],
+  ['drink', '喝', 'hē', 'drink', 12, ['喝水', '喝茶'], 2],
+  ['sit', '坐', 'zuò', 'sit', 7, ['坐下', '坐车'], 2],
+  ['come', '来', 'lái', 'come', 7, ['出来', '回来'], 3],
+  ['go', '去', 'qù', 'go', 5, ['回去', '去年'], 3],
+
+  // 七、颜色
+  ['red', '红', 'hóng', 'red', 6, ['红色', '红花'], 1],
+  ['yellow', '黄', 'huáng', 'yellow', 11, ['黄色', '黄牛'], 2],
+  ['blue', '蓝', 'lán', 'blue', 13, ['蓝色', '蓝天'], 2],
+  ['white', '白', 'bái', 'white', 5, ['白色', '白云'], 1],
+  ['black', '黑', 'hēi', 'black', 12, ['黑色', '黑夜'], 2],
+
+  // 八、常用字
+  ['good', '好', 'hǎo', 'good', 6, ['好吃', '你好'], 1],
+  ['door', '门', 'mén', 'door', 3, ['大门', '开门'], 2],
+  ['car', '车', 'chē', 'car', 4, ['汽车', '火车'], 1],
+  ['book', '书', 'shū', 'book', 4, ['看书', '书本'], 1],
+  ['home', '家', 'jiā', 'home', 10, ['家人', '回家'], 2],
+
+  // 九、方位与距离（v0.1.3：补齐上下左右中）
+  ['left', '左', 'zuǒ', 'left', 5, ['左边', '左手'], 1],
+  ['right', '右', 'yòu', 'right', 5, ['右边', '右手'], 1],
+  ['front', '前', 'qián', 'front', 9, ['前面', '从前'], 1],
+  ['behind', '后', 'hòu', 'back', 6, ['后面', '以后'], 1],
+  ['in', '里', 'lǐ', 'inside', 7, ['里面', '家里'], 1],
+  ['out', '外', 'wài', 'outside', 5, ['外面', '外公'], 2],
+  ['east', '东', 'dōng', 'east', 5, ['东方', '东西'], 2],
+  ['south', '南', 'nán', 'south', 9, ['南方', '南边'], 2],
+  ['west', '西', 'xī', 'west', 6, ['西方', '西边'], 2],
+  ['north', '北', 'běi', 'north', 5, ['北方', '北边'], 2],
+  ['near', '近', 'jìn', 'near', 7, ['附近', '最近'], 3],
+  ['far', '远', 'yuǎn', 'far', 7, ['远方', '远近'], 3],
+  ['side', '边', 'biān', 'side', 5, ['旁边', '边上'], 2],
+  ['between', '间', 'jiān', 'between', 7, ['中间', '时间'], 2],
+  ['return', '回', 'huí', 'return', 6, ['回家', '回来'], 1],
+
+  // 十、家人与称呼（v0.1.3：补齐兄弟姐妹、爷奶、她）
+  ['ge', '哥', 'gē', 'brother', 10, ['哥哥', '大哥'], 1],
+  ['di', '弟', 'dì', 'younger brother', 7, ['弟弟', '兄弟'], 1],
+  ['jie', '姐', 'jiě', 'sister', 8, ['姐姐', '姐妹'], 1],
+  ['mei', '妹', 'mèi', 'younger sister', 8, ['妹妹', '姐妹'], 1],
+  ['ye', '爷', 'yé', 'grandpa', 6, ['爷爷', '老爷'], 2],
+  ['nai', '奶', 'nǎi', 'grandma', 5, ['奶奶', '牛奶'], 2],
+  ['she', '她', 'tā', 'she', 6, ['她们', '她的'], 2],
+  ['child', '子', 'zǐ', 'child', 3, ['儿子', '孩子'], 2],
+  ['son', '儿', 'ér', 'son', 2, ['儿子', '儿童'], 1],
+  ['boy', '男', 'nán', 'boy', 7, ['男孩', '男女'], 1],
+  ['friend', '友', 'yǒu', 'friend', 4, ['朋友', '友好'], 2],
+  ['mate', '朋', 'péng', 'friend', 8, ['朋友', '亲朋'], 2],
+  ['love', '爱', 'ài', 'love', 10, ['爱心', '可爱'], 2],
+  ['family', '亲', 'qīn', 'family', 9, ['亲人', '父亲'], 2],
+  ['old', '老', 'lǎo', 'old', 6, ['老人', '老师'], 1],
+
+  // 十一、动作（v0.1.3：补齐走跑跳、哭笑睡）
+  ['jump', '跳', 'tiào', 'jump', 13, ['跳高', '跳绳'], 2],
+  ['hug', '抱', 'bào', 'hug', 8, ['抱抱', '拥抱'], 2],
+  ['laugh', '笑', 'xiào', 'laugh', 10, ['笑脸', '大笑'], 2],
+  ['cry', '哭', 'kū', 'cry', 10, ['哭声', '大哭'], 2],
+  ['sleep', '睡', 'shuì', 'sleep', 13, ['睡觉', '午睡'], 2],
+  ['rise', '起', 'qǐ', 'rise', 10, ['起床', '一起'], 2],
+  ['stand', '站', 'zhàn', 'stand', 10, ['站立', '车站'], 3],
+  ['hold', '拿', 'ná', 'hold', 10, ['拿起', '拿走'], 2],
+  ['put', '放', 'fàng', 'put', 8, ['放下', '放学'], 3],
+  ['open', '开', 'kāi', 'open', 4, ['打开', '开心'], 1],
+  ['close', '关', 'guān', 'close', 6, ['关门', '关心'], 2],
+  ['write', '写', 'xiě', 'write', 5, ['写字', '书写'], 2],
+  ['draw', '画', 'huà', 'draw', 8, ['画画', '图画'], 2],
+  ['sing', '唱', 'chàng', 'sing', 11, ['唱歌', '合唱'], 2],
+  ['play', '玩', 'wán', 'play', 8, ['玩具', '好玩'], 1],
+
+  // 十二、生活用品与衣物
+  ['clothes', '衣', 'yī', 'clothes', 6, ['衣服', '上衣'], 1],
+  ['shoe', '鞋', 'xié', 'shoes', 15, ['鞋子', '皮鞋'], 2],
+  ['hat', '帽', 'mào', 'hat', 12, ['帽子', '戴帽'], 2],
+  ['bed', '床', 'chuáng', 'bed', 7, ['小床', '起床'], 1],
+  ['lamp', '灯', 'dēng', 'lamp', 6, ['电灯', '台灯'], 2],
+  ['desk', '桌', 'zhuō', 'table', 10, ['桌子', '书桌'], 2],
+  ['seat', '椅', 'yǐ', 'chair', 12, ['椅子', '桌椅'], 2],
+  ['bowl', '碗', 'wǎn', 'bowl', 13, ['饭碗', '碗筷'], 2],
+  ['chopsticks', '筷', 'kuài', 'chopsticks', 13, ['筷子', '碗筷'], 3],
+  ['wash', '洗', 'xǐ', 'wash', 9, ['洗手', '洗澡'], 2],
+  ['wear', '穿', 'chuān', 'wear', 9, ['穿衣', '穿鞋'], 2],
+  ['takeoff', '脱', 'tuō', 'take off', 11, ['脱下', '脱衣'], 3],
+  ['room', '房', 'fáng', 'room', 8, ['房子', '房间'], 1],
+  ['window', '窗', 'chuāng', 'window', 12, ['窗户', '窗外'], 3],
+  ['garden', '园', 'yuán', 'garden', 7, ['公园', '花园'], 2],
+
+  // 十三、自然与季节（v0.1.3：补齐绿、春夏秋冬）
+  ['green', '绿', 'lǜ', 'green', 11, ['绿色', '绿叶'], 2],
+  ['spring', '春', 'chūn', 'spring', 9, ['春天', '春风'], 2],
+  ['summer', '夏', 'xià', 'summer', 10, ['夏天', '夏日'], 2],
+  ['autumn', '秋', 'qiū', 'autumn', 9, ['秋天', '秋风'], 2],
+  ['winter', '冬', 'dōng', 'winter', 5, ['冬天', '冬雪'], 2],
+  ['snow', '雪', 'xuě', 'snow', 11, ['下雪', '雪花'], 2],
+  ['thunder', '雷', 'léi', 'thunder', 13, ['打雷', '雷雨'], 3],
+  ['star', '星', 'xīng', 'star', 9, ['星星', '星空'], 2],
+  ['light', '光', 'guāng', 'light', 6, ['阳光', '月光'], 2],
+  ['sea', '海', 'hǎi', 'sea', 10, ['大海', '海边'], 3],
+  ['river', '河', 'hé', 'river', 8, ['小河', '河水'], 3],
+  ['soil', '土', 'tǔ', 'soil', 3, ['土地', '泥土'], 2],
+  ['forest', '林', 'lín', 'forest', 8, ['树林', '森林'], 3],
+  ['leaf', '叶', 'yè', 'leaf', 5, ['叶子', '树叶'], 2],
+  ['fruit', '果', 'guǒ', 'fruit', 8, ['水果', '果树'], 1],
+
+  // 十四、饮食与味道（v0.1.4：餐桌高频字）
+  ['meal', '饭', 'fàn', 'rice', 7, ['吃饭', '米饭'], 1],
+  ['dish', '菜', 'cài', 'dish', 11, ['蔬菜', '白菜'], 2],
+  ['meat', '肉', 'ròu', 'meat', 6, ['牛肉', '肉丸'], 2],
+  ['egg', '蛋', 'dàn', 'egg', 11, ['鸡蛋', '蛋花'], 2],
+  ['sugar', '糖', 'táng', 'sugar', 16, ['糖果', '白糖'], 3],
+  ['noodle', '面', 'miàn', 'noodles', 9, ['面条', '见面'], 2],
+  ['bun', '包', 'bāo', 'bun', 5, ['面包', '书包'], 2],
+  ['soup', '汤', 'tāng', 'soup', 6, ['喝汤', '汤圆'], 2],
+  ['tea', '茶', 'chá', 'tea', 9, ['喝茶', '茶叶'], 2],
+  ['sweet', '甜', 'tián', 'sweet', 11, ['香甜', '甜点'], 2],
+  ['sour', '酸', 'suān', 'sour', 14, ['酸奶', '酸味'], 3],
+  ['hungry', '饿', 'è', 'hungry', 10, ['饿了', '饥饿'], 3],
+  ['full', '饱', 'bǎo', 'full', 8, ['吃饱', '饱了'], 2],
+  ['oil', '油', 'yóu', 'oil', 8, ['加油', '花生油'], 3],
+  ['salt', '盐', 'yán', 'salt', 10, ['食盐', '盐水'], 3],
+
+  // 十五、学习与常用（v0.1.4：入学准备）
+  ['count', '数', 'shù', 'number', 13, ['数字', '数数'], 2],
+  ['word', '字', 'zì', 'word', 6, ['汉字', '写字'], 1],
+  ['study', '学', 'xué', 'study', 8, ['学生', '上学'], 1],
+  ['practice', '习', 'xí', 'practice', 3, ['学习', '复习'], 2],
+  ['text', '文', 'wén', 'text', 4, ['中文', '语文'], 2],
+  ['name', '名', 'míng', 'name', 6, ['名字', '有名'], 2],
+  ['self', '自', 'zì', 'self', 6, ['自己', '自然'], 2],
+  ['time', '时', 'shí', 'time', 7, ['时间', '小时'], 2],
+  ['matter', '事', 'shì', 'thing', 8, ['事情', '故事'], 3],
+  ['speech', '话', 'huà', 'speech', 8, ['说话', '电话'], 2],
+  ['ask', '问', 'wèn', 'ask', 6, ['问好', '问题'], 2],
+  ['same', '同', 'tóng', 'same', 6, ['同样', '相同'], 2],
+  ['other', '别', 'bié', 'other', 7, ['别人', '分别'], 3],
+  ['howmany', '几', 'jǐ', 'how many', 2, ['几个', '几天'], 1],
+  ['age', '岁', 'suì', 'age', 6, ['几岁', '岁月'], 2],
+
+  // 十六、时间与数量（v0.1.6：补齐年月、今早晚午，百千万与常用量词）
+  ['nian', '年', 'nián', 'year', 6, ['新年', '今年'], 1],
+  ['jin', '今', 'jīn', 'today', 4, ['今天', '今年'], 1],
+  ['zao', '早', 'zǎo', 'early', 6, ['早上', '早起'], 1],
+  ['evening', '晚', 'wǎn', 'evening', 11, ['晚上', '晚安'], 1],
+  ['noon', '午', 'wǔ', 'noon', 4, ['中午', '上午'], 2],
+  ['bai', '百', 'bǎi', 'hundred', 6, ['一百', '百花'], 2],
+  ['qian', '千', 'qiān', 'thousand', 3, ['一千', '千万'], 2],
+  ['wan', '万', 'wàn', 'ten thousand', 3, ['一万', '万里'], 2],
+  ['unit', '个', 'gè', 'piece', 3, ['一个', '几个'], 1],
+  ['zhi', '只', 'zhī', 'single', 5, ['一只', '只有'], 1],
+  ['tiao', '条', 'tiáo', 'strip', 7, ['一条', '面条'], 1],
+  ['bunch', '把', 'bǎ', 'handful', 7, ['一把', '把手'], 2],
+  ['jian', '件', 'jiàn', 'item', 6, ['一件', '物件'], 2],
+  ['shuang', '双', 'shuāng', 'pair', 4, ['一双', '双手'], 1],
+  ['ban', '半', 'bàn', 'half', 5, ['一半', '半天'], 2],
+
+  // 十七、家人与五官（v0.1.6：补齐父母与眼鼻嘴牙舌、脚腿指背身）
+  ['fu', '父', 'fù', 'father', 4, ['父亲', '父母'], 2],
+  ['mother', '母', 'mǔ', 'mother', 5, ['母亲', '父母'], 2],
+  ['yan', '眼', 'yǎn', 'eye', 11, ['眼睛', '眼泪'], 1],
+  ['bi', '鼻', 'bí', 'nose', 14, ['鼻子', '鼻尖'], 1],
+  ['zui', '嘴', 'zuǐ', 'mouth', 16, ['嘴巴', '张嘴'], 1],
+  ['ya', '牙', 'yá', 'tooth', 4, ['牙齿', '刷牙'], 1],
+  ['tongue', '舌', 'shé', 'tongue', 6, ['舌头', '舌尖'], 2],
+  ['jiao', '脚', 'jiǎo', 'foot', 11, ['小脚', '脚丫'], 1],
+  ['tui', '腿', 'tuǐ', 'leg', 13, ['小腿', '大腿'], 1],
+  ['finger', '指', 'zhǐ', 'finger', 9, ['手指', '指头'], 2],
+  ['bei', '背', 'bèi', 'back', 9, ['后背', '背包'], 2],
+  ['shen', '身', 'shēn', 'body', 7, ['身体', '全身'], 2],
+
+  // 十八、常见动物（v0.1.6：家禽家畜与猛兽）
+  ['chicken', '鸡', 'jī', 'chicken', 7, ['小鸡', '公鸡'], 1],
+  ['duck', '鸭', 'yā', 'duck', 10, ['小鸭', '鸭子'], 1],
+  ['e', '鹅', 'é', 'goose', 12, ['白鹅', '天鹅'], 1],
+  ['mao', '猫', 'māo', 'cat', 11, ['小猫', '猫咪'], 1],
+  ['gou', '狗', 'gǒu', 'dog', 8, ['小狗', '狗狗'], 1],
+  ['zhu', '猪', 'zhū', 'pig', 11, ['小猪', '猪肉'], 1],
+  ['tu', '兔', 'tù', 'rabbit', 8, ['小兔', '兔子'], 1],
+  ['tiger', '虎', 'hǔ', 'tiger', 8, ['老虎', '虎牙'], 2],
+  ['lion', '狮', 'shī', 'lion', 9, ['狮子', '小狮'], 2],
+  ['elephant', '象', 'xiàng', 'elephant', 11, ['大象', '象牙'], 2],
+  ['deer', '鹿', 'lù', 'deer', 11, ['小鹿', '梅花鹿'], 2],
+  ['mouse', '鼠', 'shǔ', 'mouse', 13, ['老鼠', '松鼠'], 2],
+
+  // 十九、交通与地点（v0.1.6：船飞机与路桥、城乡湖江）
+  ['boat', '船', 'chuán', 'boat', 11, ['小船', '轮船'], 1],
+  ['fei', '飞', 'fēi', 'fly', 3, ['飞机', '飞鸟'], 1],
+  ['ji', '机', 'jī', 'machine', 6, ['飞机', '机器'], 2],
+  ['lu', '路', 'lù', 'road', 13, ['马路', '走路'], 1],
+  ['qiao', '桥', 'qiáo', 'bridge', 10, ['大桥', '小桥'], 1],
+  ['street', '街', 'jiē', 'street', 12, ['大街', '街道'], 2],
+  ['cheng', '城', 'chéng', 'city', 9, ['城市', '城墙'], 2],
+  ['xiang', '乡', 'xiāng', 'village', 3, ['家乡', '乡村'], 2],
+  ['hu', '湖', 'hú', 'lake', 12, ['湖水', '湖边'], 2],
+  ['jiang', '江', 'jiāng', 'river', 6, ['长江', '江水'], 2],
+  ['sha', '沙', 'shā', 'sand', 7, ['沙子', '沙滩'], 2],
+
+  // 二十、反义与形容（v0.1.6：长短快慢冷热新旧美丑）
+  ['chang', '长', 'cháng', 'long', 4, ['长大', '长短'], 1],
+  ['duan', '短', 'duǎn', 'short', 12, ['短小', '长短'], 1],
+  ['kuai', '快', 'kuài', 'fast', 7, ['快乐', '快跑'], 1],
+  ['man', '慢', 'màn', 'slow', 14, ['慢慢', '快慢'], 1],
+  ['leng', '冷', 'lěng', 'cold', 7, ['冷水', '寒冷'], 1],
+  ['re', '热', 'rè', 'hot', 10, ['热水', '热天'], 1],
+  ['new', '新', 'xīn', 'new', 13, ['新年', '新衣'], 1],
+  ['jiu-old', '旧', 'jiù', 'old', 5, ['旧书', '旧衣'], 1],
+  ['pretty', '美', 'měi', 'beautiful', 9, ['美丽', '美好'], 2],
+  ['chou', '丑', 'chǒu', 'ugly', 4, ['小丑', '丑陋'], 2],
+];
+
+/** v0.2 诗词卡：一首一张卡。正文按句分行：七言每行一句，五言每行两句，词按句分行 */
+interface PoemRow {
+  slug: string;
+  zh: string;
+  pinyin: string;
+  en: string;
+  author: string;
+  dynasty: string;
+  lines: readonly string[];
+  translation: string;
+  difficulty: Difficulty;
+}
+
+const POEMS: readonly PoemRow[] = [
+  // —— 唐诗 20 首 ——
+  { slug: 'yonge', zh: '咏鹅', pinyin: 'yǒng é', en: 'Goose Song', author: '骆宾王', dynasty: '唐', difficulty: 1,
+    lines: ['鹅，鹅，鹅，曲项向天歌。', '白毛浮绿水，红掌拨清波。'],
+    translation: '大白鹅弯着脖子朝天唱歌，白羽毛浮在绿水上，红脚掌拨开清波。' },
+  { slug: 'jingyesi', zh: '静夜思', pinyin: 'jìng yè sī', en: 'Quiet Night', author: '李白', dynasty: '唐', difficulty: 1,
+    lines: ['床前明月光，疑是地上霜。', '举头望明月，低头思故乡。'],
+    translation: '床前洒满明亮的月光，像地上的白霜；抬头望见明月，低头就想起了故乡。' },
+  { slug: 'chunxiao', zh: '春晓', pinyin: 'chūn xiǎo', en: 'Spring Dawn', author: '孟浩然', dynasty: '唐', difficulty: 1,
+    lines: ['春眠不觉晓，处处闻啼鸟。', '夜来风雨声，花落知多少。'],
+    translation: '春夜睡得香甜，不知不觉天亮了，到处听见鸟叫；想起夜里的风雨，不知落了多少花。' },
+  { slug: 'minnong', zh: '悯农', pinyin: 'mǐn nóng', en: 'Toiling Farmers', author: '李绅', dynasty: '唐', difficulty: 1,
+    lines: ['锄禾日当午，汗滴禾下土。', '谁知盘中餐，粒粒皆辛苦。'],
+    translation: '农民正午在田里锄草，汗水滴进泥土；谁知道碗里的饭，每一粒都来得辛苦。' },
+  { slug: 'guanquelou', zh: '登鹳雀楼', pinyin: 'dēng guàn què lóu', en: 'Stork Tower', author: '王之涣', dynasty: '唐', difficulty: 1,
+    lines: ['白日依山尽，黄河入海流。', '欲穷千里目，更上一层楼。'],
+    translation: '太阳靠着山落下，黄河向大海流去；想看得更远，就要再登上一层楼。' },
+  { slug: 'yongliu', zh: '咏柳', pinyin: 'yǒng liǔ', en: 'Willow Song', author: '贺知章', dynasty: '唐', difficulty: 2,
+    lines: ['碧玉妆成一树高，', '万条垂下绿丝绦。', '不知细叶谁裁出，', '二月春风似剪刀。'],
+    translation: '高高的柳树像碧玉装扮成的，垂下万条绿丝带；细叶是谁裁出的？原来二月春风像剪刀。' },
+  { slug: 'jiangxue', zh: '江雪', pinyin: 'jiāng xuě', en: 'River Snow', author: '柳宗元', dynasty: '唐', difficulty: 1,
+    lines: ['千山鸟飞绝，万径人踪灭。', '孤舟蓑笠翁，独钓寒江雪。'],
+    translation: '群山不见飞鸟，所有小路都没有脚印；只有一位披蓑衣戴斗笠的老人，独自在寒江上钓鱼。' },
+  { slug: 'lushanpubu', zh: '望庐山瀑布', pinyin: 'wàng lú shān pù bù', en: 'Lushan Waterfall', author: '李白', dynasty: '唐', difficulty: 2,
+    lines: ['日照香炉生紫烟，', '遥看瀑布挂前川。', '飞流直下三千尺，', '疑是银河落九天。'],
+    translation: '阳光照着香炉峰升起紫烟，远看瀑布像挂在山前；水流飞泻直下三千尺，像银河从九天落下。' },
+  { slug: 'gulangyuexing', zh: '古朗月行', pinyin: 'gǔ lǎng yuè xíng', en: 'Old Moon Song', author: '李白', dynasty: '唐', difficulty: 2,
+    lines: ['小时不识月，呼作白玉盘。', '又疑瑶台镜，飞在青云端。'],
+    translation: '小时候不认识月亮，把它叫作白玉盘；又怀疑是仙镜，飞在青云之上。' },
+  { slug: 'baidicheng', zh: '早发白帝城', pinyin: 'zǎo fā bái dì chéng', en: 'Leaving Baidi', author: '李白', dynasty: '唐', difficulty: 2,
+    lines: ['朝辞白帝彩云间，', '千里江陵一日还。', '两岸猿声啼不住，', '轻舟已过万重山。'],
+    translation: '清晨告别彩云中的白帝城，一天就回到千里外的江陵；两岸猿声还在叫，小船已过万重山。' },
+  { slug: 'xiangsi', zh: '相思', pinyin: 'xiāng sī', en: 'Love Seeds', author: '王维', dynasty: '唐', difficulty: 1,
+    lines: ['红豆生南国，春来发几枝。', '愿君多采撷，此物最相思。'],
+    translation: '红豆生长在南方，春天来了会发几枝；希望你多采一些，它最能寄托思念。' },
+  { slug: 'hua', zh: '画', pinyin: 'huà', en: 'A Painting', author: '王维', dynasty: '唐', difficulty: 1,
+    lines: ['远看山有色，近听水无声。', '春去花还在，人来鸟不惊。'],
+    translation: '远看山有颜色，近听水没有声音；春天过去花还开着，人走来鸟也不惊飞。' },
+  { slug: 'chishang', zh: '池上', pinyin: 'chí shàng', en: 'On the Pond', author: '白居易', dynasty: '唐', difficulty: 1,
+    lines: ['小娃撑小艇，偷采白莲回。', '不解藏踪迹，浮萍一道开。'],
+    translation: '小孩子撑着小船，偷偷采了白莲回来；他不懂得藏起踪迹，浮萍被划开一道水路。' },
+  { slug: 'luchai', zh: '鹿柴', pinyin: 'lù zhài', en: 'Deer Park', author: '王维', dynasty: '唐', difficulty: 1,
+    lines: ['空山不见人，但闻人语响。', '返景入深林，复照青苔上。'],
+    translation: '空山里看不见人，只听见有人说话的声音；夕阳返照进深林，又照在青苔上。' },
+  { slug: 'shanxing', zh: '山行', pinyin: 'shān xíng', en: 'Autumn Hills', author: '杜牧', dynasty: '唐', difficulty: 2,
+    lines: ['远上寒山石径斜，', '白云生处有人家。', '停车坐爱枫林晚，', '霜叶红于二月花。'],
+    translation: '沿石径登上寒山，白云生处有人家；停车只因爱这枫林晚景，霜叶比二月花还红。' },
+  { slug: 'jueju', zh: '绝句', pinyin: 'jué jù', en: 'Quatrain', author: '杜甫', dynasty: '唐', difficulty: 2,
+    lines: ['两个黄鹂鸣翠柳，', '一行白鹭上青天。', '窗含西岭千秋雪，', '门泊东吴万里船。'],
+    translation: '两只黄鹂在翠柳间鸣叫，一行白鹭飞上青天；窗外是西岭千年积雪，门前停着东吴来的船。' },
+  { slug: 'xunyinzhe', zh: '寻隐者不遇', pinyin: 'xún yǐn zhě bù yù', en: 'Seeking the Hermit', author: '贾岛', dynasty: '唐', difficulty: 1,
+    lines: ['松下问童子，言师采药去。', '只在此山中，云深不知处。'],
+    translation: '在松树下问童子，他说师父采药去了；只知在这座山里，云雾深浓不知在何处。' },
+  { slug: 'fengqiaoyebo', zh: '枫桥夜泊', pinyin: 'fēng qiáo yè bó', en: 'Maple Bridge', author: '张继', dynasty: '唐', difficulty: 2,
+    lines: ['月落乌啼霜满天，', '江枫渔火对愁眠。', '姑苏城外寒山寺，', '夜半钟声到客船。'],
+    translation: '月落乌啼霜气满天，江边枫树与渔火伴我难眠；姑苏城外寒山寺，半夜钟声传到客船。' },
+  { slug: 'tianmenshan', zh: '望天门山', pinyin: 'wàng tiān mén shān', en: 'Tianmen Mountain', author: '李白', dynasty: '唐', difficulty: 2,
+    lines: ['天门中断楚江开，', '碧水东流至此回。', '两岸青山相对出，', '孤帆一片日边来。'],
+    translation: '天门山被楚江从中断开，碧水东流到这里回旋；两岸青山相对而出，一片孤帆从日边驶来。' },
+  { slug: 'huixiang', zh: '回乡偶书', pinyin: 'huí xiāng ǒu shū', en: 'Going Home', author: '贺知章', dynasty: '唐', difficulty: 2,
+    lines: ['少小离家老大回，', '乡音无改鬓毛衰。', '儿童相见不相识，', '笑问客从何处来。'],
+    translation: '年少离家到年老才回，乡音没改鬓发已白；孩子们见了都不认识，笑着问客人从哪里来。' },
+
+  // —— 宋词 10 首 ——
+  { slug: 'rumengling', zh: '如梦令·常记溪亭日暮', pinyin: 'rú mèng lìng', en: 'Like a Dream', author: '李清照', dynasty: '宋', difficulty: 3,
+    lines: ['常记溪亭日暮，沉醉不知归路。', '兴尽晚回舟，误入藕花深处。', '争渡，争渡，惊起一滩鸥鹭。'],
+    translation: '常想起在溪亭玩到日落，醉得忘了回家的路；尽兴后晚归，误入荷花深处，抢着划船，惊起满滩鸥鹭。' },
+  { slug: 'qingpingyue', zh: '清平乐·村居', pinyin: 'qīng píng yuè', en: 'Rural Life', author: '辛弃疾', dynasty: '宋', difficulty: 2,
+    lines: ['茅檐低小，溪上青青草。', '醉里吴音相媚好，', '白发谁家翁媪？', '大儿锄豆溪东，中儿正织鸡笼。', '最喜小儿无赖，溪头卧剥莲蓬。'],
+    translation: '茅屋低矮，溪边长满青草；白发老夫妻用吴语说笑。大儿在溪东锄豆，二儿编鸡笼，最可爱的小儿趴在溪头剥莲蓬。' },
+  { slug: 'xijiangyue', zh: '西江月·夜行黄沙道中', pinyin: 'xī jiāng yuè', en: 'Moonlit Night', author: '辛弃疾', dynasty: '宋', difficulty: 3,
+    lines: ['明月别枝惊鹊，清风半夜鸣蝉。', '稻花香里说丰年，', '听取蛙声一片。', '七八个星天外，两三点雨山前。', '旧时茅店社林边，', '路转溪桥忽见。'],
+    translation: '明月升起惊飞鹊鸟，清风半夜送来蝉鸣；稻花香里说丰年，蛙声一片。天边七八颗星，山前两三点雨，转过溪桥忽然看见旧时茅店。' },
+  { slug: 'huanxisha', zh: '浣溪沙·一曲新词酒一杯', pinyin: 'huàn xī shā', en: 'Washing Silk', author: '晏殊', dynasty: '宋', difficulty: 3,
+    lines: ['一曲新词酒一杯，', '去年天气旧亭台。', '夕阳西下几时回？', '无可奈何花落去，', '似曾相识燕归来。', '小园香径独徘徊。'],
+    translation: '听一曲新词饮一杯酒，还是去年的天气旧日的亭台，夕阳西下何时能回？花落无奈，燕归似曾相识，独自在小园香径徘徊。' },
+  { slug: 'caisangzi', zh: '采桑子·轻舟短棹西湖好', pinyin: 'cǎi sāng zǐ', en: 'Picking Mulberries', author: '欧阳修', dynasty: '宋', difficulty: 3,
+    lines: ['轻舟短棹西湖好，绿水逶迤。', '芳草长堤，隐隐笙歌处处随。', '无风水面琉璃滑，不觉船移。', '微动涟漪，惊起沙禽掠岸飞。'],
+    translation: '轻舟短桨，西湖风光正好，绿水曲折；芳草长堤，处处笙歌相随。无风时水面如琉璃，船不觉移动，微波荡起惊飞沙鸟。' },
+  { slug: 'xiangjianhuan', zh: '相见欢·无言独上西楼', pinyin: 'xiāng jiàn huān', en: 'Joy of Meeting', author: '李煜', dynasty: '五代', difficulty: 3,
+    lines: ['无言独上西楼，月如钩。', '寂寞梧桐深院锁清秋。', '剪不断，理还乱，是离愁。', '别是一般滋味在心头。'],
+    translation: '默默无言独自登上西楼，一弯月如钩；寂寞的梧桐锁住深院清秋。离愁像乱麻剪不断理还乱，另有一番滋味在心头。' },
+  { slug: 'huanxisha-qingquan', zh: '浣溪沙·游蕲水清泉寺', pinyin: 'huàn xī shā', en: 'Clear Spring', author: '苏轼', dynasty: '宋', difficulty: 3,
+    lines: ['山下兰芽短浸溪，', '松间沙路净无泥。', '萧萧暮雨子规啼。', '谁道人生无再少？', '门前流水尚能西！', '休将白发唱黄鸡。'],
+    translation: '山下兰芽浸在溪水里，松间沙路干净无泥，傍晚雨中杜鹃啼叫。谁说人生不能再少年？门前流水还能向西流，不要对白发叹息。' },
+  { slug: 'yulouchun', zh: '玉楼春·春景', pinyin: 'yù lóu chūn', en: 'Jade Tower Spring', author: '宋祁', dynasty: '宋', difficulty: 3,
+    lines: ['东城渐觉风光好，', '縠皱波纹迎客棹。', '绿杨烟外晓寒轻，', '红杏枝头春意闹。', '浮生长恨欢娱少，', '肯爱千金轻一笑。', '为君持酒劝斜阳，', '且向花间留晚照。'],
+    translation: '东城风光渐好，湖面波纹迎客船；绿杨外晓寒轻，红杏枝头春意正闹。人生常恨欢乐太少，为君持酒劝斜阳，且留住花间晚照。' },
+  { slug: 'dianjiangchun', zh: '点绛唇·蹴罢秋千', pinyin: 'diǎn jiàng chún', en: 'Rouged Lips', author: '李清照', dynasty: '宋', difficulty: 3,
+    lines: ['蹴罢秋千，起来慵整纤纤手。', '露浓花瘦，薄汗轻衣透。', '见客入来，袜刬金钗溜。', '和羞走，', '倚门回首，却把青梅嗅。'],
+    translation: '荡完秋千，懒得揉着纤纤的手；露重花瘦，薄汗湿了衣装。见有客人来，匆忙躲开，金钗滑落；含羞跑开，又倚门回望，嗅着青梅。' },
+  { slug: 'huanxisha-zaohua', zh: '浣溪沙·簌簌衣巾落枣花', pinyin: 'huàn xī shā', en: 'Falling Dates', author: '苏轼', dynasty: '宋', difficulty: 3,
+    lines: ['簌簌衣巾落枣花，', '村南村北响缫车。', '牛衣古柳卖黄瓜。', '酒困路长惟欲睡，', '日高人渴漫思茶。', '敲门试问野人家。'],
+    translation: '枣花簌簌落在衣巾上，村南村北响起缫车声，古柳下有人卖黄瓜。路长人困，日高口渴想喝茶，便敲门问农家。' },
+];
+
+function buildObjects(categoryId: string, rows: readonly Row[]): Card[] {
+  return rows.map(([slug, zh, pinyin, en, difficulty], index) => ({
+    id: `${categoryId}-${slug}`,
+    kind: 'object',
+    categoryId,
+    zh,
+    pinyin,
+    en,
+    image: `${IMAGE_ROOT}/${categoryId}/${slug}.webp`,
+    tags: [],
+    difficulty,
+    sortOrder: index + 1,
+    source: { ...GENERATED_SOURCE },
+    createdAt: SEED_TIME,
+    updatedAt: SEED_TIME,
+  }));
+}
+
+function buildCharacters(rows: readonly CharRow[]): Card[] {
+  return rows.map(([slug, zh, pinyin, en, strokes, words, difficulty = 1], index) => ({
+    id: `characters-${slug}`,
+    kind: 'character',
+    categoryId: 'characters',
+    zh,
+    pinyin,
+    en,
+    image: `${IMAGE_ROOT}/characters/${slug}.webp`,
+    tags: [],
+    difficulty,
+    sortOrder: index + 1,
+    strokes,
+    words: [...words],
+    source: { ...GENERATED_SOURCE },
+    createdAt: SEED_TIME,
+    updatedAt: SEED_TIME,
+  }));
+}
+
+function buildPoems(rows: readonly PoemRow[]): Card[] {
+  return rows.map((row, index) => ({
+    id: `poems-${row.slug}`,
+    kind: 'poem',
+    categoryId: 'poems',
+    zh: row.zh,
+    pinyin: row.pinyin,
+    en: row.en,
+    image: `${IMAGE_ROOT}/poems/${row.slug}.webp`,
+    tags: [],
+    difficulty: row.difficulty,
+    sortOrder: index + 1,
+    author: row.author,
+    dynasty: row.dynasty,
+    lines: [...row.lines],
+    translation: row.translation,
+    source: { ...GENERATED_SOURCE },
+    createdAt: SEED_TIME,
+    updatedAt: SEED_TIME,
+  }));
+}
+
+export const SEED_CARDS: Card[] = [
+  ...buildObjects('animals', ANIMALS),
+  ...buildObjects('fruit', FRUIT),
+  ...buildObjects('vegetables', VEGETABLES),
+  ...buildObjects('vehicles', VEHICLES),
+  ...buildObjects('daily', DAILY),
+  ...buildObjects('body', BODY),
+  ...buildObjects('colors', COLORS),
+  ...buildObjects('shapes', SHAPES),
+  ...buildObjects('numbers', NUMBERS),
+  ...buildObjects('family', FAMILY),
+  ...buildObjects('weather', WEATHER),
+  ...buildObjects('verbs', VERBS),
+  ...buildObjects('food', FOOD),
+  ...buildObjects('school', SCHOOL),
+  ...buildCharacters(CHARACTERS),
+  ...buildPoems(POEMS),
+  ...buildStories(ALL_STORIES),
+];
