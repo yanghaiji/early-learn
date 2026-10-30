@@ -15,6 +15,7 @@ import { StoryReaderPage } from '../features/cards/ui/StoryReaderPage';
 import { HomePage } from '../features/categories/ui/HomePage';
 import { FavoritesPage } from '../features/learn/ui/FavoritesPage';
 import { QuizPage } from '../features/learn/ui/QuizPage';
+import { RecentPage } from '../features/learn/ui/RecentPage';
 import { ReviewPage } from '../features/learn/ui/ReviewPage';
 import { GuidePage } from '../features/misc/ui/GuidePage';
 import { NotFoundPage } from '../features/misc/ui/NotFoundPage';
@@ -33,6 +34,7 @@ export function AppRouter() {
             <Route path="card/:cardId" element={<CardDetailPage />} />
             <Route path="story/:cardId" element={<StoryReaderPage />} />
             <Route path="favorites" element={<FavoritesPage />} />
+            <Route path="recent" element={<RecentPage />} />
             <Route path="review" element={<ReviewPage />} />
             <Route path="quiz" element={<QuizPage />} />
             <Route path="guide" element={<GuidePage />} />

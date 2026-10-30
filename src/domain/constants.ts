@@ -7,7 +7,7 @@
 export const SCHEMA_VERSION = 1;
 
 /** 内置种子内容版本，仅用于提示与「重置为内置内容」 */
-export const SEED_VERSION = 7;
+export const SEED_VERSION = 9;
 
 export const LIMITS = {
   CATEGORY_NAME_MAX: 12,
@@ -37,6 +37,18 @@ export const LIMITS = {
   STORY_PAGES_MAX: 8,
   STORY_PAGE_TEXT_MAX: 60,
   STORY_MORAL_MAX: 60,
+  /** 成语（kind=idiom，v0.6）：释义 / 例句 / 近反义 / 出处 */
+  IDIOM_LEN: 4,
+  /** 下限 6 与门禁同源：v0.6 词表释义实测 6–34 字（PRD §13 回写第 3 条） */
+  IDIOM_MEANING_MIN: 6,
+  IDIOM_MEANING_MAX: 90,
+  IDIOM_EXAMPLES_MIN: 2,
+  IDIOM_EXAMPLES_MAX: 3,
+  IDIOM_EXAMPLE_MIN: 8,
+  IDIOM_EXAMPLE_MAX: 50,
+  IDIOM_RELATED_MIN: 1,
+  IDIOM_RELATED_MAX: 3,
+  IDIOM_CITATION_MAX: 40,
   IMAGE_MAX_BYTES: 500 * 1024,
   IMPORT_MAX_BYTES: 5 * 1024 * 1024,
   IMPORT_MAX_CARDS: 2000,
@@ -87,6 +99,11 @@ export const STORAGE_EVENT_KEY = 'early-learn:storage-changed';
 /** 拼音声调字符（校验是否带调） */
 export const PINYIN_TONE_CHARS = 'āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜüńňǹ';
 export const PINYIN_TONE_REGEX = new RegExp(`[${PINYIN_TONE_CHARS}]`);
+/**
+ * 合法轻声单字：这些字本就没有声调符，豁免「拼音需带声调」规则。
+ * 与 scripts/validate-content.mjs 的 NEUTRAL_TONE_ZH 保持一致（脚本为 .mjs 无法 import TS，故两处各存一份）。
+ */
+export const NEUTRAL_TONE_ZH: ReadonlySet<string> = new Set(['的', '了']);
 
 /** 脏数据兜底分类 id（卡片指向不存在分类时归入此处） */
 export const UNCATEGORIZED_ID = 'uncategorized';

@@ -8,7 +8,8 @@
 import { describe, expect, it } from 'vitest';
 import { SEED_CARDS } from './cards';
 import { SEED_CATEGORIES } from './categories';
-import { POEM_GROUPS, POEM_GROUP_BY_DYNASTY } from './characterGroups';
+import { POEM_GROUPS, POEM_GROUP_BY_DYNASTY, CHARACTER_GROUPS, CHARACTER_GROUP_BY_ZH } from './characterGroups';
+import { IDIOM_GROUPS, IDIOM_GROUP_BY_ID } from './idioms';
 import { COLOR_TOKENS } from '../../domain/entities/category';
 
 const poemCards = SEED_CARDS.filter((card) => card.kind === 'poem');
@@ -47,9 +48,61 @@ describe('分类色板 token（v0.5 §4.4 四处同步之一）', () => {
     }
   });
 
-  it('should_have_21_unique_color_tokens_when_listing_color_tokens', () => {
+  it('should_keep_21_color_tokens_when_idioms_reuse_denim', () => {
+    // v0.6 不新增颜色：成语复用 v0.5 已注册的 denim（PRD §3.1 分类色）
     expect(COLOR_TOKENS).toHaveLength(21);
     expect(new Set(COLOR_TOKENS).size).toBe(COLOR_TOKENS.length);
+  });
+});
+
+describe('内容规模（v0.5 §2 总表 / v0.6 §2）', () => {
+  const byCategory = (categoryId: string) => SEED_CARDS.filter((card) => card.categoryId === categoryId);
+
+  it('should_have_809_cards_in_22_categories_when_seeded', () => {
+    expect(SEED_CARDS).toHaveLength(809);
+    expect(SEED_CATEGORIES).toHaveLength(22);
+  });
+
+  it('should_have_28_numbers_in_canonical_order_when_seeded', () => {
+    const nums = [...byCategory('numbers')].sort((a, b) => a.sortOrder - b.sortOrder);
+    expect(nums).toHaveLength(28);
+    // 钉死数字卡的中文序列（十一~二十 / 三十~九十 / 一百），不再依赖「排列位置算数字」
+    expect(nums.map((card) => card.zh)).toEqual([
+      '一', '二', '三', '四', '五', '六', '七', '八', '九', '十',
+      '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
+      '三十', '四十', '五十', '六十', '七十', '八十', '九十', '一百',
+    ]);
+  });
+
+  it('should_have_321_characters_grouped_into_eight_themes_when_seeded', () => {
+    expect(byCategory('characters')).toHaveLength(321);
+    expect(CHARACTER_GROUPS.map((g) => g.key)).toContain('speech');
+    const counts: Record<string, number> = {};
+    for (const card of byCategory('characters')) {
+      const key = CHARACTER_GROUP_BY_ZH.get(card.zh);
+      expect(key, `汉字「${card.zh}」没有分组`).toBeDefined();
+      counts[key as string] = (counts[key as string] ?? 0) + 1;
+    }
+    expect(Object.keys(counts)).toHaveLength(8);
+    expect(counts.speech).toBe(16);
+  });
+
+  it('should_have_50_poems_split_30_15_5_when_grouped_by_dynasty', () => {
+    const poems = byCategory('poems');
+    expect(poems).toHaveLength(50);
+    const tally: Record<string, number> = { tang: 0, song: 0, other: 0 };
+    for (const card of poems) {
+      const key = POEM_GROUP_BY_DYNASTY[card.dynasty ?? ''];
+      expect(key, `诗《${card.zh}》朝代「${card.dynasty}」无组`).toBeDefined();
+      tally[key as string] = (tally[key as string] ?? 0) + 1;
+    }
+    expect(tally).toEqual({ tang: 30, song: 15, other: 5 });
+  });
+
+  it('should_have_at_least_10_cards_per_new_category_when_seeded', () => {
+    for (const categoryId of ['sea', 'insects', 'jobs', 'clothes']) {
+      expect(byCategory(categoryId).length, categoryId).toBeGreaterThanOrEqual(10);
+    }
   });
 });
 
@@ -71,6 +124,66 @@ describe('种子结构不变量', () => {
     for (const category of SEED_CATEGORIES) {
       const count = SEED_CARDS.filter((card) => card.categoryId === category.id).length;
       expect(count, `分类 ${category.id} 只有 ${count} 张`).toBeGreaterThanOrEqual(8);
+    }
+  });
+});
+
+/** v0.6 成语词典：字段全部为可选扩展，内容边界的唯一眼就在这张表里 */
+describe('成语词典（v0.6 §3.2 / §5）', () => {
+  const idioms = SEED_CARDS.filter((card) => card.kind === 'idiom');
+
+  it('should_have_150_idioms_split_30_each_when_grouped_by_theme', () => {
+    expect(idioms).toHaveLength(150);
+    expect(IDIOM_GROUPS).toHaveLength(5);
+    const tally: Record<string, number> = {};
+    for (const card of idioms) {
+      const key = IDIOM_GROUP_BY_ID.get(card.id);
+      expect(key, `成语「${card.zh}」没有分组`).toBeDefined();
+      tally[key as string] = (tally[key as string] ?? 0) + 1;
+    }
+    // 组名与「ID ↔ 组」表双向覆盖：表里多出 stale 项也会在下面被捉住
+    expect(Object.keys(tally).sort()).toEqual(IDIOM_GROUPS.map((group) => group.key).sort());
+    for (const group of IDIOM_GROUPS) {
+      expect(tally[group.key], group.name).toBe(30);
+    }
+    expect(IDIOM_GROUP_BY_ID.size).toBe(idioms.length);
+  });
+
+  it('should_have_four_char_zh_with_toned_pinyin_when_seeding_idioms', () => {
+    for (const card of idioms) {
+      expect([...card.zh].length, card.zh).toBe(4);
+      expect(card.pinyin, card.zh).toMatch(/[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]/);
+    }
+  });
+
+  it('should_have_meaning_examples_related_and_citation_when_seeding_idioms', () => {
+    for (const card of idioms) {
+      expect(card.meaning?.trim().length ?? 0, `${card.zh} 缺少释义`).toBeGreaterThanOrEqual(6);
+      expect(card.examples?.length ?? 0, `${card.zh} 例句条数`).toBeGreaterThanOrEqual(2);
+      for (const example of card.examples ?? []) {
+        expect(example.trim(), card.zh).not.toBe('');
+        expect([...example].length, `${card.zh} 例句过长`).toBeLessThanOrEqual(50);
+      }
+      expect(card.synonyms?.length ?? 0, `${card.zh} 近义`).toBeGreaterThanOrEqual(1);
+      for (const word of [...(card.synonyms ?? []), ...(card.antonyms ?? [])]) {
+        expect([...word].length, `${card.zh} 的近反义「${word}」`).toBe(4);
+      }
+      expect(card.citation?.trim(), `${card.zh} 缺少出处`).toBeTruthy();
+    }
+  });
+
+  it('should_keep_en_empty_and_sort_order_unique_when_seeding_idioms', () => {
+    // 成语无英文：点读走中文 TTS，音频门禁也按 en 非空才要求 mp3
+    expect(idioms.every((card) => card.en === '')).toBe(true);
+    const orders = idioms.map((card) => card.sortOrder);
+    expect(new Set(orders).size).toBe(orders.length);
+  });
+
+  it('should_point_image_to_idioms_folder_when_seeding_idioms', () => {
+    for (const card of idioms) {
+      const slug = card.id.replace(/^idioms-/, '');
+      expect(card.image, card.zh).toBe(`assets/images/idioms/${slug}.webp`);
+      expect(card.categoryId).toBe('idioms');
     }
   });
 });

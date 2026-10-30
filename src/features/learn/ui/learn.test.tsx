@@ -131,6 +131,49 @@ describe('收藏与首页入口', () => {
     expect(screen.getByRole('link', { name: '听音选图' })).toBeInTheDocument();
     expect(screen.getByText('已标记 2 张 · 其中 1 张还不熟')).toBeInTheDocument();
     // 分类墙仍是主体，没被新增块挤掉
-    expect(screen.getByRole('heading', { name: /动物/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^动物/ })).toBeInTheDocument();
+  });
+});
+
+describe('接着看（最近浏览独立页）', () => {
+  function withRecent(...ids: CardId[]) {
+    useProgressStore.setState({
+      doc: progressWith({
+        recent: ids.map((id) => ({ cardId: id, at: '2026-10-30T00:00:00.000Z' })),
+      }),
+    });
+  }
+
+  it('should_hide_home_entry_when_nothing_browsed', async () => {
+    window.location.hash = '#/';
+    render(<AppRouter />);
+
+    // 无记录时首页不出入口，也不在正文里堆一条横滑区
+    expect(await screen.findByRole('link', { name: '我的收藏' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^接着看/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '接着看' })).not.toBeInTheDocument();
+  });
+
+  it('should_open_dedicated_page_when_home_entry_clicked', async () => {
+    const user = userEvent.setup();
+    withRecent('animals-cat', 'animals-dog');
+    window.location.hash = '#/';
+    render(<AppRouter />);
+
+    const entry = await screen.findByRole('link', { name: '接着看（2）' });
+    // 首页正文只剩分类墙：标题只出现在独立页，不再占首页版面
+    expect(screen.queryByRole('heading', { name: '接着看' })).not.toBeInTheDocument();
+
+    await user.click(entry);
+
+    expect(await screen.findByRole('heading', { name: '接着看' })).toBeInTheDocument();
+    expect(screen.getByText('最近翻过的 2 张（最多保留 24 张）')).toBeInTheDocument();
+  });
+
+  it('should_show_empty_state_when_recent_page_opened_directly', async () => {
+    window.location.hash = '#/recent';
+    render(<AppRouter />);
+
+    expect(await screen.findByText('还没有浏览记录')).toBeInTheDocument();
   });
 });

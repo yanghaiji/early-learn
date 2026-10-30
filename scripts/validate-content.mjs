@@ -16,12 +16,17 @@ const CATEGORIES_FILE = path.join(ROOT, 'src/data/seed/categories.ts');
 const GROUPS_FILE = path.join(ROOT, 'src/data/seed/characterGroups.ts');
 const STORY_FILE = path.join(ROOT, 'src/data/seed/stories.ts');
 const STORY_GROUPS_FILE = path.join(ROOT, 'src/data/seed/storyGroups.ts');
+const IDIOM_DIR = path.join(ROOT, 'src/data/seed/idioms');
+/** 成语按主题拆五个文件；新增文件要同步 idioms/index.ts 与 prepare-images.mjs */
+const IDIOM_FILES = ['fable', 'study', 'moral', 'nature', 'life'];
 const COLOR_TOKENS_FILE = path.join(ROOT, 'src/domain/entities/category.ts');
 const TOKENS_CSS_FILE = path.join(ROOT, 'src/styles/tokens.css');
 const IMAGE_SCRIPT = path.join(ROOT, 'scripts/prepare-images.mjs');
 const PUBLIC_DIR = path.join(ROOT, 'public');
 
 const PINYIN_TONE = /[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜüńňǹ]/;
+// v0.5 口语与常用组的「的/了」是合法轻声（本就没有声调符），按字白名单豁免；其余字漏标声调仍判红
+const NEUTRAL_TONE_ZH = new Set(['的', '了']);
 const EN_MAX_WORDS = 3;
 const STROKES_MIN = 1;
 const STROKES_MAX = 30;
@@ -41,6 +46,21 @@ const STORY_PAGES_MIN = 4;
 const STORY_PAGES_MAX = 8;
 const STORY_PAGE_TEXT_MAX = 60;
 const STORY_MORAL_MAX = 60;
+// v0.6 成语词典（口径见 FR/v0.6/PRD-成语词典.md §3.2）
+const IDIOM_COUNT = 150;
+const IDIOM_GROUP_COUNT = 5;
+const IDIOM_LEN = 4;
+// 下限定为 6：PRD §5 的 150 条词表释义实测 6–34 字（越短越适合 4–6 岁照读），
+// 与 §2.1「20–90 字」的口径偏差已回写到 PRD；此处只挡住空串与半截话
+const IDIOM_MEANING_MIN = 6;
+const IDIOM_MEANING_MAX = 90;
+const IDIOM_EXAMPLES_MIN = 2;
+const IDIOM_EXAMPLES_MAX = 3;
+const IDIOM_EXAMPLE_MIN = 8;
+const IDIOM_EXAMPLE_MAX = 50;
+const IDIOM_RELATED_MIN = 1;
+const IDIOM_RELATED_MAX = 3;
+const IDIOM_CITATION_MAX = 40;
 // v0.4 英文自带音频（口径见 FR/v0.4/PRD.md §4.1）
 const AUDIO_DIR = path.join(PUBLIC_DIR, 'assets/audio');
 const AUDIO_MANIFEST_FILE = path.join(AUDIO_DIR, 'manifest.json');
@@ -55,6 +75,12 @@ const POEM_SCENE_MAX = 4;
 
 const errors = [];
 const fail = (message) => errors.push(message);
+
+/** 拼音声调门禁：带声调，或属于轻声白名单的单字卡才放行（口径对外导出给 scripts/validate-tone.test.mjs 锁死范围） */
+export function pinyinToneOk(card) {
+  if (PINYIN_TONE.test(card.pinyin)) return true;
+  return card.kind === 'character' && NEUTRAL_TONE_ZH.has(card.zh);
+}
 
 function parseRows(body) {
   return body
@@ -260,6 +286,79 @@ async function parseStoryGroups() {
 }
 
 /**
+ * 成语：五个主题文件 → 卡片 + 组（组表读 idioms/index.ts 的 IDIOM_SOURCES）。
+ * 例子里不能出现单引号，否则切块会错位——内容规范见 PRD §5.6。
+ */
+async function parseIdioms() {
+  const indexSource = await readFile(path.join(IDIOM_DIR, 'index.ts'), 'utf8');
+  const groupSource = /const IDIOM_SOURCES[^=]*= \[([\s\S]*?)\n\];/.exec(indexSource)?.[1] ?? '';
+  const nameSource = /export const IDIOM_GROUPS[^=]*= \[([\s\S]*?)\n\];/.exec(indexSource)?.[1] ?? '';
+  const groupNames = new Map(
+    [...nameSource.matchAll(/\{ key: '(idiom-[a-z]+)', name: '([^']+)' \}/g)].map((item) => [
+      item[1],
+      item[2],
+    ]),
+  );
+  const sources = [...groupSource.matchAll(/\['(idiom-[a-z]+)', (\w+)\]/g)].map((item) => ({
+    key: item[1],
+    arrayName: item[2],
+  }));
+
+  const cards = [];
+  const groups = [];
+  for (const { key, arrayName } of sources) {
+    const file = IDIOM_FILES.find((name) => `${name.toUpperCase()}_IDIOMS` === arrayName);
+    if (!file) {
+      fail(`成语分组 ${key} 指向未知数组 ${arrayName}（请同步 IDIOM_FILES）`);
+      continue;
+    }
+    const source = await readFile(path.join(IDIOM_DIR, `${file}.ts`), 'utf8');
+    const body =
+      new RegExp(`export const ${arrayName}: readonly IdiomRow\\[\\] = \\[([\\s\\S]*?)\\n\\];`).exec(
+        source,
+      )?.[1] ?? '';
+    const blocks = body.split(/\n(?=\s*\{\n\s*slug:)/).filter((block) => block.includes('slug:'));
+    if (blocks.length === 0) fail(`成语文件 ${file}.ts 未解析出任何条目`);
+
+    const slugs = [];
+    for (const block of blocks) {
+      const field = (name) => new RegExp(`${name}: '([^']*)'`).exec(block)?.[1];
+      const list = (name) => {
+        const raw = new RegExp(`${name}: \\[([^\\]]*)\\]`).exec(block)?.[1] ?? '';
+        return [...raw.matchAll(/'([^']*)'/g)].map((item) => item[1]);
+      };
+      const slug = field('slug');
+      const zh = field('zh');
+      const pinyin = field('pinyin');
+      if (!slug || !zh || !pinyin) {
+        fail(`成语条目解析失败（${file}.ts）：${block.trim().slice(0, 40)}`);
+        continue;
+      }
+      slugs.push(slug);
+      cards.push({
+        id: `idioms-${slug}`,
+        kind: 'idiom',
+        categoryId: 'idioms',
+        slug,
+        zh,
+        pinyin,
+        en: '',
+        difficulty: Number(/difficulty:\s*(\d)/.exec(block)?.[1] ?? 0),
+        meaning: field('meaning') ?? '',
+        examples: list('examples'),
+        synonyms: list('synonyms'),
+        antonyms: list('antonyms'),
+        citation: field('citation') ?? '',
+        group: key,
+        image: `assets/images/idioms/${slug}.webp`,
+      });
+    }
+    groups.push({ key, name: groupNames.get(key) ?? key, slugs });
+  }
+  return { cards, groups };
+}
+
+/**
  * 出图脚本里的场景与主体 key：页里写了不存在的 key 会静默画成占位块。
  * v0.5 起补充卡片侧主体（V1）、诗景（V3）、主题色（V5）三张表。
  */
@@ -288,7 +387,20 @@ async function parseImageKeys() {
     [...themeBody.matchAll(/^  (\w[\w-]*): \{ bg: '([^']+)'[^}]*\}/gm)].map((item) => [item[1], item[2]]),
   );
 
-  return { subjects, scenes, cardSlugs, poemScenes, themes };
+  // v0.6.1 成语：slug → 意象件（1–2 件），以及 IDIOM_MOTIFS 里已实现的意象件名
+  const idiomPropBody = /const IDIOM_PROPS = \{([\s\S]*?)\n\};/.exec(source)?.[1] ?? '';
+  const idiomProps = new Map(
+    [...idiomPropBody.matchAll(/^  '([\w-]+)':\s*\[([^\]]*)\]/gm)].map((item) => [
+      item[1],
+      [...item[2].matchAll(/'([\w-]+)'/g)].map((motif) => motif[1]),
+    ]),
+  );
+  const idiomMotifBody = /const IDIOM_MOTIFS = \{([\s\S]*?)\n\};/.exec(source)?.[1] ?? '';
+  const idiomMotifs = new Set(
+    [...idiomMotifBody.matchAll(/^ {2}'?([\w-]+)'?:\s/gm)].map((item) => item[1]),
+  );
+
+  return { subjects, scenes, cardSlugs, poemScenes, themes, idiomProps, idiomMotifs };
 }
 
 /** V4/V5 要的两张前端表：朝代→诗组映射、色板 token 与 tokens.css 变量 */
@@ -333,8 +445,10 @@ async function checkAudio(cards) {
   }
 
   const cardIds = new Set(cards.map((card) => card.id));
+  // v0.6：成语卡没有英文，不要求音频（PRD §6.2）
+  const narrated = cards.filter((card) => card.en.trim());
   let bytes = 0;
-  for (const card of cards) {
+  for (const card of narrated) {
     const entry = manifest[card.id];
     const expected = `assets/audio/${card.id}.mp3`;
     if (entry !== expected) {
@@ -438,18 +552,66 @@ function checkCategoryColors(categories, imageKeys, styleTables) {
   }
 }
 
+/** V6 成语四字卡：意象件未登记或超过 2 件都会中止出图，必须在这里先拦下 */
+function checkIdiomScenes(cards, imageKeys) {
+  for (const card of cards) {
+    if (card.kind !== 'idiom') continue;
+    const props = imageKeys.idiomProps.get(card.slug) ?? [];
+    if (props.length === 0) {
+      fail(`成语 ${card.id} 未登记意象件（请在 prepare-images.mjs 的 IDIOM_PROPS 增加 ${card.slug}）`);
+      continue;
+    }
+    if (props.length > 2) fail(`成语 ${card.id} 登记了 ${props.length} 件意象，最多 2 件`);
+    for (const motif of props) {
+      if (!imageKeys.idiomMotifs.has(motif)) {
+        fail(`成语 ${card.id} 的意象件 ${motif} 未在 IDIOM_MOTIFS 中实现`);
+      }
+    }
+  }
+}
+
+/** V7 成语分组：5 组 × 30 条，组表与卡片双向覆盖（与汉字 / 故事分组同口径） */
+function checkIdiomGroups(idiomCards, idiomGroups) {
+  const expected = IDIOM_COUNT / IDIOM_GROUP_COUNT;
+  const groupOfSlug = new Map();
+  for (const group of idiomGroups) {
+    if (group.slugs.length === 0) fail(`成语分组 ${group.key} 里没有任何成语`);
+    if (group.slugs.length !== expected) {
+      fail(`成语分组 ${group.name} 应为 ${expected} 条（实际 ${group.slugs.length} 条）`);
+    }
+    for (const slug of group.slugs) {
+      if (groupOfSlug.has(slug)) {
+        fail(`成语「${slug}」同时出现在分组 ${groupOfSlug.get(slug)} 与 ${group.key}`);
+      }
+      groupOfSlug.set(slug, group.key);
+    }
+  }
+  const slugs = new Set(idiomCards.map((card) => card.slug));
+  for (const card of idiomCards) {
+    if (!groupOfSlug.has(card.slug)) {
+      fail(`成语「${card.slug}」（${card.id}）未归入任何主题组，请同步 src/data/seed/idioms/index.ts`);
+    }
+  }
+  for (const slug of groupOfSlug.keys()) {
+    if (!slugs.has(slug)) fail(`分组里的成语「${slug}」没有对应卡片（可能已删除或改 slug）`);
+  }
+}
+
 async function main() {
-  const [categories, baseCards, groups, stories, storyGroups, imageKeys, styleTables] =
+  const [categories, baseCards, groups, stories, storyGroups, idiomData, imageKeys, styleTables] =
     await Promise.all([
       parseCategories(),
       parseCards(),
       parseCharacterGroups(),
       parseStories(),
       parseStoryGroups(),
+      parseIdioms(),
       parseImageKeys(),
       parseStyleTables(),
     ]);
-  const cards = [...baseCards, ...stories];
+  const idiomCards = idiomData.cards;
+  const idiomGroups = idiomData.groups;
+  const cards = [...baseCards, ...stories, ...idiomCards];
 
   if (categories.length === 0) fail('未解析到任何分类');
   if (cards.length === 0) fail('未解析到任何卡片');
@@ -461,8 +623,16 @@ async function main() {
   if (styleTables.poemGroupKeys.size === 0) fail('未解析到 POEM_GROUPS，V4 形同虚设');
   if (styleTables.colorTokens.size === 0) fail('未解析到 COLOR_TOKENS，V5 形同虚设');
   if (styleTables.cssVars.size === 0) fail('未解析到 tokens.css 的分类色变量，V5 形同虚设');
+  if (imageKeys.idiomProps.size === 0) fail('未解析到 IDIOM_PROPS，V6 形同虚设');
+  if (imageKeys.idiomMotifs.size === 0) fail('未解析到 IDIOM_MOTIFS，V6 形同虚设');
   if (stories.length !== STORY_COUNT) {
     fail(`故事应为 ${STORY_COUNT} 本（实际 ${stories.length} 本，口径见 FR/v0.2 §4）`);
+  }
+  if (idiomCards.length !== IDIOM_COUNT) {
+    fail(`成语应为 ${IDIOM_COUNT} 条（实际 ${idiomCards.length} 条，口径见 FR/v0.6 §2.1）`);
+  }
+  if (idiomGroups.length !== IDIOM_GROUP_COUNT) {
+    fail(`成语应有 ${IDIOM_GROUP_COUNT} 个主题组（实际 ${idiomGroups.length} 个）`);
   }
 
   const categoryIds = new Set();
@@ -485,7 +655,7 @@ async function main() {
       fail(`卡片 ${card.id} 指向不存在的分类 ${card.categoryId}`);
     }
     if (!card.pinyin.trim()) fail(`卡片 ${card.id} 缺少拼音`);
-    else if (!PINYIN_TONE.test(card.pinyin)) fail(`卡片 ${card.id} 拼音缺少声调：${card.pinyin}`);
+    else if (!pinyinToneOk(card)) fail(`卡片 ${card.id} 拼音缺少声调：${card.pinyin}`);
 
     const words = card.en.trim().split(/\s+/).filter(Boolean).length;
     if (words > EN_MAX_WORDS) fail(`卡片 ${card.id} 英文超过 ${EN_MAX_WORDS} 个单词：${card.en}`);
@@ -552,6 +722,46 @@ async function main() {
         }
       }
       if (![1, 2, 3].includes(card.difficulty)) fail(`故事 ${card.id} 难度非法：${card.difficulty}`);
+    } else if (card.kind === 'idiom') {
+      const length = [...card.zh].length;
+      if (length !== IDIOM_LEN) fail(`成语 ${card.id} 必须是 ${IDIOM_LEN} 个字（实际 ${length} 个字）`);
+      if (!card.meaning.trim()) fail(`成语 ${card.id} 缺少释义`);
+      else if ([...card.meaning].length < IDIOM_MEANING_MIN || [...card.meaning].length > IDIOM_MEANING_MAX) {
+        fail(
+          `成语 ${card.id} 释义 ${[...card.meaning].length} 字，应为 ${IDIOM_MEANING_MIN}–${IDIOM_MEANING_MAX} 字`,
+        );
+      }
+      if (card.examples.length < IDIOM_EXAMPLES_MIN || card.examples.length > IDIOM_EXAMPLES_MAX) {
+        fail(
+          `成语 ${card.id} 例句 ${card.examples.length} 条，应为 ${IDIOM_EXAMPLES_MIN}–${IDIOM_EXAMPLES_MAX} 条`,
+        );
+      }
+      for (const example of card.examples) {
+        const exampleLength = [...example].length;
+        if (exampleLength < IDIOM_EXAMPLE_MIN || exampleLength > IDIOM_EXAMPLE_MAX) {
+          fail(
+            `成语 ${card.id} 例句 ${exampleLength} 字，应为 ${IDIOM_EXAMPLE_MIN}–${IDIOM_EXAMPLE_MAX} 字：${example}`,
+          );
+        }
+      }
+      if (card.synonyms.length < IDIOM_RELATED_MIN || card.synonyms.length > IDIOM_RELATED_MAX) {
+        fail(
+          `成语 ${card.id} 近义 ${card.synonyms.length} 个，应为 ${IDIOM_RELATED_MIN}–${IDIOM_RELATED_MAX} 个`,
+        );
+      }
+      if (card.antonyms.length > IDIOM_RELATED_MAX) {
+        fail(`成语 ${card.id} 反义 ${card.antonyms.length} 个，最多 ${IDIOM_RELATED_MAX} 个`);
+      }
+      for (const word of [...card.synonyms, ...card.antonyms]) {
+        if ([...word].length !== IDIOM_LEN) {
+          fail(`成语 ${card.id} 的近反义「${word}」不是 ${IDIOM_LEN} 字成语`);
+        }
+      }
+      if (!card.citation.trim()) fail(`成语 ${card.id} 缺少出处`);
+      else if ([...card.citation].length > IDIOM_CITATION_MAX) {
+        fail(`成语 ${card.id} 出处超过 ${IDIOM_CITATION_MAX} 字：${card.citation}`);
+      }
+      if (![1, 2, 3].includes(card.difficulty)) fail(`成语 ${card.id} 难度非法：${card.difficulty}`);
     } else if ([...card.zh].length > ZH_MAX) {
       fail(`卡片 ${card.id} 中文超过 ${ZH_MAX} 字：${card.zh}`);
     }
@@ -624,6 +834,8 @@ async function main() {
   checkPoemScenes(baseCards, imageKeys);
   checkPoemDynasties(baseCards, styleTables);
   checkCategoryColors(categories, imageKeys, styleTables);
+  checkIdiomScenes(cards, imageKeys);
+  checkIdiomGroups(idiomCards, idiomGroups);
 
   console.log('内容统计：');
   for (const category of categories) {
@@ -645,6 +857,13 @@ async function main() {
     console.log('故事分组（分类页筛选）：');
     for (const group of storyGroups) {
       console.log(`  ${group.name.padEnd(6, '　')} ${String(group.slugs.length).padStart(3, ' ')} 本`);
+    }
+  }
+
+  if (idiomGroups.length > 0) {
+    console.log('成语分组（分类页筛选）：');
+    for (const group of idiomGroups) {
+      console.log(`  ${group.name.padEnd(6, '　')} ${String(group.slugs.length).padStart(3, ' ')} 条`);
     }
   }
 

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { QUIZ_OPTIONS, QUIZ_QUESTIONS } from '../constants';
 import type { Card, Difficulty } from '../entities/card';
 import { EMPTY_PROGRESS, type ProgressDocument } from '../entities/progress';
-import { buildDeck, buildQuestion, pickLangOptions } from './quiz';
+import { buildDeck, buildQuestion, pickLangOptions, quizPool } from './quiz';
 
 function makeCard(id: string, categoryId = 'animals'): Card {
   return {
@@ -145,5 +145,22 @@ describe('pickLangOptions', () => {
 
   it('should_map_en_mode_to_english_lang', () => {
     expect(pickLangOptions('en')).toBe('en-US');
+  });
+});
+
+/** 成语卡画面就是四个字，拿来出题等于把答案印在选项上（PRD v0.6 §4.3 / E-10） */
+describe('quizPool · 排除成语（v0.6）', () => {
+  const idiomCard: Card = { ...makeCard('idioms-shou-zhu-dai-tu', 'idioms'), kind: 'idiom' };
+
+  it('should_drop_idiom_cards_when_building_pool', () => {
+    const pool = quizPool([...catalog, idiomCard]);
+    expect(pool).toHaveLength(catalog.length);
+    expect(pool.some((card) => card.kind === 'idiom')).toBe(false);
+  });
+
+  it('should_never_pick_idiom_when_deck_built_from_pool', () => {
+    const deck = buildDeck(quizPool([...catalog, idiomCard]), doc(), 6, seededRng([0.5]));
+    expect(deck).toHaveLength(catalog.length);
+    expect(deck.some((card) => card.kind === 'idiom')).toBe(false);
   });
 });

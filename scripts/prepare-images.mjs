@@ -22,6 +22,9 @@ import { cnNumberToValue } from './lib/numerals.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SEED_FILE = path.join(ROOT, 'src/data/seed/cards.ts');
 const STORY_FILE = path.join(ROOT, 'src/data/seed/stories.ts');
+const IDIOM_DIR = path.join(ROOT, 'src/data/seed/idioms');
+/** 成语按主题拆五个文件；新增文件要同步这里与 idioms/index.ts */
+const IDIOM_FILES = ['fable', 'study', 'moral', 'nature', 'life'];
 const OUT_ROOT = path.join(ROOT, 'public/assets/images');
 const CARD_SIZE = 320;
 const COVER_SIZE = { width: 480, height: 360 };
@@ -56,6 +59,8 @@ const THEME = {
   insects: { bg: '#F1F7E9', accent: '#4F6B3A', soft: '#E0EED2' },
   jobs: { bg: '#EEF3FA', accent: '#37507A', soft: '#D8E2F0' },
   clothes: { bg: '#FBF4EC', accent: '#7A5A44', soft: '#F3E7DC' },
+  // v0.6 成语词典（宣纸底，与诗词同族；V5 要求每个分类都有色值）
+  idioms: { bg: '#F7F4EC', accent: '#3B3A33', soft: '#E7E1D2' },
 };
 
 /** 诗词插画调色：宣纸底 + 淡墨 + 一点赭石与水青 */
@@ -188,6 +193,27 @@ const POEM_SCENES = {
   yulouchun: 'blossom',
   dianjiangchun: 'swing',
   'huanxisha-zaohua': 'cottage',
+  /* ---- v0.5 新增 20 首（同场景 ≤4 由 validate-content V3 兜底）---- */
+  zengwanglun: 'river',
+  youziyin: 'cottage',
+  cao: 'grassland',
+  chunyexiyu: 'spring',
+  xiaoerchui: 'lake',
+  zhuliguan: 'bamboo',
+  'minnong-1': 'farm',
+  yesushansi: 'tower',
+  'jueju-chiri': 'waterfowl',
+  qiujiandejiang: 'moon',
+  xiaochi: 'lotus',
+  jingcisi: 'lotus',
+  xilinbi: 'mountain',
+  yinhu: 'lake',
+  shier: 'night',
+  changgexing: 'river',
+  cheleige: 'grassland',
+  suojian: 'cattle',
+  'cunju-qing': 'willow',
+  shihuiyin: 'mountain',
 };
 
 /** 远山：两层墨色，下重上轻 */
@@ -444,6 +470,36 @@ function poemSceneMarkup(name) {
         <path d="M104 182 h110" stroke="${INK_SOFT.wood}" stroke-width="8" stroke-linecap="round"/>
         <path d="M140 186 v44 M178 186 v44" stroke="${INK_SOFT.deep}" stroke-width="2.8"/>
         <rect x="132" y="230" width="54" height="8" rx="4" fill="${INK_SOFT.roof}"/>${inkTree(258, 292, 1)}${inkBird(70, 96, 1.1)}`;
+    case 'grassland':
+      // 敕勒歌/草：穹庐般的天 + 一道阴山 + 草浪起伏，压低处露出牛羊白点
+      return `${inkHill(210, 70, INK_SOFT.far)}${inkGround(250, '#E7E9CE')}
+        ${[0, 1, 2, 3, 4, 5, 6]
+          .map((i) => `<path d="M${24 + i * 44} 300 q10 -${20 + (i % 3) * 6} 22 -6" fill="none" stroke="${INK_SOFT.leafDeep}" stroke-width="3" stroke-linecap="round" opacity="0.6"/>`)
+          .join('')}
+        <ellipse cx="104" cy="280" rx="34" ry="20" fill="${INK_SOFT.white}" stroke="${INK_SOFT.far}" stroke-width="1.6"/>
+        <path d="M70 280 q34 -34 68 0 z" fill="${INK_SOFT.near}"/>
+        <path d="M104 260 v-14" stroke="${INK_SOFT.wood}" stroke-width="2"/>
+        ${[[196, 286], [226, 292], [262, 282]].map(([x, y]) => `<ellipse cx="${x}" cy="${y}" rx="12" ry="7" fill="${INK_SOFT.white}" stroke="${INK_SOFT.far}" stroke-width="1.2"/>`).join('')}
+        ${inkCloud(70, 92, 90)}${inkCloud(244, 70, 76)}`;
+    case 'bamboo':
+      // 竹里馆：三两竿竹 + 叶影 + 一轮明月相照
+      return `${inkMoon(252, 70, 24)}${inkGround(286, '#E6E8D2')}
+        ${[96, 138, 178].map((x, i) => `<path d="M${x} 300 V${80 + i * 16}" fill="none" stroke="${INK_SOFT.leafDeep}" stroke-width="${6 - i}" stroke-linecap="round"/>${[0, 1, 2, 3].map((k) => `<path d="M${x} ${110 + k * 42} h${(k % 2 ? -1 : 1) * 16}" stroke="${INK_SOFT.line}" stroke-width="1.6" fill="none"/>`).join('')}`).join('')}
+        ${[[112, 108], [150, 130], [192, 120], [120, 176], [166, 198]].map(([x, y]) => `<path d="M${x} ${y} q16 -8 34 -4 q-16 8 -34 4 z" fill="${INK_SOFT.leaf}" opacity="0.9"/>`).join('')}`;
+    case 'cattle':
+      // 所见：水牛 + 牧童剪影 + 林边
+      return `${inkHill(224, 66, INK_SOFT.far)}${inkGround(258, '#E7E4CC')}
+        ${inkTree(262, 288, 1.05)}${inkPine(56, 296, 1.1)}
+        <g transform="translate(150 254)">
+          <ellipse cx="0" cy="-16" rx="34" ry="17" fill="${INK_SOFT.near}"/>
+          <ellipse cx="30" cy="-24" rx="13" ry="10" fill="${INK_SOFT.near}"/>
+          <path d="M22 -34 q-6 -12 -14 -12 M40 -34 q8 -12 16 -10" fill="none" stroke="${INK_SOFT.deep}" stroke-width="4" stroke-linecap="round"/>
+          <path d="M-24 0 v-8 M-6 0 v-8 M10 0 v-8 M24 0 v-8" stroke="${INK_SOFT.near}" stroke-width="6" stroke-linecap="round" fill="none"/>
+          <path d="M-34 -20 q-8 6 -4 12" fill="none" stroke="${INK_SOFT.deep}" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="34" cy="-26" r="2" fill="${INK_SOFT.white}"/>
+          <circle cx="-2" cy="-40" r="7" fill="${INK_SOFT.roof}"/>
+          <path d="M-2 -34 q6 8 4 16" fill="none" stroke="${INK_SOFT.roof}" stroke-width="6" stroke-linecap="round"/>
+        </g>`;
     default:
       return `${inkHill(228, 96, INK_SOFT.far)}${inkHill(262, 58, INK_SOFT.near)}${inkCloud(150, 130, 140)}`;
   }
@@ -473,6 +529,1113 @@ function poemCoverSvg() {
   </svg>`;
 }
 
+/* ---------- 成语水墨四字卡（v0.6）---------- */
+
+/**
+ * slug → 意象件（1–2 件）：画的是这个成语里真正出现的「东西」，由 IDIOM_MOTIFS 逐一绘制。
+ *
+ * 旧版按 14 类「意境」粗分（farm / book / desk …），配图与语义严重脱节：
+ * 守株待兔画成房子 + 树，画蛇添足、自相矛盾、滥竽充数全都画成书桌。
+ * 现在背景统一由 idiomBackdrop() 提供，画面主体由这里的两件意象决定。
+ * 未登记即在出图时抛错，与诗词 POEM_SCENES 同一口径。
+ */
+const IDIOM_PROPS = {
+  /* 寓言故事 */
+  'shou-zhu-dai-tu': ['stump', 'rabbit'],
+  'hua-she-tian-zu': ['snake', 'feet'],
+  'wang-yang-bu-lao': ['sheep', 'fence'],
+  'yan-er-dao-ling': ['bell', 'person'],
+  'ke-zhou-qiu-jian': ['boat', 'sword'],
+  'hu-jia-hu-wei': ['tiger', 'fox'],
+  'jing-di-zhi-wa': ['well', 'frog'],
+  'bei-gong-she-ying': ['cup', 'bow'],
+  'nan-yuan-bei-zhe': ['cart', 'horse'],
+  'ba-miao-zhu-zhang': ['sprout', 'hand'],
+  'lan-yu-chong-shu': ['flute', 'person'],
+  'zi-xiang-mao-dun': ['shield', 'spear'],
+  'mai-du-huan-zhu': ['box', 'pearl'],
+  'yu-bang-xiang-zheng': ['bird', 'clam'],
+  'tang-lang-bu-chan': ['mantis', 'insect'],
+  'qian-lv-ji-qiong': ['donkey', 'tiger'],
+  'qi-ren-you-tian': ['cloud', 'person'],
+  'zhao-san-mu-si': ['monkey', 'fruit'],
+  'zheng-ren-mai-lv': ['shoe', 'footprints'],
+  'hua-long-dian-jing': ['dragon', 'brush'],
+  'mang-ren-mo-xiang': ['elephant', 'person'],
+  'sai-weng-shi-ma': ['horse', 'fence'],
+  'dong-shi-xiao-pin': ['person', 'flower'],
+  'han-dan-xue-bu': ['footprints', 'person'],
+  'wang-mei-zhi-ke': ['plum', 'cup'],
+  'hu-lun-tun-zao': ['fruit', 'person'],
+  'yi-ye-zhang-mu': ['leaf', 'eye'],
+  'yu-gong-yi-shan': ['mountain', 'person'],
+  'jing-wei-tian-hai': ['bird', 'water'],
+  'yuan-mu-qiu-yu': ['pine', 'fish'],
+  /* 学习求知 */
+  'wen-gu-zhi-xin': ['book', 'lamp'],
+  'bu-chi-xia-wen': ['person', 'child'],
+  'chi-zhi-yi-heng': ['stone', 'water'],
+  'zhuan-xin-zhi-zhi': ['book', 'eye'],
+  'fei-qin-wang-shi': ['lamp', 'cup'],
+  'xuan-liang-ci-gu': ['book', 'sword'],
+  'zao-bi-tou-guang': ['wall', 'lamp'],
+  'nang-ying-ying-xue': ['insect', 'snow'],
+  'wen-ji-qi-wu': ['rooster', 'sword'],
+  'ben-niao-xian-fei': ['bird', 'cloud'],
+  'xun-xu-jian-jin': ['steps', 'book'],
+  'bo-lan-qun-shu': ['book', 'scroll'],
+  'xue-fu-wu-che': ['cart', 'book'],
+  'rong-hui-guan-tong': ['book', 'water'],
+  'ju-yi-fan-san': ['hand', 'leaf'],
+  'chu-lei-pang-tong': ['book', 'scroll'],
+  'jing-yi-qiu-jing': ['pearl', 'brush'],
+  'yi-si-bu-gou': ['brush', 'ruler'],
+  'ri-ji-yue-lei': ['sun', 'moon'],
+  'xue-er-bu-yan': ['book', 'scroll'],
+  'hui-ren-bu-juan': ['person', 'book'],
+  'jiao-xue-xiang-zhang': ['person', 'child'],
+  'qin-neng-bu-zhuo': ['sprout', 'person'],
+  'zi-zi-bu-juan': ['lamp', 'book'],
+  'shou-bu-shi-juan': ['hand', 'scroll'],
+  'kai-juan-you-yi': ['scroll', 'lamp'],
+  'bu-xue-wu-shu': ['scroll', 'cloud'],
+  'bu-qiu-shen-jie': ['book', 'cloud'],
+  'ban-tu-er-fei': ['steps', 'person'],
+  'mao-se-dun-kai': ['window', 'lamp'],
+  /* 品德修养 */
+  'yi-nuo-qian-jin': ['gold', 'person'],
+  'shi-jin-bu-mei': ['gold', 'hand'],
+  'zhu-ren-wei-le': ['person', 'elder'],
+  'zun-lao-ai-you': ['elder', 'child'],
+  'da-gong-wu-si': ['scale', 'heart'],
+  'guang-ming-lei-luo': ['moon', 'pine'],
+  'qian-xu-jin-shen': ['bamboo', 'person'],
+  'kuan-hong-da-liang': ['water', 'heart'],
+  'yan-er-you-xin': ['seal', 'person'],
+  'biao-li-ru-yi': ['pearl', 'heart'],
+  'jian-yi-yong-wei': ['shield', 'person'],
+  'xue-zhong-song-tan': ['stove', 'person'],
+  'she-ji-wei-ren': ['umbrella', 'person'],
+  'ke-ji-feng-gong': ['scale', 'seal'],
+  'ren-lao-ren-yuan': ['ox', 'person'],
+  'jing-jing-ye-ye': ['desk', 'lamp'],
+  'bin-bin-you-li': ['person', 'person'],
+  'wen-wen-er-ya': ['bamboo', 'book'],
+  'zhi-cuo-jiu-gai': ['sprout', 'person'],
+  'gai-guo-zi-xin': ['sprout', 'sun'],
+  'yan-yu-lv-ji': ['ruler', 'person'],
+  'jiang-xin-bi-xin': ['heart', 'heart'],
+  'yi-de-bao-yuan': ['flower', 'hand'],
+  'yin-shui-si-yuan': ['well', 'cup'],
+  'tou-tao-bao-li': ['fruit', 'fruit'],
+  'jian-ren-bu-ba': ['pine', 'stone'],
+  'tong-xin-xie-li': ['boat', 'person'],
+  'tuan-jie-yi-zhi': ['bundle', 'person'],
+  'ji-gong-hao-yi': ['flag', 'person'],
+  'shi-zhong-ru-yi': ['pearl', 'pearl'],
+  /* 自然景物 */
+  'chun-nuan-hua-kai': ['sun', 'flower'],
+  'niao-yu-hua-xiang': ['bird', 'flower'],
+  'shan-qing-shui-xiu': ['mountain', 'water'],
+  'wan-zi-qian-hong': ['flower', 'flower'],
+  'liu-an-hua-ming': ['willow', 'flower'],
+  'tao-hong-liu-lv': ['fruit', 'willow'],
+  'hu-guang-shan-se': ['mountain', 'boat'],
+  'ceng-luan-die-zhang': ['mountain', 'cloud'],
+  'bo-lan-zhuang-kuo': ['water', 'cloud'],
+  'yi-wang-wu-ji': ['mountain', 'cloud'],
+  'lv-shu-cheng-yin': ['pine', 'willow'],
+  'shuo-guo-lei-lei': ['fruit', 'fruit'],
+  'qiu-gao-qi-shuang': ['cloud', 'bird'],
+  'bing-tian-xue-di': ['snow', 'pine'],
+  'bai-xue-ai-ai': ['mountain', 'snow'],
+  'yue-ming-xing-xi': ['moon', 'star'],
+  'xing-luo-qi-bu': ['star', 'star'],
+  'shui-tian-yi-se': ['water', 'cloud'],
+  'yun-wu-liao-rao': ['cloud', 'cloud'],
+  'feng-hui-lu-zhuan': ['mountain', 'steps'],
+  'xi-shui-chang-liu': ['water', 'stone'],
+  'dian-shan-lei-ming': ['bolt', 'rain'],
+  'chun-feng-hua-yu': ['rain', 'flower'],
+  'hua-tuan-jin-cu': ['flower', 'flower'],
+  'cao-zhang-ying-fei': ['sprout', 'bird'],
+  'jin-feng-song-shuang': ['leaf', 'cloud'],
+  'yin-zhuang-su-guo': ['pine', 'snow'],
+  'yu-yu-cong-cong': ['pine', 'bamboo'],
+  'wu-guang-shi-se': ['star', 'flower'],
+  'gao-shan-liu-shui': ['mountain', 'water'],
+  /* 生活常理 */
+  'yi-ju-liang-de': ['hand', 'fruit'],
+  'san-xin-er-yi': ['heart', 'heart'],
+  'ban-xin-ban-yi': ['heart', 'cloud'],
+  'zi-yan-zi-yu': ['person', 'person'],
+  'xing-gao-cai-lie': ['person', 'flower'],
+  'xin-ping-qi-he': ['heart', 'water'],
+  'quan-shen-guan-zhu': ['target', 'eye'],
+  'you-tiao-bu-wen': ['scroll', 'scroll'],
+  'jing-jing-you-tiao': ['well', 'scroll'],
+  'shi-ban-gong-bei': ['abacus', 'hand'],
+  'shi-bei-gong-ban': ['abacus', 'stone'],
+  'yi-gu-zuo-qi': ['drum', 'flag'],
+  'zai-jie-zai-li': ['stone', 'sword'],
+  'shui-dao-qu-cheng': ['water', 'sprout'],
+  'shun-li-cheng-zhang': ['brush', 'scroll'],
+  'li-suo-dang-ran': ['ruler', 'seal'],
+  'zhong-suo-zhou-zhi': ['person', 'person'],
+  'bu-yan-er-yu': ['eye', 'heart'],
+  'you-bei-wu-huan': ['umbrella', 'person'],
+  'wei-yu-chou-mou': ['cloud', 'umbrella'],
+  'shi-shi-qiu-shi': ['fruit', 'ruler'],
+  'yin-ren-er-yi': ['person', 'child'],
+  'liang-li-er-xing': ['scale', 'person'],
+  'shi-ke-er-zhi': ['cup', 'hand'],
+  'zhi-zu-chang-le': ['person', 'fruit'],
+  'qin-jian-jie-yue': ['cup', 'sprout'],
+  'jing-da-xi-suan': ['abacus', 'gold'],
+  'ge-de-qi-suo': ['bird', 'pine'],
+  'xiang-de-yi-zhang': ['lamp', 'lamp'],
+  'yin-cai-shi-jiao': ['ruler', 'sprout'],
+};
+
+/** 案：一条桌面 + 两条腿 */
+function inkDesk(y = 182) {
+  return `<rect x="46" y="${y}" width="228" height="9" rx="4" fill="${INK_SOFT.wood}" opacity="0.85"/>
+    <path d="M74 ${y + 9} v24 M246 ${y + 9} v24" stroke="${INK_SOFT.wood}" stroke-width="6" stroke-linecap="round" opacity="0.7"/>`;
+}
+
+/** 书：摊开的对页 + 中缝 + 两道字行 */
+function inkBook(x, y, s = 1) {
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <path d="M0 0 q-30 -12 -56 -4 v38 q26 -8 56 4 q30 -12 56 -4 v-38 q-26 -8 -56 4 z" fill="${INK_SOFT.white}" stroke="${INK_SOFT.near}" stroke-width="1.8"/>
+    <path d="M0 0 v38" stroke="${INK_SOFT.near}" stroke-width="1.6" opacity="0.7"/>
+    <path d="M-42 12 h26 M-42 22 h26 M16 12 h26 M16 22 h26" stroke="${INK_SOFT.far}" stroke-width="2" stroke-linecap="round"/></g>`;
+}
+
+/** 灯：灯罩 + 光晕 + 灯台 */
+function inkLamp(x, y, s = 1) {
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <circle cx="0" cy="-14" r="26" fill="${INK_SOFT.sun}" opacity="0.2"/>
+    <path d="M-12 -22 h24 l6 20 h-36 z" fill="${INK_SOFT.sun}" opacity="0.9"/>
+    <path d="M0 0 v16 M-10 22 h20" stroke="${INK_SOFT.wood}" stroke-width="4" stroke-linecap="round"/></g>`;
+}
+
+/** 棋：棋盘 + 三枚棋子 */
+function inkChess(x, y, s = 1) {
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <rect x="-34" y="-34" width="68" height="68" rx="4" fill="${INK_SOFT.white}" stroke="${INK_SOFT.near}" stroke-width="1.8"/>
+    <path d="M-12 -30 v60 M12 -30 v60 M-30 -12 h60 M-30 12 h60" stroke="${INK_SOFT.far}" stroke-width="1.4" opacity="0.8"/>
+    <circle cx="-12" cy="-12" r="7" fill="${INK_SOFT.deep}"/>
+    <circle cx="12" cy="-12" r="7" fill="${INK_SOFT.white}" stroke="${INK_SOFT.deep}" stroke-width="2"/>
+    <circle cx="12" cy="12" r="7" fill="${INK_SOFT.white}" stroke="${INK_SOFT.deep}" stroke-width="2"/></g>`;
+}
+
+/** 井：井台 + 井口 + 辘轳架 */
+function inkWell(x, y, s = 1) {
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <ellipse cx="0" cy="0" rx="38" ry="13" fill="${INK_SOFT.far}"/>
+    <path d="M-38 0 v-16 a38 13 0 0 0 76 0 v16" fill="${INK_SOFT.white}" stroke="${INK_SOFT.near}" stroke-width="2"/>
+    <ellipse cx="0" cy="-16" rx="38" ry="13" fill="${INK_SOFT.water}" stroke="${INK_SOFT.near}" stroke-width="2"/>
+    <path d="M-38 -32 v-28 M38 -32 v-28 M-38 -60 h76" stroke="${INK_SOFT.wood}" stroke-width="4" stroke-linecap="round"/></g>`;
+}
+
+/** 雪：散点雪片，下半部留白给四个字 */
+function inkSnowfall() {
+  const dots = [
+    [58, 62], [96, 40], [132, 74], [176, 46], [214, 68], [252, 38], [288, 76],
+    [74, 112], [118, 126], [162, 104], [206, 122], [246, 106], [288, 126],
+  ];
+  return dots
+    .map(
+      ([cx, cy], index) =>
+        `<circle cx="${cx}" cy="${cy}" r="${index % 3 === 0 ? 3.4 : 2.4}" fill="${INK_SOFT.white}" stroke="${INK_SOFT.far}" stroke-width="1" opacity="0.9"/>`,
+    )
+    .join('');
+}
+
+/* ---------- 成语意象件（v0.6.1）---------- */
+
+/**
+ * 上一版按 14 类「意境」粗分，画面与词义脱节：守株待兔画成房子 + 树，
+ * 画蛇添足、自相矛盾、滥竽充数共用同一张书桌。
+ * 现在每条成语登记 1–2 件意象（IDIOM_PROPS），这里把每件实物单独画出来。
+ * 坐标系统一：(0,0) 是落脚点，向上为负，横向约 ±40，缩放由调用方给。
+ */
+const {
+  far: FAR,
+  near: NEAR,
+  deep: DEEP,
+  water: WATER,
+  line: LINE,
+  ground: GROUND,
+  sun: SUN,
+  leaf: LEAF,
+  leafDeep: LEAF_DEEP,
+  flower: FLOWER,
+  wood: WOOD,
+  roof: ROOF,
+  white: WHITE,
+} = INK_SOFT;
+
+function motifMarkup(x, y, s, inner) {
+  return `<g transform="translate(${x} ${y}) scale(${Number(s).toFixed(3)})">${inner}</g>`;
+}
+
+/** 脚印：椭圆脚掌 + 三个趾 */
+function inkFoot(dx, dy, rot, scale) {
+  return `<g transform="translate(${dx} ${dy}) rotate(${rot}) scale(${scale})" fill="${DEEP}">
+    <ellipse cx="0" cy="0" rx="6.4" ry="10"/>
+    <circle cx="-5" cy="-11.6" r="2.6"/><circle cx="0.4" cy="-13" r="2.6"/><circle cx="5.4" cy="-11" r="2.4"/></g>`;
+}
+
+/** 花瓣：五片围一圈，中心一点黄，缩略图里也能认出是花 */
+function inkPetals(cx, cy, r, color = FLOWER, core = '#F2D07C') {
+  const petals = [0, 72, 144, 216, 288]
+    .map((deg) => {
+      const rad = (deg * Math.PI) / 180;
+      return `<circle cx="${(cx + Math.cos(rad) * r).toFixed(1)}" cy="${(cy + Math.sin(rad) * r).toFixed(1)}" r="${(r * 0.74).toFixed(1)}"/>`;
+    })
+    .join('');
+  return `<g fill="${color}">${petals}</g><circle cx="${cx}" cy="${cy}" r="${(r * 0.44).toFixed(1)}" fill="${core}"/>`;
+}
+
+/** 人：头 + 交领长衫 + 两条腿。轮廓线 + 露在衫外的手臂，缩到 170px 也不会糊成一块石头 */
+function inkPerson(x, y, s) {
+  return motifMarkup(x, y, s, `
+    <path d="M-7 -16 v16 M8 -16 v16" stroke="${DEEP}" stroke-width="5.4" stroke-linecap="round"/>
+    <path d="M-11 -46 q11 -6 22 0 l7 30 q-18 6 -36 0 z" fill="${NEAR}" stroke="${DEEP}" stroke-width="1.7" stroke-linejoin="round"/>
+    <path d="M-10 -44 q-11 9 -11 20 M10 -44 q11 9 11 20" fill="none" stroke="${DEEP}" stroke-width="4.4" stroke-linecap="round" opacity="0.85"/>
+    <path d="M-5 -46 l5 8 l5 -8" fill="none" stroke="${DEEP}" stroke-width="1.6" opacity="0.6"/>
+    <circle cx="0" cy="-58" r="11" fill="#F1E8D6" stroke="${DEEP}" stroke-width="1.7"/>
+    <path d="M-9 -62 q9 -8 18 0" fill="none" stroke="${DEEP}" stroke-width="3" stroke-linecap="round"/>`);
+}
+
+/**
+ * 四足兽骨架：一条身子 + 颈 + 右向的头 + 三条腿 + 一条尾。
+ * 马 / 牛 / 驴 / 虎 / 狐 共用这套骨架，靠耳朵、角、鬃、斑纹、尾巴区分。
+ */
+function inkQuadruped(x, y, s, opts = {}) {
+  const { coat = NEAR, ear = 'round', tail = 'short', horn = false, mane = false, stripe = false } = opts;
+  const ears = {
+    round: `<circle cx="17" cy="-56" r="4.6" fill="${coat}"/><circle cx="29" cy="-56" r="4.6" fill="${coat}"/>`,
+    point: `<path d="M17 -51 l-3 -14 l11 7 z" fill="${coat}"/><path d="M27 -52 l4 -14 l9 9 z" fill="${coat}"/>`,
+    long: `<path d="M17 -50 q-7 -18 1 -24 q7 9 7 23 z" fill="${coat}"/><path d="M26 -51 q1 -18 9 -22 q3 11 -1 22 z" fill="${coat}"/>`,
+    none: '',
+  };
+  const tails = {
+    short: `<path d="M-25 -34 q-9 -5 -6 -16" fill="none" stroke="${coat}" stroke-width="5" stroke-linecap="round"/>`,
+    bush: `<path d="M-24 -32 q-20 -2 -18 -22 q16 3 22 14 z" fill="${coat}" opacity="0.95"/>`,
+    long: `<path d="M-25 -34 q-12 4 -12 16" fill="none" stroke="${coat}" stroke-width="4" stroke-linecap="round"/>`,
+    none: '',
+  };
+  const horns = horn
+    ? `<path d="M16 -58 q-11 -7 -6 -15 q9 4 9 14" fill="none" stroke="${DEEP}" stroke-width="3.4" stroke-linecap="round"/>
+      <path d="M32 -58 q11 -7 6 -15 q-9 4 -9 14" fill="none" stroke="${DEEP}" stroke-width="3.4" stroke-linecap="round"/>`
+    : '';
+  const maneMark = mane
+    ? `<path d="M11 -40 q9 -2 13 -8 l5 6 q-7 8 -15 9 z" fill="${DEEP}" opacity="0.5"/>`
+    : '';
+  const stripes = stripe
+    ? `<path d="M-14 -38 q5 8 3 18 M-3 -40 q4 9 2 20 M8 -40 q3 9 1 18" fill="none" stroke="${DEEP}" stroke-width="2.6" stroke-linecap="round" opacity="0.75"/>`
+    : '';
+  return motifMarkup(x, y, s, `
+    <ellipse cx="-4" cy="-28" rx="22" ry="13" fill="${coat}"/>
+    <path d="M10 -36 q10 -3 14 -8 l9 6 q-5 10 -16 14 z" fill="${coat}"/>
+    ${ears[ear] ?? ''}${horns}${maneMark}${stripes}${tails[tail] ?? ''}
+    <ellipse cx="25" cy="-47" rx="11" ry="9" fill="${coat}"/>
+    <path d="M34 -49 q8 2 6 7 l-8 1" fill="${coat}"/>
+    <circle cx="27" cy="-50" r="1.8" fill="${INK.ink}"/>
+    <path d="M-18 -16 v16 M-7 -16 v16 M4 -16 v16" stroke="${coat}" stroke-width="5.2" stroke-linecap="round"/>`);
+}
+
+/** slug 登记的两件意象 → 画面主体（1 件居中放大，2 件左右分开） */
+const IDIOM_MOTIFS = {
+  /* —— 兽 —— */
+  horse: (x, y, s) => inkQuadruped(x, y, s, { coat: WOOD, ear: 'point', tail: 'long', mane: true }),
+  ox: (x, y, s) => inkQuadruped(x, y, s, { coat: '#8C8175', ear: 'point', tail: 'long', horn: true }),
+  donkey: (x, y, s) => inkQuadruped(x, y, s, { coat: '#BDB3A0', ear: 'long', tail: 'long' }),
+  tiger: (x, y, s) => inkQuadruped(x, y, s, { coat: '#E8B96B', ear: 'round', tail: 'long', stripe: true }),
+  fox: (x, y, s) => inkQuadruped(x, y, s, { coat: ROOF, ear: 'point', tail: 'bush' }),
+  sheep: (x, y, s) =>
+    `${inkQuadruped(x, y, s, { coat: WHITE, ear: 'round', tail: 'short' })}${motifMarkup(
+      x,
+      y,
+      s,
+      `<g fill="${WHITE}" stroke="${FAR}" stroke-width="1.4"><circle cx="-16" cy="-36" r="7" /><circle cx="-4" cy="-40" r="8" /><circle cx="7" cy="-36" r="7" /><circle cx="-22" cy="-28" r="6" /></g>`,
+    )}`,
+  rabbit: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <ellipse cx="-6" cy="-18" rx="20" ry="14" fill="${WHITE}" stroke="${FAR}" stroke-width="1.8"/>
+    <circle cx="12" cy="-34" r="11" fill="${WHITE}" stroke="${FAR}" stroke-width="1.8"/>
+    <path d="M6 -43 q-3 -18 4 -22 q6 8 5 22 z" fill="${WHITE}" stroke="${FAR}" stroke-width="1.8"/>
+    <path d="M16 -43 q1 -18 8 -20 q3 11 -1 21 z" fill="${WHITE}" stroke="${FAR}" stroke-width="1.8"/>
+    <circle cx="17" cy="-35" r="1.9" fill="${INK.ink}"/>
+    <circle cx="-25" cy="-22" r="6" fill="${WHITE}" stroke="${FAR}" stroke-width="1.6"/>
+    <path d="M-14 -5 v5 M2 -5 v5" stroke="${FAR}" stroke-width="3.2" stroke-linecap="round"/>`,
+    ),
+  snake: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-30 -2 q2 -16 17 -18 q15 -2 19 12" fill="none" stroke="${LEAF_DEEP}" stroke-width="9.6" stroke-linecap="round"/>
+    <ellipse cx="9" cy="-13" rx="10.5" ry="7.6" fill="${LEAF_DEEP}"/>
+    <circle cx="13" cy="-16" r="1.9" fill="${WHITE}"/>
+    <path d="M18 -11 q7 1 9 5 M18 -8 q7 -1 9 -5" fill="none" stroke="#C4574B" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M-18 -8 q4 3 9 0 M-6 -14 q4 3 9 0" fill="none" stroke="${FAR}" stroke-width="1.6" opacity="0.7"/>`,
+    ),
+  frog: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <ellipse cx="0" cy="-14" rx="20" ry="13" fill="${LEAF}"/>
+    <path d="M-19 -6 q-7 3 -8 6 M19 -6 q7 3 8 6" fill="none" stroke="${LEAF_DEEP}" stroke-width="3.4" stroke-linecap="round"/>
+    <circle cx="-8" cy="-27" r="6.4" fill="${LEAF}"/><circle cx="9" cy="-27" r="6.4" fill="${LEAF}"/>
+    <circle cx="-8" cy="-28" r="2.5" fill="${INK.ink}"/><circle cx="9" cy="-28" r="2.5" fill="${INK.ink}"/>
+    <path d="M-7 -10 q7 5 14 0" fill="none" stroke="${LEAF_DEEP}" stroke-width="2" stroke-linecap="round"/>`,
+    ),
+  fish: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-22 -18 q16 -12 32 0 q-16 12 -32 0 z" fill="${LINE}"/>
+    <path d="M-22 -18 l-12 -8 v16 z" fill="${LINE}"/>
+    <path d="M-4 -25 q5 -8 11 -3" fill="${LINE}" opacity="0.8"/>
+    <circle cx="3" cy="-20" r="1.9" fill="${INK.ink}"/>`,
+    ),
+  bird: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <ellipse cx="-4" cy="-16" rx="16" ry="11" fill="${NEAR}"/>
+    <circle cx="11" cy="-30" r="8.4" fill="${NEAR}"/>
+    <path d="M19 -31 l9 3 l-9 4 z" fill="${ROOF}"/>
+    <circle cx="13" cy="-32" r="1.7" fill="${INK.ink}"/>
+    <path d="M-19 -20 l-11 -7 q8 -4 13 3 z" fill="${NEAR}"/>
+    <path d="M-9 -21 q9 2 12 9 q-11 2 -14 -6 z" fill="${WHITE}" stroke="${FAR}" stroke-width="1.2"/>
+    <path d="M-9 0 v-6 M3 0 v-6" stroke="${DEEP}" stroke-width="2.6" stroke-linecap="round"/>`,
+    ),
+  rooster: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <ellipse cx="-2" cy="-16" rx="15" ry="11" fill="${WHITE}" stroke="${FAR}" stroke-width="1.6"/>
+    <path d="M-12 -20 q-11 -8 -9 -20 q8 6 11 14 q3 -8 8 -10 q1 10 -2 16 z" fill="${ROOF}"/>
+    <circle cx="12" cy="-28" r="7.6" fill="${WHITE}" stroke="${FAR}" stroke-width="1.6"/>
+    <path d="M9 -35 q2 -8 5 -2 q3 -7 5 0 q2 -5 3 2" fill="${ROOF}"/>
+    <path d="M19 -28 l9 2 l-9 3 z" fill="${SUN}"/>
+    <circle cx="14" cy="-30" r="1.6" fill="${INK.ink}"/>
+    <path d="M-7 0 v-6 M2 0 v-6" stroke="${SUN}" stroke-width="2.6" stroke-linecap="round"/>`,
+    ),
+  monkey: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <ellipse cx="0" cy="-16" rx="12" ry="15" fill="${WOOD}"/>
+    <circle cx="0" cy="-38" r="10" fill="${WOOD}"/>
+    <circle cx="-10" cy="-41" r="4.4" fill="${WOOD}"/><circle cx="10" cy="-41" r="4.4" fill="${WOOD}"/>
+    <ellipse cx="0" cy="-35" rx="6.4" ry="5" fill="#F2E0CC"/>
+    <circle cx="-3.4" cy="-40" r="1.6" fill="${INK.ink}"/><circle cx="3.4" cy="-40" r="1.6" fill="${INK.ink}"/>
+    <path d="M-12 -20 q-13 5 -8 18" fill="none" stroke="${WOOD}" stroke-width="3.4" stroke-linecap="round"/>
+    <path d="M-8 -4 v4 M8 -4 v4" stroke="${DEEP}" stroke-width="3.2" stroke-linecap="round"/>`,
+    ),
+  elephant: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <ellipse cx="-8" cy="-30" rx="24" ry="18" fill="${NEAR}"/>
+    <ellipse cx="12" cy="-38" rx="12" ry="14" fill="${FAR}"/>
+    <path d="M22 -44 q14 4 11 16 q-3 14 -11 15 q-6 1 -6 -5 q0 -5 5 -6" fill="none" stroke="${NEAR}" stroke-width="8" stroke-linecap="round"/>
+    <path d="M30 -46 q9 -3 11 -9" fill="none" stroke="${WHITE}" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="18" cy="-44" r="1.8" fill="${INK.ink}"/>
+    <path d="M-22 -14 v14 M-8 -14 v14 M6 -14 v14 M18 -16 v16" stroke="${NEAR}" stroke-width="7" stroke-linecap="round"/>`,
+    ),
+  dragon: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-34 -8 q10 -22 26 -20 q16 2 20 -12 q3 -11 14 -10" fill="none" stroke="${LEAF_DEEP}" stroke-width="12" stroke-linecap="round"/>
+    <path d="M-34 -8 q-7 -10 -3 -18 q9 4 9 14 z" fill="${LEAF_DEEP}"/>
+    <path d="M-14 -26 l-6 -7 M2 -34 l-6 -8 M14 -40 l-4 -9" stroke="${DEEP}" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="M26 -50 q10 -8 20 -4 q8 4 2 10 q-8 6 -18 3 z" fill="${LEAF_DEEP}"/>
+    <path d="M41 -42 l3 5" stroke="${WHITE}" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M27 -54 q-3 -11 -12 -14 M34 -54 q3 -10 12 -11" fill="none" stroke="#A9885F" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M22 -58 q-9 -3 -15 0" fill="none" stroke="${DEEP}" stroke-width="2.4" stroke-linecap="round"/>
+    <circle cx="36" cy="-50" r="2.6" fill="${WHITE}"/>
+    <circle cx="36" cy="-50" r="1.4" fill="${INK.ink}"/>
+    <path d="M46 -44 q9 5 8 14 M44 -40 q6 7 4 13" fill="none" stroke="${ROOF}" stroke-width="2" stroke-linecap="round"/>
+    <path d="M-2 -30 l-9 4 M-16 -18 l-9 1" stroke="${DEEP}" stroke-width="2.6" stroke-linecap="round"/>`,
+    ),
+  mantis: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-2 0 v-30" stroke="${LEAF_DEEP}" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="-2" cy="-36" r="6.6" fill="${LEAF_DEEP}"/>
+    <path d="M-6 -40 q-11 -6 -8 -16 l4 2 q0 8 8 10" fill="${LEAF}" stroke="${LEAF_DEEP}" stroke-width="1.6"/>
+    <path d="M2 -40 q11 -6 8 -16 l-4 2 q0 8 -8 10" fill="${LEAF}" stroke="${LEAF_DEEP}" stroke-width="1.6"/>
+    <path d="M2 -30 l10 -8 M-6 -30 l-10 -8" stroke="${LEAF_DEEP}" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M-2 -44 l-5 -8 M3 -44 l6 -8" stroke="${DEEP}" stroke-width="1.6" stroke-linecap="round"/>`,
+    ),
+  insect: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <ellipse cx="-8" cy="-20" rx="7" ry="12" transform="rotate(-16 -8 -20)" fill="${WHITE}" stroke="${FAR}" stroke-width="1.4" opacity="0.9"/>
+    <ellipse cx="8" cy="-20" rx="7" ry="12" transform="rotate(16 8 -20)" fill="${WHITE}" stroke="${FAR}" stroke-width="1.4" opacity="0.9"/>
+    <ellipse cx="0" cy="-16" rx="7.6" ry="13" fill="${NEAR}"/>
+    <circle cx="0" cy="-33" r="5.6" fill="${NEAR}"/>
+    <path d="M-3 -37 l-5 -8 M3 -37 l5 -8" stroke="${DEEP}" stroke-width="1.8" stroke-linecap="round"/>`,
+    ),
+  clam: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M0 -2 q-27 -2 -25 -26 q25 -12 50 0 q2 24 -25 26 z" fill="#F2E9DA" stroke="${DEEP}" stroke-width="2"/>
+    <path d="M0 -4 v-28 M-15 -8 v-20 M-8 -5 v-25 M8 -5 v-25 M15 -8 v-20" stroke="${FAR}" stroke-width="1.8"/>
+    <path d="M-25 -22 q25 8 50 0" fill="none" stroke="${DEEP}" stroke-width="1.6" opacity="0.6"/>`,
+    ),
+
+  /* —— 人 —— */
+  person: inkPerson,
+  child: (x, y, s) => inkPerson(x, y, s * 0.68),
+  elder: (x, y, s) =>
+    `${inkPerson(x, y, s)}${motifMarkup(
+      x,
+      y,
+      s,
+      `<path d="M23 0 v-52" stroke="${WOOD}" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M-6 -50 q6 7 12 0 q-1 12 -6 12 q-5 0 -6 -12" fill="${WHITE}" opacity="0.94"/>`,
+    )}`,
+
+  /* —— 舟车与兵器 —— */
+  boat: (x, y, s) => inkBoat(x, y - 4 * s, s),
+  well: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-26 -12 v12 q26 10 52 0 v-12 z" fill="#E2D7C2" stroke="${DEEP}" stroke-width="1.8"/>
+    <ellipse cx="0" cy="-12" rx="26" ry="9" fill="#EDE3D0" stroke="${DEEP}" stroke-width="1.8"/>
+    <ellipse cx="0" cy="-12" rx="15" ry="5.2" fill="#6F6858"/>
+    <path d="M-20 -18 v-26 M20 -18 v-26" stroke="${WOOD}" stroke-width="3.4" stroke-linecap="round"/>
+    <path d="M-23 -44 h46" stroke="${WOOD}" stroke-width="3.4" stroke-linecap="round"/>
+    <path d="M0 -44 v-9" stroke="${DEEP}" stroke-width="1.6"/>
+    <path d="M-7 -35 h14 l-2 8 h-10 z" fill="${WOOD}"/>`,
+    ),
+  cart: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <circle cx="-8" cy="-14" r="13" fill="none" stroke="${WOOD}" stroke-width="5"/>
+    <path d="M-8 -27 v26 M-21 -14 h26 M-17 -23 l18 18 M-17 -5 l18 -18" stroke="${WOOD}" stroke-width="2.4"/>
+    <circle cx="-8" cy="-14" r="3.2" fill="${WOOD}"/>
+    <path d="M6 -28 h20 v11 h-20 z" fill="${ROOF}" opacity="0.85"/>
+    <path d="M24 -26 l10 -6" stroke="${WOOD}" stroke-width="4" stroke-linecap="round"/>`,
+    ),
+  sword: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `<g transform="rotate(-14)">
+    <path d="M0 -62 l7 11 v39 h-14 v-39 z" fill="${WHITE}" stroke="${DEEP}" stroke-width="2"/>
+    <path d="M-14 -12 h28" stroke="${WOOD}" stroke-width="5" stroke-linecap="round"/>
+    <path d="M0 -12 v11" stroke="${DEEP}" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="0" cy="2" r="4.4" fill="${WOOD}"/></g>`,
+    ),
+  spear: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `<g transform="rotate(8)">
+    <path d="M0 0 v-58" stroke="${WOOD}" stroke-width="4.4" stroke-linecap="round"/>
+    <path d="M0 -78 l7 13 l-7 10 l-7 -10 z" fill="${NEAR}" stroke="${DEEP}" stroke-width="1.8"/>
+    <path d="M0 -60 q-9 4 -9 13" fill="none" stroke="${ROOF}" stroke-width="3" stroke-linecap="round"/></g>`,
+    ),
+  shield: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M0 0 q-25 -11 -27 -35 q12 -7 27 -11 q15 4 27 11 q-2 24 -27 35 z" fill="${WHITE}" stroke="${DEEP}" stroke-width="2.4"/>
+    <path d="M0 -6 v-38" stroke="${DEEP}" stroke-width="1.6" opacity="0.4"/>
+    <circle cx="0" cy="-25" r="6.4" fill="${ROOF}" opacity="0.85"/>`,
+    ),
+  bow: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M10 -60 q-26 26 -24 60" fill="none" stroke="${WOOD}" stroke-width="6" stroke-linecap="round"/>
+    <path d="M10 -60 L-14 0" stroke="${INK.ink}" stroke-width="1.8" opacity="0.65"/>
+    <path d="M10 -60 l-6 -4 M-14 0 l-5 3" stroke="${DEEP}" stroke-width="3" stroke-linecap="round"/>`,
+    ),
+  drum: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-22 -34 v16 a22 8 0 0 0 44 0 v-16" fill="${ROOF}"/>
+    <ellipse cx="0" cy="-34" rx="22" ry="8" fill="#EBDCC4" stroke="${DEEP}" stroke-width="2"/>
+    <ellipse cx="0" cy="-18" rx="22" ry="8" fill="#C08268"/>
+    <path d="M-16 -44 l5 -10 M14 -46 l5 -9" stroke="${WOOD}" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="-11" cy="-54" r="4.4" fill="${WOOD}"/><circle cx="19" cy="-56" r="4.4" fill="${WOOD}"/>`,
+    ),
+
+  /* —— 书斋器物 —— */
+  book: (x, y, s) => inkBook(x, y - 34 * s, s),
+  lamp: (x, y, s) => inkLamp(x, y - 20 * s, s),
+  desk: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <rect x="-24" y="-30" width="48" height="7" rx="3" fill="${WOOD}"/>
+    <path d="M-17 -23 v23 M17 -23 v23" stroke="${WOOD}" stroke-width="4" stroke-linecap="round"/>
+    <path d="M-12 -34 h24" stroke="${DEEP}" stroke-width="2" opacity="0.4"/>`,
+    ),
+  brush: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `<g transform="rotate(-8)">
+    <path d="M0 0 v-44" stroke="#B08A5E" stroke-width="6" stroke-linecap="round"/>
+    <rect x="-5" y="-57" width="10" height="13" rx="2" fill="${ROOF}"/>
+    <path d="M-5 -58 q5 -21 10 0 z" fill="${INK.ink}"/></g>`,
+    ),
+  scroll: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <rect x="-24" y="-26" width="48" height="26" fill="#EFE5D2" stroke="${DEEP}" stroke-width="1.8"/>
+    <circle cx="-24" cy="-13" r="8.4" fill="${WOOD}" stroke="${DEEP}" stroke-width="1.2"/><circle cx="24" cy="-13" r="8.4" fill="${WOOD}" stroke="${DEEP}" stroke-width="1.2"/>
+    <path d="M-14 -20 h22 M-14 -13 h22 M-14 -6 h16" stroke="${DEEP}" stroke-width="1.6" opacity="0.55"/>
+    <path d="M-24 -26 v26 M24 -26 v26" stroke="${DEEP}" stroke-width="1.4" opacity="0.4"/>`,
+    ),
+  ruler: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `<g transform="rotate(-10)">
+    <rect x="-28" y="-20" width="56" height="14" rx="2" fill="#E8DAC3" stroke="${DEEP}" stroke-width="1.8"/>
+    <path d="M-18 -20 v5 M-8 -20 v8 M2 -20 v5 M12 -20 v8 M22 -20 v5" stroke="${DEEP}" stroke-width="1.6"/></g>`,
+    ),
+  seal: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <rect x="-16" y="-26" width="32" height="26" rx="3" fill="#B4453A" opacity="0.9"/>
+    <path d="M-7 -26 v-6 h14 v6" fill="#B4453A" stroke="#B4453A" stroke-width="3"/>
+    <path d="M-6 -17 h12 M-6 -9 h12" stroke="${WHITE}" stroke-width="1.8" opacity="0.9"/>`,
+    ),
+  abacus: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <rect x="-30" y="-42" width="60" height="30" rx="4" fill="#E8DAC3" stroke="${DEEP}" stroke-width="2"/>
+    <path d="M-30 -31 h60" stroke="${DEEP}" stroke-width="1.6"/>
+    <g fill="${INK.ink}">${[-22, -12, -2, 8, 18]
+      .map((cx) => `<circle cx="${cx}" cy="-36" r="3" /><circle cx="${cx}" cy="-23" r="3" />`)
+      .join('')}</g>`,
+    ),
+  scale: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M0 0 v-52" stroke="${WOOD}" stroke-width="4" stroke-linecap="round"/>
+    <path d="M-26 -46 h52" stroke="${WOOD}" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="0" cy="-54" r="4.4" fill="${DEEP}"/>
+    <path d="M-26 -46 v9 M26 -46 v9" stroke="${DEEP}" stroke-width="1.6"/>
+    <path d="M-38 -36 h24 l-12 12 z" fill="${FAR}"/>
+    <path d="M14 -36 h24 l-12 12 z" fill="${FAR}"/>`,
+    ),
+  stove: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-18 0 q-5 -18 3 -22 h30 q8 4 3 22 z" fill="${NEAR}"/>
+    <ellipse cx="0" cy="-22" rx="18" ry="5" fill="${DEEP}"/>
+    <path d="M-7 -30 q7 -8 0 -15 M7 -30 q7 -8 0 -15" fill="none" stroke="${ROOF}" stroke-width="3" stroke-linecap="round"/>
+    <path d="M-4 0 v-3 M4 0 v-3" stroke="${INK.ink}" stroke-width="2"/>`,
+    ),
+  cup: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-14 -30 h28 l-4 18 q-10 5 -20 0 z" fill="${WHITE}" stroke="${DEEP}" stroke-width="2"/>
+    <path d="M0 -10 v8" stroke="${DEEP}" stroke-width="3" stroke-linecap="round"/>
+    <ellipse cx="0" cy="-2" rx="11" ry="3.4" fill="${FAR}"/>
+    <path d="M-16 -31 h32" stroke="${DEEP}" stroke-width="2.4" stroke-opacity="0.6"/>
+    <path d="M-5 -38 q6 -6 0 -12 M6 -36 q6 -6 0 -12" fill="none" stroke="${FAR}" stroke-width="2" stroke-linecap="round"/>`,
+    ),
+  box: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <rect x="-24" y="-26" width="48" height="26" rx="3" fill="${WOOD}"/>
+    <rect x="-28" y="-37" width="56" height="12" rx="4" fill="#C39A76"/>
+    <path d="M-6 -31 h12" stroke="${DEEP}" stroke-width="3" stroke-linecap="round"/>`,
+    ),
+  bundle: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-6 0 l-5 -46 M3 0 l-1 -48 M10 0 l5 -44" stroke="${WOOD}" stroke-width="5" stroke-linecap="round"/>
+    <path d="M-13 -22 q13 5 27 0" fill="none" stroke="${ROOF}" stroke-width="4.4" stroke-linecap="round"/>`,
+    ),
+  umbrella: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M0 0 v-34" stroke="${WOOD}" stroke-width="3.4" stroke-linecap="round"/>
+    <path d="M-31 -40 q31 -27 62 0 q-9 7 -31 5 q-22 2 -31 -5 z" fill="${ROOF}"/>
+    <path d="M-31 -40 q9 7 15 3 q8 7 16 0 q8 7 15 -3" fill="none" stroke="#A96B50" stroke-width="1.8"/>
+    <path d="M0 -44 v-5" stroke="${DEEP}" stroke-width="3" stroke-linecap="round"/>`,
+    ),
+  flag: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-14 0 v-58" stroke="${WOOD}" stroke-width="4" stroke-linecap="round"/>
+    <path d="M-12 -56 q16 9 30 1 v21 q-14 8 -30 -1 z" fill="${ROOF}" opacity="0.92"/>`,
+    ),
+  window: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <rect x="-24" y="-52" width="48" height="44" rx="3" fill="${WHITE}" stroke="${WOOD}" stroke-width="3.4"/>
+    <path d="M0 -52 v44 M-24 -30 h48" stroke="${WOOD}" stroke-width="2.4"/>`,
+    ),
+  wall: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <rect x="-30" y="-46" width="60" height="46" fill="${FAR}" stroke="${DEEP}" stroke-width="2"/>
+    <path d="M-30 -31 h60 M-30 -15 h60 M-10 -46 v15 M10 -31 v16 M-12 -15 v15" stroke="${DEEP}" stroke-width="1.4" opacity="0.45"/>
+    <circle cx="8" cy="-27" r="7" fill="${SUN}"/>
+    <path d="M8 -27 l17 15 h-15 z" fill="${SUN}" opacity="0.45"/>`,
+    ),
+  steps: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-26 0 v-12 h14 v-12 h14 v-12 h14 v-12 h10 v48 z" fill="${NEAR}" stroke="${DEEP}" stroke-width="2"/>
+    <path d="M-26 -12 h14 M-12 -24 h14 M2 -36 h14 M16 -48 h10" stroke="${DEEP}" stroke-width="1.4" opacity="0.45"/>`,
+    ),
+  target: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <circle cx="0" cy="-30" r="26" fill="${WHITE}" stroke="${DEEP}" stroke-width="2"/>
+    <circle cx="0" cy="-30" r="16" fill="#EFE1C9"/>
+    <circle cx="0" cy="-30" r="7.4" fill="${ROOF}"/>
+    <path d="M-30 -30 h-6 M30 -30 h6" stroke="${DEEP}" stroke-width="2" opacity="0.6"/>`,
+    ),
+
+  /* —— 金石与财物 —— */
+  gold: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-23 -6 q5 -15 23 -15 q18 0 23 15 q-23 8 -46 0 z" fill="${SUN}" stroke="#C29A52" stroke-width="1.8"/>
+    <ellipse cx="0" cy="-6" rx="23" ry="6.4" fill="#EFCB86"/>
+    <path d="M-9 -15 q9 8 18 0" fill="none" stroke="#C29A52" stroke-width="1.6"/>`,
+    ),
+  pearl: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <circle cx="0" cy="-22" r="23" fill="${WHITE}" opacity="0.4"/>
+    <circle cx="0" cy="-22" r="15" fill="${WHITE}" stroke="${FAR}" stroke-width="2"/>
+    <circle cx="-5" cy="-27" r="4.4" fill="#FFFFFF" opacity="0.95"/>
+    <ellipse cx="0" cy="-4" rx="16" ry="4" fill="${WATER}" opacity="0.7"/>`,
+    ),
+  stone: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-24 0 q-7 -19 6 -27 q13 -8 23 2 q9 8 6 25 z" fill="${FAR}" stroke="${DEEP}" stroke-width="2"/>
+    <path d="M-9 -20 q7 4 4 13 M3 -24 q5 6 2 14" fill="none" stroke="${DEEP}" stroke-width="1.6" opacity="0.45"/>`,
+    ),
+  bell: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-8 -58 q-15 8 -17 36 h50 q-2 -28 -17 -36 z" fill="${SUN}" stroke="#C29A52" stroke-width="2"/>
+    <path d="M-9 -60 h18" stroke="#C29A52" stroke-width="5" stroke-linecap="round"/>
+    <rect x="-27" y="-26" width="54" height="7" rx="3" fill="#D9AE63" stroke="#C29A52" stroke-width="1.6"/>
+    <path d="M-13 -34 q13 6 26 0" fill="none" stroke="#C29A52" stroke-width="1.6" opacity="0.6"/>
+    <circle cx="0" cy="-15" r="5.4" fill="${DEEP}"/>`,
+    ),
+
+  /* —— 草木 —— */
+  sprout: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M0 0 v-22" stroke="${LEAF_DEEP}" stroke-width="3.4" stroke-linecap="round"/>
+    <path d="M0 -16 q-17 -4 -19 -19 q17 3 19 19" fill="${LEAF}"/>
+    <path d="M0 -26 q17 -6 19 -21 q-17 3 -19 21" fill="${LEAF}"/>
+    <path d="M-12 0 q12 4 24 0" fill="none" stroke="${GROUND}" stroke-width="4"/>`,
+    ),
+  leaf: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-2 0 q-25 -15 -18 -37 q25 7 18 37 z" fill="${LEAF}" stroke="${LEAF_DEEP}" stroke-width="1.6"/>
+    <path d="M-2 -2 q-3 -16 -12 -28" fill="none" stroke="${LEAF_DEEP}" stroke-width="1.4" opacity="0.8"/>`,
+    ),
+  flower: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M0 -24 v24" stroke="${LEAF_DEEP}" stroke-width="3" stroke-linecap="round"/>
+    <path d="M0 -12 q-11 -2 -13 -11 q11 0 13 11" fill="${LEAF}"/>
+    ${inkPetals(0, -33, 9)}`,
+    ),
+  plum: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-26 0 q11 -13 7 -25 q-4 -13 4 -22 q7 -8 17 -9" fill="none" stroke="${WOOD}" stroke-width="4.4" stroke-linecap="round"/>
+    <path d="M-8 -22 q-9 -6 -11 -14" fill="none" stroke="${WOOD}" stroke-width="3" stroke-linecap="round"/>
+    ${inkPetals(-19, -36, 5, FLOWER)}${inkPetals(-2, -46, 5, FLOWER)}${inkPetals(6, -30, 4.6, '#EFB9BB')}`,
+    ),
+  willow: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-6 0 q6 -22 2 -34" stroke="${WOOD}" stroke-width="6" stroke-linecap="round"/>
+    <ellipse cx="0" cy="-36" rx="16" ry="7" fill="${LEAF}"/>
+    ${[-16, -8, 0, 8, 16]
+      .map((dx) => {
+        const tip = 20 + Math.abs(dx) * 0.5;
+        return `<path d="M${dx * 0.6} -36 q${dx * 0.9} 10 ${dx * 1.9} ${tip}" fill="none" stroke="${LEAF_DEEP}" stroke-width="2.6" stroke-linecap="round"/>
+          <ellipse cx="${dx * 1.9}" cy="${tip - 2}" rx="6" ry="3.2" fill="${LEAF}"/>
+          <ellipse cx="${dx * 1.35}" cy="${tip / 2 - 14}" rx="5.4" ry="2.8" fill="${LEAF}"/>`;
+      })
+      .join('')}`,
+    ),
+  bamboo: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-12 0 V-52 M2 0 V-62 M15 0 V-46" stroke="${LEAF_DEEP}" stroke-width="6.4" stroke-linecap="round"/>
+    <path d="M-12 -22 h1 M-12 -40 h1 M2 -26 h1 M2 -48 h1 M15 -18 h1 M15 -34 h1" stroke="${WHITE}" stroke-width="3.4"/>
+    ${[[-24, -50], [-4, -60], [10, -56], [24, -44], [6, -38], [-18, -32]]
+      .map(([dx, dy]) => `<path d="M${dx} ${dy} q13 -7 26 -3 q-13 7 -26 3 z" fill="${LEAF}"/>`)
+      .join('')}`,
+    ),
+  pine: (x, y, s) => inkPine(x, y, s),
+  stump: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-20 0 l4 -31 h32 l4 31 z" fill="${WOOD}"/>
+    <ellipse cx="0" cy="-31" rx="18" ry="6.6" fill="#E6D6BF" stroke="${DEEP}" stroke-width="2"/>
+    <circle cx="0" cy="-31" r="7" fill="none" stroke="${DEEP}" stroke-width="1.2" opacity="0.55"/>
+    <path d="M-16 -10 q16 4 32 0" fill="none" stroke="${DEEP}" stroke-width="1.6" opacity="0.4"/>`,
+    ),
+  fence: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-26 0 v-50 M0 0 v-56 M26 0 v-50" stroke="${WOOD}" stroke-width="7" stroke-linecap="round"/>
+    <path d="M-33 -15 h66 M-33 -35 h66" stroke="${WOOD}" stroke-width="5" stroke-linecap="round" opacity="0.9"/>`,
+    ),
+  fruit: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <circle cx="0" cy="-18" r="17" fill="${ROOF}"/>
+    <path d="M0 -34 q-2 -11 8 -15" fill="none" stroke="${DEEP}" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M6 -44 q13 -7 17 4 q-13 7 -17 -4 z" fill="${LEAF}"/>
+    <ellipse cx="-6" cy="-24" rx="5" ry="4" fill="${WHITE}" opacity="0.35"/>`,
+    ),
+
+  /* —— 天地 —— */
+  mountain: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-36 0 L-8 -60 L8 -28 L18 -40 L36 0 Z" fill="${NEAR}" stroke="${DEEP}" stroke-width="2"/>
+    <path d="M-8 -60 l-10 17 l12 5 l9 -10 z" fill="${WHITE}" opacity="0.75"/>`,
+    ),
+  water: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <ellipse cx="0" cy="-7" rx="29" ry="9" fill="${WATER}"/>
+    <path d="M-20 -8 q10 5 20 0 t18 0" fill="none" stroke="${LINE}" stroke-width="2.4" stroke-linecap="round" opacity="0.85"/>`,
+    ),
+  cloud: (x, y, s) => inkCloud(x, y - 44 * s, 96 * s),
+  sun: (x, y, s) => inkSun(x, y - 44 * s, 21 * s),
+  moon: (x, y, s) => inkMoon(x, y - 44 * s, 21 * s),
+  star: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M0 -52 l6 14 l15 1 l-12 10 l4 15 l-13 -9 l-13 9 l4 -15 l-12 -10 l15 -1 z" fill="${SUN}" stroke="#C29A52" stroke-width="1.4"/>`,
+    ),
+  rain: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-24 -34 q-2 -12 11 -13 q3 -10 15 -8 q12 2 12 14 q9 1 8 9 h-46 q-4 -1 0 -2 z" fill="${WHITE}" stroke="${FAR}" stroke-width="1.8"/>
+    ${[-18, -6, 6, 18]
+      .map((dx) => `<path d="M${dx} -6 l-4 12" stroke="${LINE}" stroke-width="2.6" stroke-linecap="round"/>`)
+      .join('')}`,
+    ),
+  bolt: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M4 -62 l-17 31 h14 l-9 31 l25 -37 h-15 z" fill="${SUN}" stroke="#C29A52" stroke-width="1.6"/>`,
+    ),
+  snow: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      [[-18, -32], [-4, -48], [12, -36], [22, -54], [0, -22], [-24, -50]]
+        .map(
+          ([dx, dy]) =>
+            `<path d="M${dx - 6} ${dy} h12 M${dx} ${dy - 6} v12 M${dx - 4.4} ${dy - 4.4} l9 9 M${dx + 4.4} ${dy - 4.4} l-9 9" stroke="${LINE}" stroke-width="1.8" stroke-linecap="round"/>`,
+        )
+        .join(''),
+    ),
+
+  /* —— 身与足 —— */
+  eye: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-28 -26 q28 -22 56 0 q-28 20 -56 0 z" fill="${WHITE}" stroke="${DEEP}" stroke-width="2.4"/>
+    <circle cx="0" cy="-26" r="9" fill="${INK.ink}"/>
+    <circle cx="-3" cy="-29" r="3" fill="${WHITE}" opacity="0.85"/>
+    <path d="M-28 -26 q-6 -8 -10 -10 M28 -26 q6 -8 10 -10" fill="none" stroke="${DEEP}" stroke-width="2" stroke-linecap="round" opacity="0.6"/>`,
+    ),
+  heart: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M0 -4 c-7 -6 -26 -16 -26 -29 0 -9 7 -15 14 -15 6 0 9 3 12 7 3 -4 6 -7 12 -7 7 0 14 6 14 15 0 13 -19 23 -26 29 z" fill="${FLOWER}"/>
+    <path d="M-16 -34 q4 -6 10 -5" fill="none" stroke="${WHITE}" stroke-width="3" stroke-linecap="round" opacity="0.7"/>`,
+    ),
+  hand: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-9 -7 h18 v7 h-18 z" fill="${ROOF}" opacity="0.9"/>
+    <path d="M0 -7 v-9" stroke="#D9AE86" stroke-width="9" stroke-linecap="round"/>
+    <path d="M-10 -18 q-9 3 -8 11" fill="none" stroke="#D9AE86" stroke-width="5" stroke-linecap="round"/>
+    <ellipse cx="0" cy="-20" rx="11" ry="12" fill="#D9AE86"/>
+    <path d="M-9 -30 v-11 M-3 -32 v-14 M4 -31 v-11 M9 -27 v-8" stroke="#D9AE86" stroke-width="5" stroke-linecap="round"/>
+    <path d="M-3 -24 q3 -2 6 0" fill="none" stroke="#B98A63" stroke-width="1.6" opacity="0.8"/>`,
+    ),
+  feet: (x, y, s) => motifMarkup(x, y, s, `${inkFoot(-11, -17, -8, 1.7)}${inkFoot(11, -17, 8, 1.7)}`),
+  footprints: (x, y, s) => motifMarkup(x, y, s, `${inkFoot(-14, -4, -16, 1.1)}${inkFoot(10, -12, 12, 1.1)}`),
+  shoe: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-26 -22 h20 v12 h9 q13 0 17 8 q1 2 0 2 h-46 z" fill="${WOOD}"/>
+    <path d="M-27 1 h49" stroke="${DEEP}" stroke-width="4.4" stroke-linecap="round"/>
+    <path d="M-24 -15 h14" stroke="${DEEP}" stroke-width="2.4" stroke-linecap="round" opacity="0.7"/>
+    <path d="M-6 -10 q9 4 12 10" fill="none" stroke="${DEEP}" stroke-width="1.8" stroke-linecap="round" opacity="0.7"/>`,
+    ),
+  flute: (x, y, s) =>
+    motifMarkup(
+      x,
+      y,
+      s,
+      `
+    <path d="M-18 0 V-46 M-6 0 V-54 M6 0 V-54 M18 0 V-46" stroke="${WOOD}" stroke-width="6" stroke-linecap="round"/>
+    <path d="M-21 -44 h42" stroke="${DEEP}" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+    <circle cx="0" cy="-24" r="2.2" fill="${DEEP}"/><circle cx="0" cy="-34" r="2.2" fill="${DEEP}"/>`,
+    ),
+};
+
+/** 天象件画在上半；落脚件（人 / 兽 / 器物 / 草木）踩地平线 */
+const IDIOM_SKY = new Set(['cloud', 'sun', 'moon', 'star', 'rain', 'bolt', 'snow']);
+const IDIOM_GROUND_Y = 186;
+const IDIOM_SKY_Y = 108;
+
+/** 一件居中放大、两件左右分开；未登记即抛错，不产出空白四字卡 */
+function idiomPropsMarkup(props) {
+  const marks = props.map((key) => {
+    const draw = IDIOM_MOTIFS[key];
+    if (typeof draw !== 'function') {
+      throw new Error(`成语意象件未登记：${key}（请在 IDIOM_MOTIFS 增加一件）`);
+    }
+    return draw;
+  });
+  if (marks.length === 1) {
+    return marks[0](160, IDIOM_SKY.has(props[0]) ? IDIOM_SKY_Y : IDIOM_GROUND_Y, 1.26);
+  }
+  return props
+    .map((key, index) =>
+      marks[index](index === 0 ? 102 : 218, IDIOM_SKY.has(key) ? IDIOM_SKY_Y : IDIOM_GROUND_Y, 1.02),
+    )
+    .join('');
+}
+
+/** 背景：两层淡远山 + 一条地平线，给意象件一个落脚处，不与主体抢 */
+function idiomBackdrop() {
+  return `<g opacity="0.62">
+      <path d="M-8 176 Q38 118 86 154 T182 136 T266 162 T328 144 V196 H-8 Z" fill="${INK_SOFT.far}"/>
+      <path d="M-8 190 Q52 158 104 182 T196 170 T328 186 V220 H-8 Z" fill="${INK_SOFT.near}" opacity="0.45"/>
+    </g>
+    <path d="M-8 186 q80 -12 168 -3 t168 -5 V320 H-8 Z" fill="${INK_SOFT.ground}" opacity="0.9"/>
+    <path d="M-8 186 q80 -12 168 -3 t168 -5" fill="none" stroke="${INK_SOFT.far}" stroke-width="2" opacity="0.7"/>`;
+}
+
+/** 四字卡：意象在上、四个楷体大字在下、页脚一道淡墨线 */
+function idiomSvg({ slug, zh }) {
+  const props = IDIOM_PROPS[slug];
+  if (!props) {
+    throw new Error(`成语 ${slug} 未登记意象件（请在 scripts/prepare-images.mjs 的 IDIOM_PROPS 增加一条）`);
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${CARD_SIZE}" height="${CARD_SIZE}">
+    <rect width="${CARD_SIZE}" height="${CARD_SIZE}" fill="${INK.paper}"/>
+    <rect x="0.5" y="0.5" width="${CARD_SIZE - 1}" height="${CARD_SIZE - 1}" fill="none" stroke="${INK.pale}" stroke-width="1.4" opacity="0.75"/>
+    ${idiomBackdrop()}
+    ${idiomPropsMarkup(props)}
+    <text x="157" y="272" font-size="62" letter-spacing="6" text-anchor="middle"
+      font-family="KaiTi, STKaiti, Microsoft YaHei" fill="${INK.ink}">${zh}</text>
+    <path d="M96 296 h128" stroke="${INK.ink}" stroke-width="2.4" stroke-linecap="round" opacity="0.22"/>
+  </svg>`;
+}
+
+/** 分类封面：淡墨山 + 卷 + 云，与诗词封面同版式（320 画布缩放居中），右上赭红印章 */
+function idiomCoverSvg() {
+  const { width, height } = COVER_SIZE;
+  const scale = height / CARD_SIZE;
+  const offsetX = (width - CARD_SIZE * scale) / 2;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+    <rect width="${width}" height="${height}" fill="${INK.paper}"/>
+    <g transform="translate(${offsetX.toFixed(1)} 0) scale(${scale.toFixed(3)})">
+      ${idiomBackdrop()}
+      ${IDIOM_MOTIFS.mountain(84, 190, 1.1)}
+      ${IDIOM_MOTIFS.cloud(150, 122, 0.86)}
+      ${IDIOM_MOTIFS.scroll(224, 190, 1.05)}
+    </g>
+    <g transform="translate(376 96)">
+      <rect x="-36" y="-36" width="72" height="72" rx="6" fill="none" stroke="#B4453A" stroke-width="4"/>
+      <text x="0" y="-8" font-size="24" text-anchor="middle" font-family="KaiTi, STKaiti, Microsoft YaHei" fill="#B4453A">成语</text>
+      <text x="0" y="22" font-size="24" text-anchor="middle" font-family="KaiTi, STKaiti, Microsoft YaHei" fill="#B4453A">词典</text>
+    </g>
+    <path d="M150 302 h180" stroke="${INK.ink}" stroke-width="2.6" stroke-linecap="round" opacity="0.2"/>
+  </svg>`;
+}
+
 /**
  * 卡片背景（v0.3）：与故事综合图同一套语言——柔和渐变天 + 浅色地面 + 两朵白云。
  * 17 个分类只换色调，不再出现“渐变底 + 单色 emoji 剪影”的脱节感。
@@ -494,7 +1657,7 @@ function cardScene(theme, outdoor = false) {
 }
 
 /** 户外感更强的分类：多两朵云；室内分类保持干净的“墙面 + 地面” */
-const CARD_OUTDOOR = new Set(['animals', 'fruit', 'vegetables', 'vehicles', 'weather', 'verbs']);
+const CARD_OUTDOOR = new Set(['animals', 'fruit', 'vegetables', 'vehicles', 'weather', 'verbs', 'sea', 'insects']);
 
 /** 分类内主体大小：车/人宽一点，果子小一点，保证同一列的视觉重量差不多 */
 const CARD_SUBJECT_SIZE = {
@@ -509,18 +1672,28 @@ const CARD_SUBJECT_SIZE = {
   verbs: 200,
   food: 190,
   school: 190,
+  /* v0.5 新分类：海洋大、虫子小、职业是人、穿戴是衣物 */
+  sea: 205,
+  insects: 180,
+  jobs: 200,
+  clothes: 185,
 };
 
 /** 个别主体本身画得小（香蕉/鱼/鼻子），卡片里给一点补偿，免得同一列里忽大忽小 */
 const CARD_BOOST = {
   banana: 1.3, fish: 1.25, nose: 1.2, butterfly: 1.2, dragonfly: 1.15, blueberry: 1.18, lemon: 1.15,
   cherry: 1.12, 'fish-dish': 1.15, key: 1.12, scissors: 1.12, pencil: 1.1, cold: 1.15,
+  /* v0.5 小虫子本体偏小，单条补偿到与同列视觉重量一致 */
+  ladybug: 1.3, snail: 1.28, spider: 1.3, caterpillar: 1.22, grasshopper: 1.2, mosquito: 1.25,
+  earthworm: 1.35, cicada: 1.22, ant: 1.3,
 };
 
 /** 主体的落脚线（与故事同一套口径：天空抬升、鱼不下沉、其它踩地） */
 function cardBaseY(slug) {
   const spec = cardSpecOf(slug);
   if (spec?.art === 'sky') return 300;
+  // 水生主体（v0.5 海洋动物）浮在水带上，与鱼/蝌蚪同一口径
+  if (spec?.water === true) return 236;
   if (spec?.art === 'fish' || spec?.art === 'tadpole' || spec?.art === 'body') return 236;
   return 272;
 }
@@ -1353,6 +2526,52 @@ function personArt(spec, { scale = 1.45 } = {}) {
           )
           .join('')
       : '';
+  /** v0.5 职业身份件：帽子（默认不画，保证既有卡逐字节不变） */
+  const hatColor = CAST_TONES[spec.hatTone] ?? cloth;
+  const hat = (() => {
+    switch (spec.hat) {
+      case 'cap':
+        return `<path d="M${-headR - 1} ${top + 7} q${headR + 1} ${-headR - 3} ${headR * 2 + 2} 0 z" fill="${hatColor}"/>
+          <ellipse cx="0" cy="${top + 7}" rx="${headR + 3}" ry="3.4" fill="${TONE_DEEP[spec.hatTone ?? spec.cloth ?? 'sky'] ?? hatColor}"/>`;
+      case 'helmet':
+        return `<path d="M${-headR - 2} ${headCy - 1} a${headR + 2} ${headR + 3} 0 0 1 ${headR * 2 + 4} 0 z" fill="${hatColor}"${castEdge(spec.hatTone ?? 'coral')}/>
+          <rect x="${-headR - 4}" y="${headCy - 3}" width="${headR * 2 + 8}" height="5" rx="2.5" fill="${TONE_DEEP[spec.hatTone ?? 'coral'] ?? hatColor}"/>`;
+      case 'straw':
+        return `<ellipse cx="0" cy="${top + 8}" rx="${headR + 12}" ry="6" fill="${CAST_TONES.wheat}"${castEdge('wheat')}/>
+          <path d="M${-headR + 2} ${top + 7} q${headR - 2} ${-headR} ${headR * 2 - 4} 0 z" fill="${CAST_TONES.cream}"/>`;
+      case 'beret':
+        return `<ellipse cx="-2" cy="${top + 4}" rx="${headR + 4}" ry="7" fill="${hatColor}"${castEdge(spec.hatTone ?? 'berry')}/>
+          <circle cx="${headR - 1}" cy="${top - 2}" r="3" fill="${hatColor}"/>`;
+      case 'nurse':
+        return `<path d="M${-headR + 3} ${top + 6} h${headR * 2 - 6} v-11 h-${headR - 3} l-${headR - 3} -5 l-${headR - 3} 5 h-${headR - 3} z" fill="${CAST_TONES.snow}"${castEdge('snow')}/>
+          <path d="M-2 ${top - 6} h4 M0 ${top - 8} v4" stroke="${CAST_TONES.rose}" stroke-width="2"/>`;
+      default:
+        return '';
+    }
+  })();
+  /** v0.5 职业身份件：手里拿的东西（默认不画） */
+  const prop = (() => {
+    const hx = 22;
+    const hy = -24;
+    switch (spec.prop) {
+      case 'stethoscope':
+        return `<path d="M-8 -50 q-4 12 4 18 M8 -50 q4 12 -2 18" fill="none" stroke="${CAST_TONES.slate}" stroke-width="2.4"/>
+          <path d="M-4 -32 q4 8 10 4 q6 -6 4 -14" fill="none" stroke="${CAST_TONES.slate}" stroke-width="2.4"/>
+          <circle cx="10" cy="-28" r="3.4" fill="${CAST_TONES.stone}" stroke="${CAST_TONES.slate}" stroke-width="1.4"/>`;
+      case 'pan':
+        return `<g transform="translate(${hx + 6} ${hy})"><ellipse cx="0" cy="0" rx="11" ry="4" fill="${CAST_TONES.slate}"/><path d="M11 0 h12" stroke="${CAST_TONES.slate}" stroke-width="3" stroke-linecap="round"/><ellipse cx="0" cy="-1" rx="8" ry="2.6" fill="${CAST_TONES.honey}"/></g>`;
+      case 'wheel':
+        return `<g transform="translate(0 -30)"><circle cx="0" cy="0" r="12" fill="none" stroke="${CAST_TONES.slate}" stroke-width="4"/><path d="M-12 0 h24 M0 -12 v24" stroke="${CAST_TONES.slate}" stroke-width="3"/></g>`;
+      case 'bag':
+        return `<g transform="translate(${hx + 4} ${hy + 6})"><rect x="-8" y="-6" width="16" height="14" rx="3" fill="${CAST_TONES.brown}"${castEdge('brown')}/><path d="M-8 -2 h16" stroke="${CAST_TONES.cream}" stroke-width="2"/><path d="M-6 -6 q6 -8 12 0" fill="none" stroke="${CAST_TONES.cocoa}" stroke-width="2"/></g>`;
+      case 'brush':
+        return `<g transform="translate(${hx + 4} ${hy}) rotate(30 0 0)"><rect x="-2" y="-16" width="4" height="20" rx="2" fill="${CAST_TONES.wood}"/><path d="M-3 4 l-2 8 l4 0 l-2 -8 z" fill="${CAST_TONES.berry}"/></g>`;
+      case 'hoe':
+        return `<g transform="translate(${hx + 2} ${hy}) rotate(18 0 0)"><rect x="-1.6" y="-30" width="3.2" height="48" rx="1.6" fill="${CAST_TONES.wood}"/><path d="M-1 -30 q10 -2 12 6 q-8 0 -12 -2 z" fill="${CAST_TONES.stone}"/></g>`;
+      default:
+        return '';
+    }
+  })();
   const beard = spec.beard
     ? `<path d="M${-headR + 4} ${headCy + 8} q${headR - 4} ${headR - 2} ${headR * 2 - 8} 0 q-3 8 -${headR - 4} 8 q-${headR - 5} 0 -${headR - 4} -8 z" fill="${CAST_TONES.snow}" opacity="0.95"/>`
     : '';
@@ -1370,8 +2589,9 @@ function personArt(spec, { scale = 1.45 } = {}) {
     <circle cx="22" cy="-24" r="4" fill="${skin}"/>
     ${hairBack}
     <circle cx="0" cy="${headCy}" r="${headR}" fill="${skin}"${edge}/>
-    ${hairStyle}${beard}
+    ${hairStyle}${hat}${beard}
     ${castFace({ cy: headCy + 1, r: headR, gap: 0.42 })}
+    ${prop}
   </g>`;
 }
 
@@ -1417,6 +2637,92 @@ function fishArt(spec, { scale = 1.45 } = {}) {
       <path d="M-20 4 q3 3 6 1" fill="none" stroke="${CAST_INK}" stroke-width="1.5" stroke-linecap="round"/>
     </g>
   </g>`;
+}
+
+/** v0.5 海洋动物画师：10 个 shape，靠 spec.water 浮在水带上（基准 y=0） */
+function seaArt(spec, { scale = 1.45 } = {}) {
+  const body = CAST_TONES[spec.tone] ?? CAST_TONES.dusk;
+  const deep = CAST_TONES[spec.deep] ?? TONE_DEEP[spec.tone ?? 'dusk'];
+  const belly = CAST_TONES.snow;
+  const wrap = (m) => `<g transform="scale(${scale.toFixed(3)})" transform-origin="0 0">${m}</g>`;
+  switch (spec.sea) {
+    case 'whale':
+      return wrap(`<g transform="translate(0 -40)">
+        <path d="M-30 0 q-16 6 -24 -4 q10 -4 15 -12 z" fill="${deep}"/>
+        <ellipse cx="6" cy="-2" rx="34" ry="21" fill="${body}"${castEdge(spec.tone ?? 'dusk')}/>
+        <path d="M-14 12 q16 8 34 0 q-4 -10 -34 -10 z" fill="${belly}" opacity="0.85"/>
+        <path d="M18 8 q3 -12 -3 -22" fill="none" stroke="${deep}" stroke-width="2" opacity="0.5"/>
+        <path d="M-4 -20 q0 -12 -5 -17 M-4 -37 q7 3 5 11" fill="none" stroke="${CAST_TONES.sky}" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="22" cy="-6" r="2.6" fill="${CAST_INK}"/></g>`);
+    case 'dolphin':
+      return wrap(`<g transform="translate(0 -44)">
+        <path d="M-30 6 q-14 2 -20 -8 q12 -2 18 -10 z" fill="${deep}"/>
+        <path d="M-26 2 q6 -20 40 -18 q14 2 18 10 q-10 4 -22 6 q-18 4 -36 2 z" fill="${body}"${castEdge(spec.tone ?? 'dusk')}/>
+        <path d="M-2 -16 q4 -12 12 -12 q-2 8 -4 12 z" fill="${deep}"/>
+        <path d="M8 4 q-12 4 -24 0" fill="none" stroke="${belly}" stroke-width="4" opacity="0.7"/>
+        <path d="M30 -8 q8 0 8 4 q-6 2 -10 0 z" fill="${deep}"/>
+        <circle cx="22" cy="-8" r="2.4" fill="${CAST_INK}"/></g>`);
+    case 'shark':
+      return wrap(`<g transform="translate(0 -42)">
+        <path d="M-32 0 q-8 -10 -6 -20 q10 8 14 14 z" fill="${deep}"/>
+        <path d="M-24 2 q10 -14 40 -12 q14 2 18 10 q-12 8 -34 8 q-16 0 -24 -6 z" fill="${body}"${castEdge(spec.tone ?? 'slate')}/>
+        <path d="M-2 4 q8 8 18 6 q-4 -8 -18 -6 z" fill="${belly}" opacity="0.85"/>
+        <path d="M2 -10 q4 -12 12 -12 q-2 8 -4 12 z" fill="${deep}"/>
+        <path d="M12 -4 v8 M18 -4 v8 M24 -4 v8" stroke="${deep}" stroke-width="2" opacity="0.6"/>
+        <path d="M40 -2 q-6 4 -12 2" fill="none" stroke="${CAST_INK}" stroke-width="1.6" stroke-linecap="round"/>
+        <circle cx="34" cy="-6" r="2.4" fill="${CAST_INK}"/></g>`);
+    case 'penguin':
+      return wrap(`<g transform="translate(0 -2)">
+        <path d="M0 -60 q22 2 24 30 q2 26 -24 30 q-26 -4 -24 -30 q2 -28 24 -30 z" fill="${CAST_TONES.slate}"${castEdge('slate')}/>
+        <path d="M0 -34 q14 2 15 22 q1 18 -15 20 q-16 -2 -15 -20 q1 -20 15 -22 z" fill="${belly}"/>
+        <path d="M-22 -30 q-12 12 -6 30 M22 -30 q12 12 6 30" fill="none" stroke="${CAST_TONES.slate}" stroke-width="6" stroke-linecap="round"/>
+        <path d="M-2 -44 l10 4 l-10 4 z" fill="${CAST_TONES.honey}"/>
+        <circle cx="-7" cy="-46" r="2.4" fill="${CAST_INK}"/><circle cx="7" cy="-46" r="2.4" fill="${CAST_INK}"/>
+        <path d="M-8 0 h7 M1 0 h7" stroke="${CAST_TONES.honey}" stroke-width="4" stroke-linecap="round"/></g>`);
+    case 'seal':
+      return wrap(`<g transform="translate(0 -30)">
+        <path d="M-30 4 q-14 -2 -20 8 q14 4 22 -2 z" fill="${deep}"/>
+        <ellipse cx="2" cy="0" rx="32" ry="20" fill="${body}"${castEdge(spec.tone ?? 'stone')}/>
+        <ellipse cx="-2" cy="6" rx="18" ry="11" fill="${belly}" opacity="0.7"/>
+        <path d="M6 16 q10 8 20 4 q-6 -8 -20 -4 z" fill="${deep}"/>
+        <path d="M28 -6 q10 -2 12 4 q-8 4 -14 0 z" fill="${body}"/>
+        <circle cx="30" cy="-4" r="2.4" fill="${CAST_INK}"/>
+        <path d="M-2 -4 v4 M4 -4 v4" stroke="${CAST_INK}" stroke-width="1.8" stroke-linecap="round"/></g>`);
+    case 'crab':
+      return wrap(`<g transform="translate(0 -30)">
+        ${[-1, 1].map((d) => `<path d="M${d * 18} -6 q${d * 16} -4 ${d * 16} 8" fill="none" stroke="${body}" stroke-width="5" stroke-linecap="round"/>`).join('')}
+        <ellipse cx="0" cy="-12" rx="26" ry="16" fill="${body}"${castEdge(spec.tone ?? 'coral')}/>
+        <path d="M-8 -20 q8 6 16 0" fill="none" stroke="${deep}" stroke-width="2.4" opacity="0.6"/>
+        ${[-1, 1].map((d) => `<path d="M${d * 22} -14 q${d * 12} -8 ${d * 18} -18 q${d * 4} 8 -${d * 2} 12 l-${d * 6} 4 z" fill="${body}" stroke="${deep}" stroke-width="1.6"/>`).join('')}
+        ${[-10, 0, 10].map((x) => `<path d="M${x} -14 v-14" stroke="${CAST_INK}" stroke-width="2"/><circle cx="${x}" cy="-30" r="3" fill="${CAST_TONES.snow}"/><circle cx="${x}" cy="-30" r="1.6" fill="${CAST_INK}"/>`).join('')}</g>`);
+    case 'octopus':
+      return wrap(`<g transform="translate(0 -34)">
+        ${[-24, -12, 0, 12, 24].map((x, i) => `<path d="M${x} 4 q${x * 0.5} 16 ${x + (i % 2 ? 10 : -10)} 20" fill="none" stroke="${body}" stroke-width="7" stroke-linecap="round"/>`).join('')}
+        <path d="M-24 4 q-4 -30 24 -30 q28 0 24 30 z" fill="${body}"${castEdge(spec.tone ?? 'berry')}/>
+        <ellipse cx="0" cy="-14" rx="16" ry="12" fill="${belly}" opacity="0.35"/>
+        <circle cx="-10" cy="-14" r="5" fill="${CAST_TONES.snow}"/><circle cx="10" cy="-14" r="5" fill="${CAST_TONES.snow}"/>
+        <circle cx="-10" cy="-14" r="2.6" fill="${CAST_INK}"/><circle cx="10" cy="-14" r="2.6" fill="${CAST_INK}"/></g>`);
+    case 'jellyfish':
+      return wrap(`<g transform="translate(0 -34)">
+        <path d="M-26 -6 q26 -32 52 0 q-12 8 -26 8 q-14 0 -26 -8 z" fill="${body}"${castEdge(spec.tone ?? 'lilac')}/>
+        <ellipse cx="0" cy="-12" rx="14" ry="8" fill="${belly}" opacity="0.5"/>
+        ${[-18, -8, 2, 12, 22].map((x) => `<path d="M${x} 4 q4 14 -2 26" fill="none" stroke="${deep}" stroke-width="3" stroke-linecap="round" opacity="0.8"/>`).join('')}</g>`);
+    case 'seahorse':
+      return wrap(`<g transform="translate(0 -34)">
+        <path d="M10 -30 q-16 4 -14 22 q2 14 -8 20 q-8 4 -8 -4 q0 -6 8 -6 q8 -2 8 -14 q0 -14 -2 -18 z" fill="${body}"${castEdge(spec.tone ?? 'amber')}/>
+        <path d="M10 -30 q10 0 12 8 q-2 10 -12 10" fill="none" stroke="${body}" stroke-width="8" stroke-linecap="round"/>
+        <path d="M22 -24 l12 4 l-12 4 z" fill="${deep}"/>
+        <path d="M-2 -6 q6 2 6 8" fill="none" stroke="${deep}" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="14" cy="-22" r="2.4" fill="${CAST_INK}"/></g>`);
+    case 'shell':
+      return wrap(`<g transform="translate(0 -34)">
+        <path d="M-30 8 q0 -34 30 -34 q30 0 30 34 q-30 10 -60 0 z" fill="${body}"${castEdge(spec.tone ?? 'blush')}/>
+        ${[-18, -6, 6, 18].map((x) => `<path d="M${x} 6 q${x * 0.3} -18 ${x * 0.6} -30" fill="none" stroke="${deep}" stroke-width="2.4" opacity="0.6"/>`).join('')}
+        <path d="M-30 8 q30 12 60 0" fill="none" stroke="${deep}" stroke-width="3"/>
+        <circle cx="-14" cy="12" r="4" fill="${deep}"/><circle cx="14" cy="12" r="4" fill="${deep}"/></g>`);
+    default:
+      return wrap(`<ellipse cx="0" cy="-34" rx="30" ry="20" fill="${body}"${castEdge(spec.tone ?? 'dusk')}/>`);
+  }
 }
 
 /** 青蛙：蹲姿，大眼泡在头顶 */
@@ -1479,6 +2785,107 @@ function bugArt(spec, { scale = 1.45 } = {}) {
         <path d="M-4 -16 q-6 -9 -13 -11 M4 -16 q6 -9 13 -11" fill="none" stroke="${tone}" stroke-width="2" stroke-linecap="round"/>
       </g>
     </g>`;
+  }
+  // v0.5 新 8 种虫子（都靠 if 分支，不影响上面 butterfly/dragonfly/bee 与下面蚂蚁兵分路）
+  if (spec.bug === 'ladybug') {
+    const shell = CAST_TONES[spec.shell] ?? CAST_TONES.rose;
+    return `<g transform="scale(${scale.toFixed(3)})">
+      ${castShadow(22)}
+      <g transform="translate(0 -40)">
+        <ellipse cx="0" cy="-6" rx="7" ry="6" fill="${tone}"/>
+        <circle cx="-3" cy="-8" r="1.6" fill="${CAST_TONES.snow}"/><circle cx="3" cy="-8" r="1.6" fill="${CAST_TONES.snow}"/>
+        <path d="M-2 -12 q-6 -6 -10 -8 M2 -12 q6 -6 10 -8" fill="none" stroke="${tone}" stroke-width="1.6" stroke-linecap="round"/>
+        <ellipse cx="0" cy="6" rx="20" ry="18" fill="${shell}"${castEdge('rose')}/>
+        <path d="M0 -8 v28" stroke="${CAST_INK}" stroke-width="3"/>
+        ${[[-9, 2], [9, 2], [-6, 14], [6, 14], [0, 8]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="${CAST_INK}"/>`).join('')}
+      </g></g>`;
+  }
+  if (spec.bug === 'snail') {
+    const shell = CAST_TONES[spec.shell] ?? CAST_TONES.amber;
+    return `<g transform="scale(${scale.toFixed(3)})">
+      ${castShadow(22)}
+      <g transform="translate(0 -44)">
+        <path d="M-22 20 q-4 -8 6 -8 h28 q12 0 12 8 z" fill="${tone}"${castEdge('peach')}/>
+        <circle cx="4" cy="2" r="18" fill="${shell}"${castEdge('amber')}/>
+        <path d="M4 2 a13 13 0 1 1 13 13 a8 8 0 1 1 -8 -8" fill="none" stroke="${CAST_TONES.clay}" stroke-width="2.4"/>
+        <path d="M-18 12 q-6 -12 -2 -20 M-14 12 q2 -12 8 -18" fill="none" stroke="${tone}" stroke-width="2"/>
+        <circle cx="-18" cy="-8" r="2.6" fill="${CAST_TONES.snow}"/><circle cx="-18" cy="-8" r="1.4" fill="${CAST_INK}"/>
+        <circle cx="-8" cy="-6" r="2.6" fill="${CAST_TONES.snow}"/><circle cx="-8" cy="-6" r="1.4" fill="${CAST_INK}"/>
+      </g></g>`;
+  }
+  if (spec.bug === 'spider') {
+    return `<g transform="scale(${scale.toFixed(3)})">
+      <g transform="translate(0 -52)">
+        <g stroke="${tone}" stroke-width="2.6" stroke-linecap="round" fill="none">
+          <path d="M-8 -4 l-18 -10 l-6 12"/><path d="M-8 2 l-20 2 l-4 12"/><path d="M-8 8 l-16 12 l0 10"/><path d="M-6 12 l-8 16"/>
+          <path d="M8 -4 l18 -10 l6 12"/><path d="M8 2 l20 2 l4 12"/><path d="M8 8 l16 12 l0 10"/><path d="M6 12 l8 16"/>
+        </g>
+        <ellipse cx="0" cy="4" rx="16" ry="18" fill="${tone}"${castEdge('slate')}/>
+        <circle cx="0" cy="-16" r="10" fill="${tone}"${castEdge('slate')}/>
+        <circle cx="-4" cy="-18" r="2.4" fill="${CAST_TONES.snow}"/><circle cx="4" cy="-18" r="2.4" fill="${CAST_TONES.snow}"/>
+        <circle cx="-4" cy="-18" r="1.2" fill="${CAST_INK}"/><circle cx="4" cy="-18" r="1.2" fill="${CAST_INK}"/>
+      </g></g>`;
+  }
+  if (spec.bug === 'caterpillar') {
+    const leaf = CAST_TONES[spec.leaf] ?? CAST_TONES.fern;
+    return `<g transform="scale(${scale.toFixed(3)})">
+      ${castShadow(24)}
+      <g transform="translate(0 -40)">
+        ${[[-20, 0], [-10, -4], [0, -2], [10, -4], [18, -2]].map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="${11 - i * 0.4}" fill="${i % 2 ? leaf : tone}"${castEdge('fern')}/>`).join('')}
+        <circle cx="26" cy="-4" r="12" fill="${tone}"${castEdge('cocoa')}/>
+        <path d="M22 -14 q-3 -8 -7 -10 M30 -14 q3 -8 7 -10" fill="none" stroke="${tone}" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="23" cy="-6" r="2.4" fill="${CAST_TONES.snow}"/><circle cx="30" cy="-6" r="2.4" fill="${CAST_TONES.snow}"/>
+        <circle cx="23" cy="-6" r="1.2" fill="${CAST_INK}"/><circle cx="30" cy="-6" r="1.2" fill="${CAST_INK}"/>
+      </g></g>`;
+  }
+  if (spec.bug === 'grasshopper') {
+    const leaf = CAST_TONES[spec.leaf] ?? CAST_TONES.fern;
+    return `<g transform="scale(${scale.toFixed(3)})">
+      ${castShadow(22)}
+      <g transform="translate(0 -42)">
+        <path d="M-16 6 q-14 4 -16 16 M-16 6 q14 6 8 18" fill="none" stroke="${leaf}" stroke-width="4" stroke-linecap="round"/>
+        <ellipse cx="0" cy="0" rx="24" ry="11" transform="rotate(-8 0 0)" fill="${leaf}"${castEdge('fern')}/>
+        <path d="M-4 -8 q16 -4 22 4 q-12 4 -22 0 z" fill="${CAST_TONES.leaf}" opacity="0.7"/>
+        <circle cx="22" cy="-2" r="8" fill="${leaf}"/>
+        <path d="M26 -8 l10 -6 M28 -6 l12 -2" fill="none" stroke="${leaf}" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="24" cy="-3" r="2.2" fill="${CAST_INK}"/>
+      </g></g>`;
+  }
+  if (spec.bug === 'mosquito') {
+    return `<g transform="scale(${scale.toFixed(3)})">
+      <g transform="translate(0 -52)">
+        ${[-10, 0, 10].map((x) => `<path d="M${x} 8 q${x * 0.6 - 3} 14 ${x - 6} 24" fill="none" stroke="${tone}" stroke-width="1.6" stroke-linecap="round"/>`).join('')}
+        <ellipse cx="0" cy="4" rx="4" ry="14" transform="rotate(24 0 4)" fill="${tone}"/>
+        <circle cx="-10" cy="-8" r="6" fill="${tone}"/>
+        <path d="M-14 -4 q-10 6 -18 10" fill="none" stroke="${tone}" stroke-width="2" stroke-linecap="round"/>
+        <ellipse cx="2" cy="-6" rx="14" ry="5" transform="rotate(-24 2 -6)" fill="${CAST_TONES.sky}" opacity="0.6"/>
+        <ellipse cx="8" cy="-2" rx="14" ry="5" transform="rotate(14 8 -2)" fill="${CAST_TONES.sky}" opacity="0.5"/>
+      </g></g>`;
+  }
+  if (spec.bug === 'worm') {
+    return `<g transform="scale(${scale.toFixed(3)})">
+      ${castShadow(20)}
+      <g transform="translate(0 -40)">
+        <path d="M-24 6 q6 -26 18 -14 q10 10 22 -2" fill="none" stroke="${tone}" stroke-width="12" stroke-linecap="round"/>
+        <path d="M-20 0 q6 -14 14 -8 M-6 8 q6 -10 14 -6" fill="none" stroke="${CAST_TONES.clay}" stroke-width="2" opacity="0.6"/>
+        <circle cx="16" cy="-10" r="6" fill="${tone}"/>
+        <circle cx="14" cy="-12" r="1.8" fill="${CAST_TONES.snow}"/><circle cx="19" cy="-12" r="1.8" fill="${CAST_TONES.snow}"/>
+        <circle cx="14" cy="-12" r="0.9" fill="${CAST_INK}"/><circle cx="19" cy="-12" r="0.9" fill="${CAST_INK}"/>
+      </g></g>`;
+  }
+  if (spec.bug === 'cicada') {
+    return `<g transform="scale(${scale.toFixed(3)})">
+      ${castShadow(20)}
+      <g transform="translate(0 -50)">
+        <path d="M-4 0 q-22 -20 -30 -10 q-2 16 22 22 z" fill="${CAST_TONES.sky}" opacity="0.7"${castEdge('sky')}/>
+        <path d="M4 0 q22 -20 30 -10 q2 16 -22 22 z" fill="${CAST_TONES.sky}" opacity="0.7"${castEdge('sky')}/>
+        <path d="M-6 4 q-12 -12 -18 -8 M6 4 q12 -12 18 -8" fill="none" stroke="${CAST_TONES.dusk}" stroke-width="1.2" opacity="0.6"/>
+        <ellipse cx="0" cy="8" rx="10" ry="20" fill="${tone}"${castEdge('cocoa')}/>
+        <path d="M-4 14 h8 M-4 20 h8" stroke="${CAST_INK}" stroke-width="1.6" opacity="0.6"/>
+        <ellipse cx="0" cy="-10" rx="11" ry="8" fill="${tone}"/>
+        <circle cx="-6" cy="-12" r="3.4" fill="${CAST_TONES.snow}"/><circle cx="6" cy="-12" r="3.4" fill="${CAST_TONES.snow}"/>
+        <circle cx="-6" cy="-12" r="1.8" fill="${CAST_INK}"/><circle cx="6" cy="-12" r="1.8" fill="${CAST_INK}"/>
+      </g></g>`;
   }
   // 蚂蚁：三节身体（腹/胸/头）+ 六条折腿 + 触角；腿要挂在胸部，否则会像一根“棕色小棍”
   return `<g transform="scale(${scale.toFixed(3)})">
@@ -1874,6 +3281,50 @@ function thingArt(spec, { scale = 1.45 } = {}) {
           <path d="M10 -44 h10 v-9 h-10 z" fill="${CAST_TONES.leaf}"/>
         </g>
         <path d="M-26 -28 h52" stroke="${CAST_TONES.brown}" stroke-width="4.5" stroke-linecap="round"/>`);
+    /* ---- v0.5 穿戴（10 件，均用 wrap 阴影 + tone 主色）---- */
+    case 'shirt':
+      return wrap(`<path d="M-20 -40 q0 -6 6 -6 h8 l6 6 l6 -6 h8 q6 0 6 6 l6 12 l-12 4 v22 h-34 v-22 l-12 -4 z" fill="${tone}"${castEdge(spec.tone ?? 'sky')}/>
+        <path d="M-6 -46 l6 8 l6 -8" fill="none" stroke="${CAST_TONES.snow}" stroke-width="2.6"/>
+        <path d="M0 -30 v22" stroke="${TONE_DEEP[spec.tone ?? 'sky'] ?? CAST_TONES.slate}" stroke-width="2" opacity="0.6"/>
+        ${[-24, -16, -8].map((y) => `<circle cx="0" cy="${y}" r="1.6" fill="${CAST_TONES.snow}"/>`).join('')}`);
+    case 'pants':
+      return wrap(`<path d="M-18 -44 h36 v10 l-3 34 h-11 l-4 -30 l-4 30 h-11 l-3 -34 v-10 z" fill="${tone}"${castEdge(spec.tone ?? 'dusk')}/>
+        <rect x="-18" y="-44" width="36" height="7" rx="2" fill="${TONE_DEEP[spec.tone ?? 'dusk'] ?? CAST_TONES.slate}"/>
+        <circle cx="0" cy="-36" r="1.8" fill="${CAST_TONES.cream}"/>`);
+    case 'skirt':
+      return wrap(`<path d="M-16 -44 h32 v8 l6 32 q-22 6 -44 0 l6 -32 z" fill="${tone}"${castEdge(spec.tone ?? 'blush')}/>
+        <rect x="-16" y="-44" width="32" height="8" rx="3" fill="${TONE_DEEP[spec.tone ?? 'blush'] ?? CAST_TONES.rose}"/>
+        <path d="M-8 -36 l-4 30 M0 -36 v30 M8 -36 l4 30" fill="none" stroke="${TONE_DEEP[spec.tone ?? 'blush'] ?? CAST_TONES.rose}" stroke-width="1.6" opacity="0.5"/>`);
+    case 'dress':
+      return wrap(`<path d="M-13 -48 q13 -6 26 0 l4 18 l10 30 q-27 7 -54 0 l10 -30 z" fill="${tone}"${castEdge(spec.tone ?? 'rose')}/>
+        <path d="M-13 -48 q13 8 26 0" fill="none" stroke="${CAST_TONES.snow}" stroke-width="2.4" opacity="0.7"/>
+        <path d="M-16 -30 q16 6 32 0" fill="none" stroke="${TONE_DEEP[spec.tone ?? 'rose'] ?? CAST_TONES.berry}" stroke-width="2.4"/>
+        <circle cx="0" cy="-16" r="2.4" fill="${CAST_TONES.cream}"/>`);
+    case 'coat':
+      return wrap(`<path d="M-22 -46 q0 -6 7 -6 h9 l4 6 l4 -6 h9 q7 0 7 6 l4 44 h-44 z" fill="${tone}"${castEdge(spec.tone ?? 'brown')}/>
+        <path d="M-4 -46 l-8 44 M4 -46 l8 44" fill="none" stroke="${TONE_DEEP[spec.tone ?? 'brown'] ?? CAST_TONES.cocoa}" stroke-width="2.4"/>
+        <path d="M-6 -46 l-6 10 l6 2 z M6 -46 l6 10 l-6 2 z" fill="${CAST_TONES.cream}" opacity="0.85"/>
+        ${[-30, -22, -14].map((y) => `<circle cx="0" cy="${y}" r="1.8" fill="${CAST_TONES.cream}"/>`).join('')}`);
+    case 'socks':
+      return wrap(`${[-1, 1].map((d) => `<path d="M${d * 4} -46 q${d * 8} 0 ${d * 8} 12 v14 q0 12 ${-d * 12} 12 q-8 0 -8 -8 v-30 q0 -4 4 -4 z" fill="${tone}"${castEdge(spec.tone ?? 'coral')}/>`).join('')}
+        ${[-1, 1].map((d) => `<path d="M${d * 4 - (d > 0 ? 8 : 0)} -44 h8" stroke="${CAST_TONES.snow}" stroke-width="4" opacity="0.7"/>`).join('')}`);
+    case 'gloves':
+      return wrap(`${[-1, 1].map((d) => `<g transform="translate(${d * 13} -30) ${d < 0 ? 'scale(-1 1)' : ''}">
+        <path d="M-9 16 v-24 q0 -8 8 -8 q8 0 8 8 v6 q4 -2 6 2 q1 4 -3 5 v5 q0 8 -8 8 h-11 z" fill="${tone}"${castEdge(spec.tone ?? 'sky')}/>
+        <path d="M-9 14 h20" stroke="${TONE_DEEP[spec.tone ?? 'sky'] ?? CAST_TONES.slate}" stroke-width="2.4"/></g>`).join('')}`);
+    case 'scarf':
+      return wrap(`<path d="M-24 -44 q24 -10 48 0 q-4 10 -12 8 l2 34 h-12 l-2 -30 q-10 2 -14 -4 z" fill="${tone}"${castEdge(spec.tone ?? 'rose')}/>
+        <ellipse cx="0" cy="-40" rx="24" ry="8" fill="${tone}"${castEdge(spec.tone ?? 'rose')}/>
+        <path d="M-22 -40 q22 8 44 0" fill="none" stroke="${CAST_TONES.snow}" stroke-width="2.4" opacity="0.6"/>
+        <path d="M-4 -8 v6 M2 -8 v6 M8 -8 v6" stroke="${TONE_DEEP[spec.tone ?? 'rose'] ?? CAST_TONES.berry}" stroke-width="2"/>`);
+    case 'vest':
+      return wrap(`<path d="M-18 -46 h10 l4 10 l4 -10 h10 q6 0 6 6 v40 h-44 v-40 q0 -6 4 -6 z" fill="${tone}"${castEdge(spec.tone ?? 'leaf')}/>
+        <path d="M-8 -46 l-6 42 M8 -46 l6 42" fill="none" stroke="${TONE_DEEP[spec.tone ?? 'leaf'] ?? CAST_TONES.fern}" stroke-width="2.6"/>
+        <path d="M-18 -20 q18 8 36 0" fill="none" stroke="${CAST_TONES.snow}" stroke-width="2.2" opacity="0.6"/>`);
+    case 'boots':
+      return wrap(`<path d="M-15 0 v-44 q0 -6 6 -6 h6 q6 0 6 6 v18 q10 2 12 12 q1 6 -6 6 h-24 z" fill="${tone}"${castEdge(spec.tone ?? 'cocoa')}/>
+        <path d="M5 0 v-44 q0 -6 6 -6 h6 q6 0 6 6 v18 q10 2 12 12 q1 6 -6 6 h-24 z" fill="${tone}"${castEdge(spec.tone ?? 'cocoa')} transform="translate(-14 0)"/>
+        <path d="M-15 -40 h12 M5 -40 h12" stroke="${CAST_TONES.snow}" stroke-width="2.4" opacity="0.55"/>`);
     default:
       return wrap(`<rect x="-20" y="-36" width="40" height="36" rx="10" fill="${tone}"/>`);
   }
@@ -2536,6 +3987,7 @@ const CARD_ART = {
   stationery: stationeryArt,
   weather: weatherArt,
   group: groupArt,
+  sea: seaArt,
 };
 
 /**
@@ -2685,6 +4137,51 @@ const CARD_SPECS = {
   blackboard: { art: 'stationery', item: 'blackboard', tone: 'fern' },
   glue: { art: 'stationery', item: 'glue', tone: 'sky' },
   scissors: { art: 'stationery', item: 'scissors', tone: 'rose' },
+
+  /* ---- v0.5 海洋动物（art: 'sea' + water: true 浮在水带上）---- */
+  whale: { art: 'sea', sea: 'whale', water: true, tone: 'dusk' },
+  dolphin: { art: 'sea', sea: 'dolphin', water: true, tone: 'sky' },
+  shark: { art: 'sea', sea: 'shark', water: true, tone: 'slate' },
+  penguin: { art: 'sea', sea: 'penguin', water: true, tone: 'slate' },
+  seal: { art: 'sea', sea: 'seal', water: true, tone: 'stone' },
+  crab: { art: 'sea', sea: 'crab', water: true, tone: 'coral' },
+  octopus: { art: 'sea', sea: 'octopus', water: true, tone: 'berry' },
+  jellyfish: { art: 'sea', sea: 'jellyfish', water: true, tone: 'lilac' },
+  seahorse: { art: 'sea', sea: 'seahorse', water: true, tone: 'amber' },
+  shell: { art: 'sea', sea: 'shell', water: true, tone: 'blush' },
+
+  /* ---- v0.5 小虫子（art: 'bug' + 新 bug 分支；ant / dragonfly 复用故事侧）---- */
+  ladybug: { art: 'bug', bug: 'ladybug', tone: 'cocoa', shell: 'rose' },
+  snail: { art: 'bug', bug: 'snail', tone: 'peach', shell: 'amber' },
+  spider: { art: 'bug', bug: 'spider', tone: 'slate' },
+  caterpillar: { art: 'bug', bug: 'caterpillar', tone: 'fern', leaf: 'leaf' },
+  grasshopper: { art: 'bug', bug: 'grasshopper', tone: 'fern', leaf: 'leaf' },
+  mosquito: { art: 'bug', bug: 'mosquito', tone: 'cocoa' },
+  earthworm: { art: 'bug', bug: 'worm', tone: 'clay' },
+  cicada: { art: 'bug', bug: 'cicada', tone: 'cocoa' },
+
+  /* ---- v0.5 职业（art: 'person' + hat/prop 身份件；farmer 复用故事侧）---- */
+  doctor: { art: 'person', style: 'bun', cloth: 'snow', hair: 'cocoa', prop: 'stethoscope', grow: 1.02 },
+  nurse: { art: 'person', style: 'bun', cloth: 'snow', hair: 'cocoa', hat: 'nurse', dress: true },
+  cook: { art: 'person', style: 'bun', cloth: 'snow', hair: 'cocoa', prop: 'pan' },
+  firefighter: { art: 'person', style: 'spiky', cloth: 'coral', hair: 'cocoa', hat: 'helmet', hatTone: 'coral' },
+  police: { art: 'person', style: 'spiky', cloth: 'dusk', hair: 'cocoa', hat: 'cap', hatTone: 'dusk', grow: 1.02 },
+  driver: { art: 'person', style: 'spiky', cloth: 'sky', hair: 'brown', hat: 'cap', hatTone: 'slate', prop: 'wheel' },
+  'mail-carrier': { art: 'person', style: 'cap', cloth: 'fern', hair: 'cocoa', hatTone: 'fern', prop: 'bag' },
+  soldier: { art: 'person', style: 'spiky', cloth: 'leaf', hair: 'cocoa', hat: 'helmet', hatTone: 'fern', grow: 1.02 },
+  painter: { art: 'person', style: 'long', cloth: 'berry', hair: 'cocoa', hat: 'beret', hatTone: 'berry', prop: 'brush' },
+
+  /* ---- v0.5 穿戴（art: 'thing' + 新衣物 shape）---- */
+  shirt: { art: 'thing', shape: 'shirt', tone: 'sky', boost: 1.3 },
+  pants: { art: 'thing', shape: 'pants', tone: 'dusk', boost: 1.3 },
+  skirt: { art: 'thing', shape: 'skirt', tone: 'blush', boost: 1.3 },
+  dress: { art: 'thing', shape: 'dress', tone: 'rose', boost: 1.3 },
+  coat: { art: 'thing', shape: 'coat', tone: 'brown', boost: 1.25 },
+  socks: { art: 'thing', shape: 'socks', tone: 'coral', boost: 1.4 },
+  gloves: { art: 'thing', shape: 'gloves', tone: 'sky', boost: 1.4 },
+  scarf: { art: 'thing', shape: 'scarf', tone: 'rose', boost: 1.35 },
+  vest: { art: 'thing', shape: 'vest', tone: 'leaf', boost: 1.3 },
+  boots: { art: 'thing', shape: 'boots', tone: 'cocoa', boost: 1.35 },
 };
 
 /** 取一个 slug 的插画规格：先查别名，再查故事侧，最后查卡片侧 */
@@ -2963,6 +4460,25 @@ async function parseSeed() {
       });
   }
 
+  // v0.6 成语：五个主题文件各一组，卡面需要中文四字，所以 zh 要一并取出来
+  for (const name of IDIOM_FILES) {
+    const text = await readFile(path.join(IDIOM_DIR, `${name}.ts`), 'utf8');
+    const body =
+      new RegExp(`export const ${name.toUpperCase()}_IDIOMS: readonly IdiomRow\\[\\] = \\[([\\s\\S]*?)\\n\\];`).exec(
+        text,
+      )?.[1] ?? '';
+    const rows = [...body.matchAll(/slug: '([^']+)',\s*\n\s*zh: '([^']+)'/g)].map((row) => ({
+      slug: row[1],
+      zh: row[2],
+    }));
+    if (rows.length === 0) {
+      throw new Error(`成语文件 ${name}.ts 未能解析出条目，请检查格式（slug / zh 逐行写出）`);
+    }
+    rows.forEach((row, index) => {
+      cards.push({ categoryId: 'idioms', slug: row.slug, zh: row.zh, kind: 'idiom', index });
+    });
+  }
+
   return cards;
 }
 
@@ -3045,7 +4561,12 @@ async function main() {
           skipped += 1;
           continue;
         }
-        const svg = card.kind === 'poem' ? poemSvg(card) : cardSvg(card);
+        const svg =
+          card.kind === 'poem'
+            ? poemSvg(card)
+            : card.kind === 'idiom'
+              ? idiomSvg(card)
+              : cardSvg(card);
         await sharp(Buffer.from(svg)).webp({ quality: QUALITY }).toFile(target);
         written += 1;
       }
@@ -3058,9 +4579,11 @@ async function main() {
       const svg =
         categoryId === 'poems'
           ? poemCoverSvg()
-          : categoryId === 'stories'
-            ? storyShelfSvg()
-            : coverSvg(categoryId, list.map((card) => card.slug));
+          : categoryId === 'idioms'
+            ? idiomCoverSvg()
+            : categoryId === 'stories'
+              ? storyShelfSvg()
+              : coverSvg(categoryId, list.map((card) => card.slug));
       await sharp(Buffer.from(svg)).webp({ quality: QUALITY }).toFile(coverTarget);
       written += 1;
     } else {

@@ -75,6 +75,22 @@ describe('validateCardRules', () => {
     expect(errors.map((item) => item.field)).toContain('pinyin');
   });
 
+  it('should_accept_toneless_pinyin_when_character_is_neutral_whitelist', () => {
+    // 的(de)/了(le) 是合法轻声，导出→导入回环不能因此整包失败
+    expect(validateCardRules(makeCard({ zh: '的', kind: 'character', pinyin: 'de', strokes: 8 }))).toEqual(
+      [],
+    );
+    expect(validateCardRules(makeCard({ zh: '了', kind: 'character', pinyin: 'le', strokes: 2 }))).toEqual(
+      [],
+    );
+  });
+
+  it('should_reject_toneless_pinyin_when_neutral_zh_is_not_character', () => {
+    // 豁免只对汉字单字卡生效：物件卡叫「的」仍必须带声调
+    const errors = validateCardRules(makeCard({ zh: '的', pinyin: 'de' }));
+    expect(errors.map((item) => item.field)).toContain('pinyin');
+  });
+
   it('should_reject_duplicated_tags', () => {
     const errors = validateCardRules(makeCard({ zh: '猫', tags: ['宠物', '宠物'] }));
     expect(errors.map((item) => item.field)).toContain('tags');
@@ -134,6 +150,61 @@ describe('validateCardRules · 故事绘本（v0.2）', () => {
       makeCard({ zh: '猪'.repeat(21), kind: 'story', pages: makePages(6) }),
     );
     expect(errors.map((item) => item.field)).toContain('zh');
+  });
+});
+
+/** v0.6 成语卡：近反义必须四字、例句至少 2 条、英文可为空（点读走中文 TTS） */
+function makeIdiom(overrides: Partial<Card> = {}): Card {
+  return makeCard({
+    id: 'idioms-shou-zhu-dai-tu',
+    kind: 'idiom',
+    categoryId: 'idioms',
+    zh: '守株待兔',
+    pinyin: 'shǒu zhū dài tù',
+    en: '',
+    meaning: '守在树桩旁等兔子撞上来。比喻死守经验，不肯变通。',
+    examples: ['他守株待兔，最后什么也没等到。', '妈妈说要主动去找机会，不能守株待兔。'],
+    synonyms: ['刻舟求剑'],
+    antonyms: ['随机应变'],
+    citation: '《韩非子·五蠹》',
+    ...overrides,
+  });
+}
+
+describe('validateCardRules · 成语词典（v0.6）', () => {
+  it('should_pass_for_valid_idiom_card_with_empty_en', () => {
+    expect(validateCardRules(makeIdiom())).toEqual([]);
+  });
+
+  it('should_reject_zh_that_is_not_four_chars_when_kind_is_idiom', () => {
+    const errors = validateCardRules(makeIdiom({ zh: '守株待兔兔' }));
+    expect(errors.map((item) => item.field)).toContain('zh');
+  });
+
+  it('should_require_meaning_and_citation_when_kind_is_idiom', () => {
+    const errors = validateCardRules(makeIdiom({ meaning: '  ', citation: '' }));
+    const fields = errors.map((item) => item.field);
+    expect(fields).toContain('meaning');
+    expect(fields).toContain('citation');
+  });
+
+  it('should_reject_fewer_than_two_examples_when_kind_is_idiom', () => {
+    const errors = validateCardRules(makeIdiom({ examples: ['只有一条例句。'] }));
+    expect(errors.map((item) => item.field)).toContain('examples');
+  });
+
+  it('should_reject_non_four_char_synonym_or_antonym_when_kind_is_idiom', () => {
+    expect(validateCardRules(makeIdiom({ synonyms: ['守株待兔式'] })).map((item) => item.field)).toContain(
+      'synonyms',
+    );
+    expect(validateCardRules(makeIdiom({ antonyms: ['一刀切'] })).map((item) => item.field)).toContain(
+      'synonyms',
+    );
+  });
+
+  it('should_require_english_when_kind_is_not_idiom', () => {
+    // 旧口径不变：汉字/物件/诗词/故事卡缺英文仍然报错
+    expect(validateCardRules(makeCard({ zh: '猫', en: '' })).map((item) => item.field)).toContain('en');
   });
 });
 

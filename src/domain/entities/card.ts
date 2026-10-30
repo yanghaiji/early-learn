@@ -3,7 +3,7 @@
 import type { Category, CategoryId } from './category';
 
 export type CardId = string;
-export type CardKind = 'object' | 'character' | 'poem' | 'story';
+export type CardKind = 'object' | 'character' | 'poem' | 'story' | 'idiom';
 export type Difficulty = 1 | 2 | 3;
 
 export const DIFFICULTIES: readonly Difficulty[] = [1, 2, 3];
@@ -48,6 +48,16 @@ export interface Card {
   pages?: StoryPage[];
   /** 仅 kind=story：一句寓意，展示在正文下方与详情页 */
   moral?: string;
+  /** 仅 kind=idiom（v0.6）：白话释义（20–90 字） */
+  meaning?: string;
+  /** 仅 kind=idiom：例句，本版逐条写 2 条（第 1 条短、第 2 条长） */
+  examples?: string[];
+  /** 仅 kind=idiom：近义成语（1–3 个，必须也是四字成语） */
+  synonyms?: string[];
+  /** 仅 kind=idiom：反义成语（0–3 个，确实没有合适反义时为空） */
+  antonyms?: string[];
+  /** 仅 kind=idiom：出处，形如「《论语·为政》」或「现代常用语」。不复用 source（已被图片版权占用） */
+  citation?: string;
   source?: ImageSource;
   createdAt: string;
   updatedAt: string;
@@ -75,6 +85,11 @@ export interface CardInput {
   translation?: string;
   pages?: StoryPage[];
   moral?: string;
+  meaning?: string;
+  examples?: string[];
+  synonyms?: string[];
+  antonyms?: string[];
+  citation?: string;
   source?: ImageSource;
 }
 

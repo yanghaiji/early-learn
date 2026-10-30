@@ -24,6 +24,14 @@ export function pickLangOptions(mode: QuizMode): SpeechLang {
   return mode === 'zh' ? 'zh-CN' : 'en-US';
 }
 
+/**
+ * 出题池：成语卡排除在外（PRD v0.6 §4.3 / E-10）。
+ * 四字卡的卡面就是成语本身，拿它出题等于把答案印在选项上。
+ */
+export function quizPool(cards: readonly Card[]): Card[] {
+  return cards.filter((card) => card.kind !== 'idiom');
+}
+
 /** 按 id 去重取卡（进度里的 id 可能指向已删除的卡，取不到即跳过） */
 function uniqueCards(ids: Iterable<CardId>, byId: Map<CardId, Card>): Card[] {
   const seen = new Set<CardId>();

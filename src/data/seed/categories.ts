@@ -1,5 +1,5 @@
 /**
- * 内置分类种子（17 类）。内容口径见 FR/v0.1/内容体系与首批卡片清单.md §1
+ * 内置分类种子（22 类）。内容口径见 FR/v0.1/内容体系与首批卡片清单.md §1、FR/v0.5/PRD.md §4.4 与 FR/v0.6/PRD-成语词典.md §2.2
  * id 一经发布不得修改；修改分类主色/名称不影响卡片关联。
  */
 
@@ -29,6 +29,13 @@ const rows: SeedCategory[] = [
   { id: 'school', name: '学校用品', nameEn: 'School', color: 'violet', cover: `${IMAGE_ROOT}/school.webp`, sortOrder: 15 },
   { id: 'poems', name: '古诗', nameEn: 'Poems', color: 'xuan', cover: `${IMAGE_ROOT}/poems.webp`, sortOrder: 16 },
   { id: 'stories', name: '故事', nameEn: 'Stories', color: 'berry', cover: `${IMAGE_ROOT}/stories.webp`, sortOrder: 17 },
+  // v0.5 四个新主题分类（sortOrder 追加 18–21，不插队）
+  { id: 'sea', name: '海洋动物', nameEn: 'Sea Animals', color: 'wave', cover: `${IMAGE_ROOT}/sea.webp`, sortOrder: 18 },
+  { id: 'insects', name: '小虫子', nameEn: 'Insects', color: 'moss', cover: `${IMAGE_ROOT}/insects.webp`, sortOrder: 19 },
+  { id: 'jobs', name: '职业', nameEn: 'Jobs', color: 'denim', cover: `${IMAGE_ROOT}/jobs.webp`, sortOrder: 20 },
+  { id: 'clothes', name: '穿戴', nameEn: 'Clothes', color: 'linen', cover: `${IMAGE_ROOT}/clothes.webp`, sortOrder: 21 },
+  // v0.6 成语词典：复用已注册色板 denim（与 jobs 同色），排在分类墙最后
+  { id: 'idioms', name: '成语', nameEn: 'Idioms', color: 'denim', cover: `${IMAGE_ROOT}/idioms.webp`, sortOrder: 22 },
 ];
 
 export const SEED_CATEGORIES: Category[] = rows.map((row) => ({

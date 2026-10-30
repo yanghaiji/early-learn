@@ -58,6 +58,11 @@ export function CardForm({ initial, defaultCategoryId, onClose }: Props) {
   const [translation, setTranslation] = useState(initial?.translation ?? '');
   const [moral, setMoral] = useState(initial?.moral ?? '');
   const [pagesText, setPagesText] = useState((initial?.pages ?? []).map((page) => page.text).join('\n'));
+  const [meaning, setMeaning] = useState(initial?.meaning ?? '');
+  const [examplesText, setExamplesText] = useState((initial?.examples ?? []).join('\n'));
+  const [synonyms, setSynonyms] = useState((initial?.synonyms ?? []).join('，'));
+  const [antonyms, setAntonyms] = useState((initial?.antonyms ?? []).join('，'));
+  const [citation, setCitation] = useState(initial?.citation ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
@@ -77,7 +82,7 @@ export function CardForm({ initial, defaultCategoryId, onClose }: Props) {
     if (!categoryId) nextErrors.categoryId = '请选择分类';
     if (!zh.trim()) nextErrors.zh = '请填写中文';
     if (!pinyin.trim()) nextErrors.pinyin = '请填写拼音（带声调）';
-    if (!en.trim()) nextErrors.en = '请填写英文';
+    if (kind !== 'idiom' && !en.trim()) nextErrors.en = '请填写英文';
     if (!image.trim()) nextErrors.image = '请上传图片或填写图片路径';
     if (kind === 'poem') {
       if (!author.trim()) nextErrors.author = '请填写作者';
@@ -97,6 +102,25 @@ export function CardForm({ initial, defaultCategoryId, onClose }: Props) {
         nextErrors.pages = `每一段最多 ${LIMITS.STORY_PAGE_TEXT_MAX} 个字`;
       }
     }
+    if (kind === 'idiom') {
+      if ([...zh.trim()].length !== LIMITS.IDIOM_LEN) {
+        nextErrors.zh = `成语必须是 ${LIMITS.IDIOM_LEN} 个字`;
+      }
+      if (!meaning.trim()) {
+        nextErrors.meaning = '成语卡必须填写释义';
+      } else if ([...meaning.trim()].length < LIMITS.IDIOM_MEANING_MIN) {
+        nextErrors.meaning = `释义至少 ${LIMITS.IDIOM_MEANING_MIN} 字`;
+      }
+      const examples = splitLines(examplesText);
+      if (examples.length < LIMITS.IDIOM_EXAMPLES_MIN) {
+        nextErrors.examples = `至少写 ${LIMITS.IDIOM_EXAMPLES_MIN} 条例句`;
+      } else if (examples.length > LIMITS.IDIOM_EXAMPLES_MAX) {
+        nextErrors.examples = `最多 ${LIMITS.IDIOM_EXAMPLES_MAX} 条例句`;
+      }
+      if (!citation.trim()) {
+        nextErrors.citation = '成语卡必须填写出处';
+      }
+    }
     setErrors(nextErrors);
 
     const input: CardInput = {
@@ -104,7 +128,8 @@ export function CardForm({ initial, defaultCategoryId, onClose }: Props) {
       categoryId,
       zh: zh.trim(),
       pinyin: pinyin.trim(),
-      en: en.trim(),
+      // 成语卡没有英文（v0.6 PRD §3.2）：无论表单里残留什么都写空串
+      en: kind === 'idiom' ? '' : en.trim(),
       image: image.trim(),
       tags: splitList(tagText),
       difficulty,
@@ -120,6 +145,13 @@ export function CardForm({ initial, defaultCategoryId, onClose }: Props) {
       ...(kind === 'story' && splitLines(pagesText).length > 0
         ? { pages: splitLines(pagesText).map((text) => ({ text })) }
         : {}),
+      ...(kind === 'idiom' && meaning.trim() ? { meaning: meaning.trim() } : {}),
+      ...(kind === 'idiom' && splitLines(examplesText).length > 0
+        ? { examples: splitLines(examplesText) }
+        : {}),
+      ...(kind === 'idiom' && synonyms.trim() ? { synonyms: splitList(synonyms) } : {}),
+      ...(kind === 'idiom' && antonyms.trim() ? { antonyms: splitList(antonyms) } : {}),
+      ...(kind === 'idiom' && citation.trim() ? { citation: citation.trim() } : {}),
     };
 
     if (Object.keys(nextErrors).length === 0) {
@@ -216,6 +248,19 @@ export function CardForm({ initial, defaultCategoryId, onClose }: Props) {
           >
             故事绘本
           </button>
+          <button
+            type="button"
+            className={kind === 'idiom' ? 'chip chip--active' : 'chip'}
+            aria-pressed={kind === 'idiom'}
+            onClick={() => {
+              setKind('idiom');
+              setCategoryId((current) =>
+                categories.some((item) => item.id === current) ? current : 'idioms',
+              );
+            }}
+          >
+            成语
+          </button>
         </div>
       </Field>
 
@@ -237,7 +282,7 @@ export function CardForm({ initial, defaultCategoryId, onClose }: Props) {
       </Field>
 
       <Field
-        label={kind === 'poem' ? '标题' : kind === 'story' ? '故事标题' : '中文'}
+        label={kind === 'poem' ? '标题' : kind === 'story' ? '故事标题' : kind === 'idiom' ? '成语' : '中文'}
         htmlFor="card-zh"
         error={errors.zh}
         hint={
@@ -247,7 +292,9 @@ export function CardForm({ initial, defaultCategoryId, onClose }: Props) {
               ? `可含词牌与副题，最多 ${LIMITS.ZH_MAX_POEM} 个字`
               : kind === 'story'
                 ? `绘本名，最多 ${LIMITS.STORY_TITLE_MAX} 个字`
-                : undefined
+                : kind === 'idiom'
+                  ? `只能填 ${LIMITS.IDIOM_LEN} 个字，如「守株待兔」`
+                  : undefined
         }
       >
         <input
@@ -259,11 +306,21 @@ export function CardForm({ initial, defaultCategoryId, onClose }: Props) {
               ? LIMITS.ZH_MAX_POEM
               : kind === 'story'
                 ? LIMITS.STORY_TITLE_MAX
-                : LIMITS.ZH_MAX
+                : kind === 'idiom'
+                  ? LIMITS.IDIOM_LEN
+                  : LIMITS.ZH_MAX
           }
           onChange={(event) => setZh(event.target.value)}
           placeholder={
-            kind === 'character' ? '人' : kind === 'poem' ? '静夜思' : kind === 'story' ? '三只小猪' : '苹果'
+            kind === 'character'
+              ? '人'
+              : kind === 'poem'
+                ? '静夜思'
+                : kind === 'story'
+                  ? '三只小猪'
+                  : kind === 'idiom'
+                    ? '守株待兔'
+                    : '苹果'
           }
         />
       </Field>
@@ -278,14 +335,17 @@ export function CardForm({ initial, defaultCategoryId, onClose }: Props) {
         />
       </Field>
 
-      <Field label="英文" htmlFor="card-en" error={errors.en} hint={`最多 ${LIMITS.EN_MAX_WORDS} 个单词`}>
-        <input
-          id="card-en"
-          className={errors.en ? 'input input--invalid' : 'input'}
-          value={en}
-          onChange={(event) => setEn(event.target.value)}
-        />
-      </Field>
+      {/* 成语卡没有英文（v0.6 PRD §4.4）：输入框隐藏，提交时 en 写空串 */}
+      {kind === 'idiom' ? null : (
+        <Field label="英文" htmlFor="card-en" error={errors.en} hint={`最多 ${LIMITS.EN_MAX_WORDS} 个单词`}>
+          <input
+            id="card-en"
+            className={errors.en ? 'input input--invalid' : 'input'}
+            value={en}
+            onChange={(event) => setEn(event.target.value)}
+          />
+        </Field>
+      )}
 
       <Field label="音标（可选）" htmlFor="card-phonetic">
         <input
@@ -473,6 +533,82 @@ export function CardForm({ initial, defaultCategoryId, onClose }: Props) {
               placeholder={
                 '猪妈妈对三只小猪说：你们长大了，去盖自己的房子吧。\n猪大哥用稻草盖了一座房子，一会儿就盖好了。'
               }
+            />
+          </Field>
+        </>
+      ) : null}
+
+      {kind === 'idiom' ? (
+        <>
+          <Field
+            label="释义"
+            htmlFor="card-meaning"
+            error={errors.meaning}
+            hint={`一句话讲给孩子听，${LIMITS.IDIOM_MEANING_MIN}–${LIMITS.IDIOM_MEANING_MAX} 字（已写 ${[...meaning.trim()].length} 字）`}
+          >
+            <textarea
+              id="card-meaning"
+              className={errors.meaning ? 'textarea input--invalid' : 'textarea'}
+              value={meaning}
+              maxLength={LIMITS.IDIOM_MEANING_MAX}
+              onChange={(event) => setMeaning(event.target.value)}
+              placeholder="守着树桩等兔子撞上来。比喻不肯努力，只想靠运气得好处。"
+            />
+          </Field>
+          <Field
+            label="例句"
+            htmlFor="card-examples"
+            error={errors.examples}
+            hint={`一行一条，${LIMITS.IDIOM_EXAMPLES_MIN}–${LIMITS.IDIOM_EXAMPLES_MAX} 条、每条最多 ${LIMITS.IDIOM_EXAMPLE_MAX} 字（已写 ${splitLines(examplesText).length} 条）`}
+          >
+            <textarea
+              id="card-examples"
+              className={errors.examples ? 'textarea input--invalid' : 'textarea'}
+              value={examplesText}
+              onChange={(event) => setExamplesText(event.target.value)}
+              placeholder={'光等着天上掉馅饼，就是守株待兔。\n他每天只守着那台旧机器，不肯学新本领，简直是守株待兔。'}
+            />
+          </Field>
+          <Field
+            label="近义成语"
+            htmlFor="card-synonyms"
+            error={errors.synonyms}
+            hint={`逗号分隔，${LIMITS.IDIOM_RELATED_MIN}–${LIMITS.IDIOM_RELATED_MAX} 个，必须是四字成语`}
+          >
+            <input
+              id="card-synonyms"
+              className={errors.synonyms ? 'input input--invalid' : 'input'}
+              value={synonyms}
+              onChange={(event) => setSynonyms(event.target.value)}
+              placeholder="坐享其成"
+            />
+          </Field>
+          <Field
+            label="反义成语（可选）"
+            htmlFor="card-antonyms"
+            error={errors.antonyms}
+            hint="确实没有合适反义就留空"
+          >
+            <input
+              id="card-antonyms"
+              className={errors.antonyms ? 'input input--invalid' : 'input'}
+              value={antonyms}
+              onChange={(event) => setAntonyms(event.target.value)}
+              placeholder="自食其力"
+            />
+          </Field>
+          <Field
+            label="出处"
+            htmlFor="card-citation"
+            error={errors.citation}
+            hint={`最多 ${LIMITS.IDIOM_CITATION_MAX} 字，如《韩非子·五蠹》`}
+          >
+            <input
+              id="card-citation"
+              className={errors.citation ? 'input input--invalid' : 'input'}
+              value={citation}
+              maxLength={LIMITS.IDIOM_CITATION_MAX}
+              onChange={(event) => setCitation(event.target.value)}
             />
           </Field>
         </>

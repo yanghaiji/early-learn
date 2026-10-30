@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { LIMITS, PINYIN_TONE_REGEX } from '../constants';
+import { LIMITS, NEUTRAL_TONE_ZH, PINYIN_TONE_REGEX } from '../constants';
 import type { Card, CardInput, ExportBundle } from '../entities/card';
 import { COLOR_TOKENS, type Category, type CategoryInput } from '../entities/category';
 import { DISPLAY_MODES, type Settings } from '../entities/settings';
@@ -12,6 +12,13 @@ import { MARK_STATUSES, type ProgressDocument } from '../entities/progress';
 import { SPEECH_RATES } from '../constants';
 
 const nonEmpty = z.string().trim().min(1);
+/** 四字成语：近义 / 反义字段只收四字成语（PRD E-4） */
+const fourCharWord = z
+  .string()
+  .trim()
+  .refine((value) => [...value].length === LIMITS.IDIOM_LEN, {
+    message: `近义/反义必须是 ${LIMITS.IDIOM_LEN} 字成语`,
+  });
 
 export const categorySchema = z.object({
   id: nonEmpty,
@@ -39,11 +46,12 @@ export const storyPageSchema = z.object({
 
 export const cardSchema = z.object({
   id: nonEmpty,
-  kind: z.enum(['object', 'character', 'poem', 'story']),
+  kind: z.enum(['object', 'character', 'poem', 'story', 'idiom']),
   categoryId: nonEmpty,
   zh: z.string().trim().min(LIMITS.ZH_MIN).max(LIMITS.ZH_MAX_POEM),
   pinyin: z.string().trim().min(1).max(LIMITS.PINYIN_MAX),
-  en: nonEmpty,
+  // 成语卡不配英文（点读走中文 TTS），en 存空串；其余 kind 的非空由 validateCardRules 保证
+  en: z.string().trim(),
   phonetic: z.string().trim().optional(),
   image: nonEmpty,
   tags: z.array(z.string().trim().min(1).max(LIMITS.TAG_LEN)).max(LIMITS.TAG_MAX),
@@ -61,6 +69,11 @@ export const cardSchema = z.object({
   translation: z.string().trim().max(LIMITS.TRANSLATION_MAX).optional(),
   pages: z.array(storyPageSchema).max(LIMITS.STORY_PAGES_MAX).optional(),
   moral: z.string().trim().max(LIMITS.STORY_MORAL_MAX).optional(),
+  meaning: z.string().trim().max(LIMITS.IDIOM_MEANING_MAX).optional(),
+  examples: z.array(z.string().trim().min(1).max(LIMITS.IDIOM_EXAMPLE_MAX)).max(LIMITS.IDIOM_EXAMPLES_MAX).optional(),
+  synonyms: z.array(fourCharWord).max(LIMITS.IDIOM_RELATED_MAX).optional(),
+  antonyms: z.array(fourCharWord).max(LIMITS.IDIOM_RELATED_MAX).optional(),
+  citation: z.string().trim().max(LIMITS.IDIOM_CITATION_MAX).optional(),
   source: imageSourceSchema.optional(),
   createdAt: nonEmpty,
   updatedAt: nonEmpty,
@@ -147,6 +160,41 @@ export function validateCardRules(card: Card | CardInput): FieldError[] {
       errors.push({ field: 'pages', message: '每一段都要写一句话' });
     }
   }
+  if (card.kind === 'idiom') {
+    if ([...card.zh.trim()].length !== LIMITS.IDIOM_LEN) {
+      errors.push({ field: 'zh', message: `成语必须是 ${LIMITS.IDIOM_LEN} 个字` });
+    }
+    const meaning = card.meaning?.trim() ?? '';
+    if (!meaning) {
+      errors.push({ field: 'meaning', message: '成语卡必须填写释义' });
+    } else if ([...meaning].length < LIMITS.IDIOM_MEANING_MIN) {
+      errors.push({ field: 'meaning', message: `释义至少 ${LIMITS.IDIOM_MEANING_MIN} 字` });
+    } else if ([...meaning].length > LIMITS.IDIOM_MEANING_MAX) {
+      errors.push({ field: 'meaning', message: `释义最多 ${LIMITS.IDIOM_MEANING_MAX} 字` });
+    }
+    const examples = card.examples ?? [];
+    if (examples.length < LIMITS.IDIOM_EXAMPLES_MIN) {
+      errors.push({ field: 'examples', message: `例句至少 ${LIMITS.IDIOM_EXAMPLES_MIN} 条` });
+    } else if (examples.length > LIMITS.IDIOM_EXAMPLES_MAX) {
+      errors.push({ field: 'examples', message: `例句最多 ${LIMITS.IDIOM_EXAMPLES_MAX} 条` });
+    }
+    if (examples.some((example) => !example.trim())) {
+      errors.push({ field: 'examples', message: '每条例句都要写内容' });
+    } else if (examples.some((example) => [...example.trim()].length > LIMITS.IDIOM_EXAMPLE_MAX)) {
+      errors.push({ field: 'examples', message: `每条例句最多 ${LIMITS.IDIOM_EXAMPLE_MAX} 字` });
+    }
+    const synonyms = card.synonyms ?? [];
+    if (synonyms.length < LIMITS.IDIOM_RELATED_MIN) {
+      errors.push({ field: 'synonyms', message: '至少写 1 个近义成语' });
+    }
+    const related = [...synonyms, ...(card.antonyms ?? [])];
+    if (related.some((word) => [...word.trim()].length !== LIMITS.IDIOM_LEN)) {
+      errors.push({ field: 'synonyms', message: '近义/反义必须是四字成语' });
+    }
+    if (!card.citation?.trim()) {
+      errors.push({ field: 'citation', message: '成语卡必须填写出处' });
+    }
+  }
   if (card.kind === 'poem') {
     if (!card.author?.trim()) errors.push({ field: 'author', message: '诗词卡必须填写作者' });
     if (!card.dynasty?.trim()) errors.push({ field: 'dynasty', message: '诗词卡必须填写朝代' });
@@ -158,10 +206,14 @@ export function validateCardRules(card: Card | CardInput): FieldError[] {
       errors.push({ field: 'translation', message: '诗词卡必须填写白话译文' });
     }
   }
+  if (card.kind !== 'idiom' && !card.en.trim()) {
+    errors.push({ field: 'en', message: '请填写英文（成语卡以外的卡片都要有英文）' });
+  }
   if (countWords(card.en) > LIMITS.EN_MAX_WORDS) {
     errors.push({ field: 'en', message: `英文最多 ${LIMITS.EN_MAX_WORDS} 个单词` });
   }
-  if (!PINYIN_TONE_REGEX.test(card.pinyin)) {
+  // 轻声单字（的/了）本就没有声调符，豁免；其余字牌漏标声调仍报错
+  if (!PINYIN_TONE_REGEX.test(card.pinyin) && !(card.kind === 'character' && NEUTRAL_TONE_ZH.has(card.zh))) {
     errors.push({ field: 'pinyin', message: '拼音需带声调，例如 píng guǒ' });
   }
   const tags = card.tags ?? [];

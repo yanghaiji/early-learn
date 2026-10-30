@@ -5,7 +5,7 @@
 | 项 | 内容 |
 | --- | --- |
 | 项目 | 童识 · 认知卡片（工程代号 `early-learn`） |
-| 阶段 | **v0.1 已实现（T1–T17）** + v0.1.2 详情页布局修复 + v0.1.3/0.1.4 内容广度 + v0.1.5 诗词卡 + v0.1.6 汉字扩容 + v0.1.7 分类内分组与分页 + **v0.2 故事绘本（50 本一页读完 + 每本 1 张综合图）** + v0.2.3 版面修正（宽屏图左文右两栏、窄屏单列）+ **v0.3 主体插画重做（9 画师 + 98 主体规格，emoji 退出故事图）** + **v0.4 听得准 · 记得住（M-A 预录音频 / M-B 学习进度 / M-C 复习与听音选图 / M-D 连播与家长说明，已实现）**；当前进入 **v0.5 内容大扩容**（PRD 与技术方案均已确认，**M-A 结构先行已实现**：数字按中文解析、朝代三组、未登记主体改抛错、色板三处新 token，零内容变更、501 张不变；M-B~M-D 待做），五道自动门禁 + 内容门禁全绿 |
+| 阶段 | **v0.1 已实现（T1–T17）** + v0.1.2 详情页布局修复 + v0.1.3/0.1.4 内容广度 + v0.1.5 诗词卡 + v0.1.6 汉字扩容 + v0.1.7 分类内分组与分页 + **v0.2 故事绘本（50 本一页读完 + 每本 1 张综合图）** + v0.2.3 版面修正（宽屏图左文右两栏、窄屏单列）+ **v0.3 主体插画重做（9 画师 + 98 主体规格，emoji 退出故事图）** + **v0.4 听得准 · 记得住（M-A 预录音频 / M-B 学习进度 / M-C 复习与听音选图 / M-D 连播与家长说明，已实现）** + **v0.5 内容大扩容（已实现：M-A 结构先行 + M-B 内容全铺，501 → 659 张 / 17 → 21 分类）** + **v0.6 成语词典（已实现：150 条 / 5 组各 30，659 → 809 张 / 21 → 22 分类，音频仍 659 条）**，五道自动门禁 + 内容门禁全绿 |
 | 目标 | 早教认知卡片 Web 应用（1–3 岁启蒙为主，内容与难度分层向上覆盖到 1–10 岁）；纯前端 React + TypeScript，无后端 |
 | 最近更新 | 2026-10-30 |
 
@@ -22,24 +22,31 @@
 │  ├─ v0.1/
 │  │  ├─ PRD.md                           产品需求文档（用户故事/模块/交互/边界/DoD）
 │  │  └─ 内容体系与首批卡片清单.md         分类体系、451 张卡片（汉字 241、古诗 30）、七个主题组、字段与图片规范
-│  └─ v0.2/PRD-故事绘本.md                 50 本故事（一页读完）、US-S1~S6、故事页交互约束、pages/moral、综合图主体画风约束、边界与 DoD
+│  ├─ v0.2/PRD-故事绘本.md                 50 本故事（一页读完）、US-S1~S6、故事页交互约束、pages/moral、综合图主体画风约束、边界与 DoD
+│  └─ v0.4/ · v0.5/ · v0.6/                听得准记得住 · 内容大扩容 · 成语词典（v0.6 词表在 PRD-成语词典.md：150 条 / 5 组 / 版式 / 出图 / DoD）
 ├─ NFR/                                   技术设计（版本化 + 总览）
 │  ├─ README.md                           技术总览：约束、技术栈、分层、目录、门禁、ADR 摘要
 │  ├─ v0.1/技术方案.md                      ADR、领域模型、数据模型、仓储、TTS、图片、任务拆解、风险、验证
 │  ├─ v0.2/技术方案-故事绘本.md             ADR-S1~S7、故事数据模型、故事页设计、综合图聚合管线、风险
-│  └─ v0.3/技术方案-主体插画.md             ADR-C1、9 画师分层、CAST_TONES 同族色板、落脚线、尺度补偿、光晕退场
+│  ├─ v0.3/技术方案-主体插画.md             ADR-C1、9 画师分层、CAST_TONES 同族色板、落脚线、尺度补偿、光晕退场
+│  └─ v0.4/ · v0.5/ · v0.6/                预录音频与学习进度 · 内容管线与门禁 V1~V5 · 成语词典（ADR-I1~I6、idiom 扩契约、内置分组表、门禁 V6/V7）
 ├─ scripts/
+│  ├─ lib/numerals.mjs                    中文数字解析纯函数（无副作用，可被测试直接 import）
 │  ├─ prepare-images.mjs                  内置素材生成：种子源码 → SVG → WebP（幂等，可 --force/--only）
-│  └─ validate-content.mjs                内容门禁：字段规则 + 图片齐备性
-├─ public/assets/images/                  卡片图 {categoryId}/{slug}.webp（320×320）
-│  ├─ covers/                             分类封面 {categoryId}.webp（480×360）
-│  ├─ stories/                            故事综合图 {slug}/cover.webp（480×360，一故事一张）
-│  └─ manifest.json                       素材清单（尺寸/字节/生成时间）
+│  ├─ prepare-audio.mjs                   内置英文音频：SAPI5 → WAV → ffmpeg → mp3（--force 全量）
+│  └─ validate-content.mjs                内容门禁：字段规则 + 图片/音频齐备性 + V1~V7（V6 成语意象件登记、V7 成语分组双向覆盖）
+├─ public/assets/
+│  ├─ images/                             卡片与封面、故事综合图
+│  │  ├─ {categoryId}/{slug}.webp         卡片图 320×320
+│  │  ├─ covers/{categoryId}.webp         分类封面 480×360
+│  │  ├─ stories/{slug}/cover.webp        故事综合图 480×360（一故事一张）
+│  │  └─ manifest.json                    素材清单（尺寸/字节/生成时间）
+│  └─ audio/                              英文预录音频 {cardId}.mp3（32kbps mono）+ manifest.json
 └─ src/
    ├─ app/                                main.tsx · router.tsx · ErrorBoundary · CatalogProvider · layout/AppShell
-   ├─ features/                           categories / cards / speech / settings / admin / misc（均含 ui/；cards 含 CategoryPage / CardDetailPage / StoryReaderPage）
+   ├─ features/                           categories / cards / speech / learn（复习·听音选图·收藏·接着看）/ settings / admin / misc（均含 ui/）
    ├─ domain/                             entities · ports · services（无 React / 无浏览器 API）
-   ├─ data/                               storage（catalogStorage/迁移/keys）· repositories · seed（cards / stories · characterGroups / storyGroups 分组表）· speech
+   ├─ data/                               storage（catalogStorage/迁移/keys）· repositories · seed（cards / stories / idioms · characterGroups / storyGroups / IDIOM_GROUP_BY_ID 分组表）· speech
    ├─ shared/                             ui（Button/Modal/Toast/ParentGate…）· hooks · store · utils
    ├─ styles/                             tokens.css（设计 token 唯一来源）+ index.css
    └─ test/                               setup.ts · memoryStorage.ts（测试替身）
@@ -118,6 +125,9 @@ graph LR
 | 8 内容与验收 | 451 张素材、seed 录入、设备矩阵、性能核对 | PRD 第 12 节 DoD 全勾选 | T16–T17 | ✅（设备矩阵待真机） |
 | 9 故事绘本（v0.2） | 第 17 分类「故事」、50 本一页读完的种子、故事页路由、管理区故事表单、综合图聚合出图 | 内容门禁 501 张 / 17 分类；13 个故事用例全绿 | T-S1–T-S8 | ✅（设备矩阵待真机） |
 | 10 主体插画（v0.3） | 主体整体换成与背景同族色的程序化扁平插画：`CAST_SPECS` 98 个规格 + 9 个画师 + 落脚线 + `boost` 尺度补偿；50 张故事图重出 | 无 emoji 字形、主体与背景同色板、门禁改解析 `CAST_SPECS`、故事图体积下降 | T-C1–T-C2 | ✅ |
+| 11 听得准 · 记得住（v0.4） | 预录音频 + 学习进度 + 复习/听音选图 + 连播与家长说明页 | 501 条音频齐全、进度不进导出包、连播四类中断 | T-A1–T-D3 | ✅ |
+| 12 内容大扩容（v0.5） | 汉字 241→321、数字 10→28、古诗 30→50、四个新分类各 10；出图/出音频全量重出 | 内容门禁 **659 张 / 21 分类** + 659 条音频；V1~V5 全绿；既有图逐字节不变 | T-C1–T-C14 | ✅（设备矩阵待真机） |
+| 13 成语词典（v0.6） | 第 22 分类「成语」+ 150 条（5 组各 30）：`meaning` / `examples` / `synonyms` / `antonyms` / `citation` 五个可选字段、内置分组表、详情页成语版式、管理区表单、听音选图排除、水墨四字卡出图 | 内容门禁 **809 张 / 22 分类** + 659 条音频；V1~V7 全绿；274 例全绿 | T-I1–T-I14 | ✅（设备矩阵待真机） |
 
 ### 3.1 关键实现顺序理由
 
@@ -139,16 +149,22 @@ graph LR
 | 主题 | 结论 | 出处 |
 | --- | --- | --- |
 | 数据存储 | 单 key `early-learn:v1:catalog` 存分类+卡片，保证原子一致 | 技术方案 §4.2 |
-| 内容升级 | `SEED_VERSION`（当前 7）记在 `early-learn:v1:meta` 的 `seedVersion`：升级时按 id 增量补齐新卡，不覆盖家长编辑 | §4.2 |
+| 内容升级 | `SEED_VERSION`（当前 9）记在 `early-learn:v1:meta` 的 `seedVersion`：升级时按 id 增量补齐新卡，不覆盖家长编辑 | §4.2 |
 | 版本迁移 | `schemaVersion` + 迁移链；高版本数据只读，不降级写入 | §4.3 |
 | 损坏恢复 | 备份到 `:corrupted` 后回落种子数据 | §4.3 |
 | 语音 | 仅 Web Speech；iOS 必须在点击回调内同步调用；不可用则禁用按钮 | §9 |
 | 图片 | `public/` + 逻辑路径；卡片 320×320、分类封面与故事综合图 480×360 单档 WebP（综合图 q78）；失败用首字占位 | §10 / NFR v0.2 §5 |
 | 路由部署 | **HashRouter**（`#/card/:id`）：静态托管任意子路径零 rewrite，代价是 URL 带 `#` | §6 |
 | 演示/兜底数据 | 种子以 TS 常量维护，类型校验后再导出 JSON | §4.4 |
-| 分类内分组 | 分组表独立于卡片数据（`characterGroups.ts` 汉字七组 / `storyGroups.ts` 故事四组），由组合根注入 `groupOf`；`?group=` + `?page=` 存 URL，每页 12 张；故事组 key 必须带 `story-` 前缀 | §6 / NFR v0.2 §ADR-S4 |
+| 分类内分组 | 分组表独立于卡片数据（`characterGroups.ts` 汉字八组 / `storyGroups.ts` 故事四组），由组合根注入 `groupOf`；`?group=` + `?page=` 存 URL，每页 12 张；故事组 key 必须带 `story-` 前缀 | §6 / NFR v0.2 §ADR-S4 |
 | 故事页 | `/story/:cardId`：一屏读完 4–8 段 + 1 张综合图，无翻页/页码/圆点；`?page=` 忽略；Esc 或「返回故事详情」回详情；「读整篇」读 `paragraphs.join('')` | NFR v0.2 §ADR-S7 / §4 |
 | 综合图出图 | 18 个场景模板 × 98 个主体规格（9 画师；地面 292 / 飞行 252 / 水中 334 / 天空 296 四条落脚线），480×360 q78；背景取首段 `scene`、主体按全书计数排序（最多 3 个）；`--force` 重绘、`--prune` 删旧 `{n}.webp` | NFR v0.2 §5 / NFR v0.3 §5 |
+| 数字卡出图 | 图上的阿拉伯数字由卡片 `zh` 解析中文数字推导（`scripts/lib/numerals.mjs`），解析失败即抛错；**不得按排列位置推算** | NFR v0.5 §4.1 |
+| 拼音声调 | 汉字卡拼音需带声调；`的/了` 为普通话合法轻声，按字白名单豁免（脚本与 `domain` 各存一份，注释互指） | NFR v0.5 §4.6 / §13.3 |
+| 成语卡 | `kind='idiom'` + 5 个可选字段；`en` 恒为空串（不配英文、也无预录音频），`schemaVersion` 仍 1 | PRD v0.6 §3 / NFR v0.6 §4.1 |
+| 成语分组 | 走内置表 `IDIOM_GROUP_BY_ID`（`idioms-<slug>` → 组 key），**不写 `tags`**；组 key 统一 `idiom-` 前缀防与汉字组撞名 | NFR v0.6 §4.2 |
+| 听音选图与成语 | 成语不进题池：`quizPool()` 在 `domain/services/quiz.ts` 一层排除，页面零特判 | NFR v0.6 §4.6 |
+| 成语配图 | 每条成语登记 **2 件实物意象**（`IDIOM_PROPS` → `IDIOM_MOTIFS` 78 件），未登记 / 未实现即抛错；淡远山与地平线只做背景（`opacity 0.62`） | NFR v0.6 §4.7 |
 
 ---
 
@@ -163,19 +179,24 @@ npm run test        # vitest run，领域层覆盖率 ≥ 80%
 npm run build       # 产物构建 + 首屏 JS ≤ 350KB gzip
 ```
 
-**最近一次实测（2026-10-30，v0.4.0）**
+**最近一次实测（2026-10-30，v0.6.1）**
 
 | 门禁 | 结果 | 关键数据 |
 | --- | --- | --- |
 | `typecheck` | ✅ | 0 error（strict：`noUncheckedIndexedAccess` / `verbatimModuleSyntax` / 未使用变量均开启） |
 | `lint` | ✅ | 0 error / 0 warning |
-| `test` | ✅ | 17 个测试文件、223 个用例全绿（v0.4 共 +85 例：音频 14 / 进度 30 / 复习与出题 27 / 连播与说明页 14）；行覆盖 82.25%、分支 80.14%；`domain/services` 95.55%、`data/speech` 82.61%（未达技术方案目标的 85%，差在 manifest 拉取失败的浏览器分支）、`features/cards/ui` 91.13% |
-| `build` | ✅ | JS `532.60 kB` → **gzip `174.02 kB`**；CSS `29.95 kB` → gzip `6.98 kB`（预算 350 KB；v0.3.3 → v0.4 累计 +8.81 KB ≤ 20 KB） |
-| `validate:content` | ✅ | 501 张 / 17 分类 + 501 条音频逐条存在（共 3.25 MB ≤ 4 MB，单条 ≤ 12 KB）；静态资源 1021 个文件 / 4.59 MB |
+| `test` | ✅ | **20 个测试文件、274 个用例全绿**（v0.6 +15 例：`seed` 7 / `validation` 6 / `quiz` 2 / `cards` 2；既有断言回写：分类 21→22、卡片 659→809）；覆盖率本轮未重跑，沿用 v0.4 实测（行 82.25% / 分支 80.14%） |
+| `build` | ✅ | JS `612.42 kB` → **gzip `205.63 kB`**；CSS `30.95 kB` → gzip `7.14 kB`（预算 350 KB；v0.5 → v0.6 +23.75 KB，略超 v0.5 自设的「≤ 200 KB」目标，不触硬线） |
+| `validate:content` | ✅ | **809 张 / 22 分类** + 659 条音频逐条存在（共 4.25 MB，单条 5137–10048 B ≤ 12 KB）；V1~V7 全生效；成语 150 条 / 5 组各 30；每条成语实际登记 2 件意象、`IDIOM_MOTIFS` 共 78 件 |
+| 静态资源 | ✅ | 1492 个文件 / 6.63 MB（卡片与封面 831 张 WebP / 2.33 MB + 音频 659 条 mp3 / 4.25 MB + 2 个 manifest） |
+
+> v0.5.1 为纯版面调整（删首页横滑区 + 新增 `/recent` 页），用例 256 → 259，体积与内容计数不变。
 
 > Rollup 对 zod 注释会输出无害警告，不影响产物与体积。
 
 **v0.5 M-A 结构先行实测（2026-10-30，内容未加、应用仍 0.4.0）**：`test` 19 文件 / 243 例全绿（M-A 前 17 / 223，+2 文件 +20 例：`numerals.test.mjs` 10 / `seed.test.ts` 8 / `validation.test.ts` 2）；`build` JS 532.78 kB → gzip 174.10 kB、CSS 30.02 kB → gzip 7.02 kB；`validate:content` 501 张 / 17 分类通过且 V1~V5 生效；`prepare:images -- --force` 重出 518 张后 `git diff -- public` 为空（既有图含数字一~十逐字节不变）。
+
+**v0.5 M-B 内容全铺实测（2026-10-30，v0.5.0）**：① 内容 501 → **659 张 / 21 分类**（汉字 241→321、数字 10→28、古诗 30→50、新增海洋动物/小虫子/职业/穿戴各 10）；② `prepare:images -- --force` 出 **680 张**（659 卡 + 21 封面），既有 518 张 `git status` 零修改（仅 `manifest.json` 变更），118 张新图程序化空白检测 0 例外 + 5 张代表图目检正确；③ `prepare:audio -- --force` 出 **659 条 / 4.25 MB**（5137–10048 B）；④ `SEED_VERSION` 7→8，升级合并三例（含「保留家长改动只补新增」）；⑤ 首轮 test 3 例红均为**计数/正则断言未随基数变化**（`/动物/` 撞上「海洋动物」、`分类（18）` 未改 22），修正后 256 例全绿。
 
 ### 5.2 内容门禁（发布前）
 
@@ -183,9 +204,9 @@ npm run build       # 产物构建 + 首屏 JS ≤ 350KB gzip
 npm run validate:content     # 等价于 node scripts/validate-content.mjs
 ```
 
-校验：卡片 `id` 唯一、`categoryId` 有效、拼音含声调、英文 ≤ 3 词、汉字卡字段完整、诗词卡 4 个字段与分行规则、非诗词卡 `zh` ≤ 8、图片文件存在且体积达标；**故事卡**额外校验：标题 ≤ 20 字、寓意 ≤ 60 字、每本 6 段（全局 50 本）、每段正文非空且 ≤ 60 字、`scene`/`subject` 已在出图脚本注册、综合图 `{slug}/cover.webp` 存在且难度 1–3（不再校验逐页图）；另做**分组覆盖校验**：汉字与故事各自双向（有卡无组 / 有组无卡 / 跨组重复）。
+校验：卡片 `id` 唯一、`categoryId` 有效、拼音含声调、英文 ≤ 3 词、汉字卡字段完整、诗词卡 4 个字段与分行规则、非诗词卡 `zh` ≤ 8、图片文件存在且体积达标；**故事卡**额外校验：标题 ≤ 20 字、寓意 ≤ 60 字、每本 6 段（全局 50 本）、每段正文非空且 ≤ 60 字、`scene`/`subject` 已在出图脚本注册、综合图 `{slug}/cover.webp` 存在且难度 1–3（不再校验逐页图）；**成语卡**额外校验：`zh` 恰好 4 字、释义 6–90 字、例句 2–3 条（每条 8–50 字）、近义 1–3 个 / 反义 0–3 个且均为四字、出处 ≤ 40 字，且必须命中 `IDIOM_PROPS` 已登记的 1–2 件意象、每件在 `IDIOM_MOTIFS` 有实现（V6）；另做**分组覆盖校验**：汉字、故事与成语各自双向（有卡无组 / 有组无卡 / 跨组重复），成语五组各 30 条（V7）；音频只对 `en` 非空的卡要求 mp3（成语 150 条自动豁免）。
 
-**最近一次实测**：501 张 / 17 分类通过（动物 22·水果 16·蔬菜 13·交通 16·日常 15·身体 12·颜色 8·形状 8·数字 10·汉字 241·家人 12·天气 12·动作 12·食物 12·学校用品 12·古诗 30·故事 50）；汉字七组 25 / 37 / 28 / 22 / 34 / 40 / 55 = 241；故事四组 20 / 15 / 10 / 5 = 50。
+**最近一次实测**：809 张 / 22 分类通过（动物 22·水果 16·蔬菜 13·交通 16·日常 15·身体 12·颜色 8·形状 8·数字 28·汉字 321·家人 12·天气 12·动作 12·食物 12·学校用品 12·古诗 50·故事 50·海洋动物 10·小虫子 10·职业 10·穿戴 10·成语 150）；汉字八组 25 / 55 / 44 / 38 / 38 / 44 / 61 / 16 = 321；故事四组 20 / 15 / 10 / 5 = 50；成语五组各 30 = 150；音频 659 条 / 4.25 MB。
 
 ### 5.3 手工验收（发布前）
 
@@ -226,8 +247,8 @@ npm run validate:content     # 等价于 node scripts/validate-content.mjs
 | 2026-10-28 | 坑位 | 种子里封面路径是 `` `${IMAGE_ROOT}/xx.webp` `` 模板，脚本校验前需先展开成 `assets/images/covers/...`，否则报 10 个封面缺失 |
 | 2026-10-28 | 坑位 | 纯前端无后端兜底：顶层 `ErrorBoundary` + 各页空态 + 存储只读降级三层叠加，才做到「任何异常都不白屏」 |
 | 2026-10-28 | 约束 | 仓库根文件 `AGEANT.md` 为拼写错误且为空，已重命名为 `AGENT.md` |
-| 2026-10-28 | 坑位 | 详情页用 `overflow:hidden` + 图片区 `min-height:0`，当「文字 + 按钮」高度吃满时会先压图片区→图片高 0 直接消失，看上去像「样式错乱」；修法：容器 `overflow-y:auto` 保底 + 图片区 `min-height:220px` + 正方形用 `min(100cqw,100cqh)` |
-| 2026-10-28 | 坑位 | `container-type: size` 会丢掉内在尺寸：在 grid 里遇到 `align-items:center` 不会被拉伸，高度归零；必须显式 `align-self: stretch` |
+| 2026-10-28 | 坑位 | 详情页用 `overflow:hidden` + 图片区 `min-height:0`，当「文字 + 按钮」高度吃满时会先压图片区→图片高 0 直接消失，看上去像「样式错乱」；修法：容器 `overflow-y:auto` 保底 + 图片区 `min-height:220px` + 图块 `height:100%; width:auto; aspect-ratio:1/1`（2026-10-30 修正：正方形不能用 `cqw/cqh`，见下条） |
+| 2026-10-28 | 坑位 | `container-type: size` 会丢掉内在尺寸：在 grid 里遇到 `align-items:center` 不会被拉伸，高度归零；**而且** 2026-10-30 实测 Chrome 把由 `min-height` / flex 推导的 `100cqh` 直接解析成 0，`width:min(100cqw,100cqh)` 让整站详情页图缩成 2px（看起来像「图片消失」，图片本身没坏）；结论：正方形不要用 `cqw/cqh`，给 stage 一个确定高度（`clamp(132px,23dvh,210px)`）+ 图块 `height:100%; width:auto; aspect-ratio:1/1` |
 | 2026-10-28 | 决策 | 内置内容升级不用 `schemaVersion`（那是破坏性结构变更），而用 `meta` 里的 `seedVersion`，按 id 增量合并新卡：老用户的自主删改不会被覆盖 |
 | 2026-10-28 | 决策 | 诗词不做独立实体与独立页面，而是 `kind='poem'` + 4 个可选字段：翻页/朗读/存储/导入导出全部复用；新增字段均可选，`schemaVersion` 无需迁移 |
 | 2026-10-28 | 决策 | 诗词标题单独放宽到 20 字（`LIMITS.ZH_MAX_POEM`），不抬高 `ZH_MAX`：词牌与副题需长度，但实物卡/汉字卡的内容纪律不能被拖松 |
@@ -294,6 +315,20 @@ npm run validate:content     # 等价于 node scripts/validate-content.mjs
 | 2026-10-30 | 文档 | v0.5 开工前先核事实再定方案：新分类是**四处同步**（`COLOR_TOKENS` / Zod `z.enum` / `tokens.css` 的 `--c-{token}` / 脚本 `THEME[categoryId]`），漏任一处分别导致瓦片透明底、校验报红、出图串成墨色底；token 名不得带数字（草记的 `apricot2` 已改 `linen`） |
 | 2026-10-30 | 坑位 | 出图脚本 `prepare-images.mjs` 顶层即读种子出图、无 `isDirectRun` 守卫，测试 `import` 它会触发全量重绘（还连带把 `sharp` 拖进门禁依赖）；纯函数（如中文数字解析）必须抽到 `scripts/lib/numerals.mjs` 单独引用，并给脚本补 `isDirectRun` 守卫（对齐 `validate-content.mjs` 末尾守卫） |
 | 2026-10-30 | 坑位 | 大列表（501 卡）逐字过滤的组件用例在并发门禁下实测 3~5s，默认 5s 会**偶发超时**（本地门禁两次才复现一次）；这类重渲染用例要显式放宽 `it(…, 20_000)`，而不是加 `waitFor` 掩盖 |
+| 2026-10-30 | 坑位 | 的/了 是普通话合法**轻声**（`de`/`le` 本就没有声调符），会被「拼音需带声调」门禁误杀；解决不是改数据也不是放宽正则，而是按字白名单豁免（`NEUTRAL_TONE_ZH`）。且**必须两处同步**：`scripts/validate-content.mjs`（.mjs 无法 import TS，故各存一份）与 `src/domain/services/validation.ts`——导出→导入回环会对导入卡重跑 `validateCardRules`，只改脚本会让内建库整包导入失败 |
+| 2026-10-30 | 坑位 | 新增分类会让**宽正则断言集体失效**：`getByRole('link', { name: /动物/ })` 会同时命中「动物」与新增的「海洋动物」（`Found multiple elements`），`分类（18）` 这类硬编码计数也不再成立；加分类后必须在同一轮把相关断言改成**锚定正则**（`/^动物/`）或改成由常量推导 |
+| 2026-10-30 | 坑位 | 七言诗不能把「一句两句」写在一行：`validate-content` 按 `lines[]` 逐行限 14 字，而七言两句并写即 16 字直接判红；录入口径为**每行一「句」**（四句诗就 4 行），不要因为押韵成对就并成 2 行 |
+| 2026-10-30 | 决策 | 首页正文只放**分类墙**：任何「最近/推荐」类内容一律收进入口条做菜单项（「接着看」→ `/recent`）而不是在分类墙上方堆横滑区。实测一条横滑区（标题 + 140px 卡 + 间距）占约 240px，相当于手机上一整行分类卡，孩子选主题时要先划掉它 |
+| 2026-10-30 | 坑位 | 横滑区（`overflow-x:auto`）是一个「没有对外信号」的布局陷阱：截图里右边缘那张卡被切一半，看着像样式 bug，实际是内容溢出—用户不会意识到可以横划。亲子场景下能看到的卡必须「完整可见」，要么网格换行、要么收进单独页 |
+| 2026-10-30 | 决策 | 成语分组沿用「外置表」而不写 `tags[0]`（ADR-I1）：`tags` 家长可编辑，用它做分组会在编辑后静默失组；组归属放 `seed/idioms/index.ts` 的 `IDIOM_GROUP_BY_ID`，`Card` 零新字段、`schemaVersion` 仍 1 |
+| 2026-10-30 | 坑位 | 新增分类的组 key 直接叫 `nature` / `life` 会与汉字组同名，`ALL_GROUP_NAMES` 合并时后者覆盖前者导致 chips 串组；成语五组统一加 `idiom-` 前缀（与故事组 `story-` 同规约），且在 typecheck 阶段就能暴露 |
+| 2026-10-30 | 坑位 | 内容门禁的释义下限曾按 PRD 写死 20 字，而实际词表 6–34 字，首轮直接判红 90 条——**门禁阈值必须以已验收的词表实测区间为准**：冲突时改门禁与 PRD 口径并记入偏差台账，而不是改内容凑字数（PRD v0.6 §13） |
+| 2026-10-30 | 坑位 | 成语无英文时 `en` 的 Zod `min(1)` 连结构校验都过不去；必须先把 `en` 放宽为 `trim()`，再把「非成语卡必须有英文」下沉到 `validateCardRules`——否则一张卡会同时报到 Zod 与规则两处，且文案无法定制 |
+| 2026-10-30 | 坑位 | 成语四字卡首版按「14 类意境」登记场景，结果守株待兔画成「房子 + 树」、画蛇添足 / 自相矛盾 / 滥竽充数共用同一张书桌：**「语义相近」不等于「画得出那个东西」**。卡面主体必须是成语里真实存在的实物（2 件：主体 + 关键道具），山水只做背景（`opacity 0.62` 淡远山 + 地平线）；守株待兔=树桩 + 兔、井底之蛙=井 + 蛙、画龙点睛=龙 + 笔 |
+| 2026-10-30 | 坑位 | `prepare-images.mjs` 是「文件已存在即跳过」：改了画法只跑 `--only=idioms` 会输出「写入 0 / 跳过 151」，很容易误以为改没生效（图是旧的）；重出必须带 `--force` |
+| 2026-10-30 | 工具 | 150 张图逐张 Read 太慢：用 sharp 拼 6×8 网格 + slug 标签（`.tmp/sheet.mjs`），4 张拼图一次看完；「井 / 钟 / 龙 / 靴 / 足」这类件能不能认出来，只有在这个缩略尺寸下才判得准（宽度 < 3px 的描线在缩略图里直接消失） |
+| 2026-10-30 | 坑位 | 「画对了」不等于「看得见」：`inkPerson` 首版头/身同一个 `NEAR`、手臂与长衫同色、`scroll` 卷面用近白的 `WHITE`，在 320px 原图里还成形，缩到卡片 170px 就只剩「一块灰石头」和「两个小圆点」，连累近 30 张卡；规矩是**主体一律勾 `DEEP` 轮廓、内部至少留一处深浅对比、纸面/卷轴类不用近白填充**，且必须按**卡片实际尺寸（170px）**判读而不是拼图缩放后再放大看 |
+| 2026-10-30 | 坑位 | 「足」若画成「两根小腿 + 脚掌椭圆」的写实画法，170px 下会被读成两块石头（画蛇添足首版即如此）；改用大号脚印符号（`inkFoot` × 1.7 并排）比写实画法识别度高一档——同一件实物有多种画法时，选**符号化后仍可辨认**的那一种 |
 
 ---
 
@@ -338,3 +373,7 @@ npm run validate:content     # 等价于 node scripts/validate-content.mjs
 | 2026-10-30 | v0.4 | 听得准 · 记得住（四个里程碑串行交付，本版无破坏性数据模型变更）：① **M-A 发音根治**——`scripts/prepare-audio.mjs` 生成 501 条 mp3（3.25MB）+ `audioManifest.ts` + `preRecordedAdapter.ts`，任何一步失败逐条回退 v0.3.3 WebSpeech，内容门禁新增音频齐全性与体积校验；② **M-B 留下痕迹**——`ProgressDocument` + `ProgressRepository` + `progressStore`、详情页收藏/认识·不认识、`/favorites` 与最近浏览 24 条、删卡自动剪枝、进度不进导出包；③ **M-C 复习与游戏**——`random.ts`（注入 rng）+ `buildReviewQueue` + `quiz.ts`，`/review` 与 `/quiz` 两页，首页三入口条 + 统计一句话 +「接着看」横滑；④ **M-D 解放双手**——`useSlideshow` 模块级连播状态机（四类中断、不循环、没出声就停）、`/guide` 家长说明页、管理区「清除学习进度」（家长门），并补做收藏 Toast、只读提示一次、连点 20 次 Toast 合并；⑤ 用例 138 → 223（17 文件），JS gzip 165.21 → 174.02KB（+8.81KB，预算 +20KB）；⑥ §5.1 门禁数据、§6 新增 6 条坑位/决策、§7 新增 `prepare:audio`；⑦ 版本号 0.4.0（`package.json` 与 `APP_VERSION` 两处同步） | Agent |
 | 2026-10-30 | v0.5.0（文档） | 文档先行、本轮未动代码：① 新增 `FR/v0.5/PRD.md`（内容大扩容：501 → 659 张 / 17 → 21 分类、US-C1~C6、逐条内容清单、DoD、本版不做清单），**已经需求方确认**（汉字 +80 / 四类新分类 / 数字 28 张 / 古诗 +20）；② 新增 `NFR/v0.5/技术方案.md`（四个静默坑的事实核对、数字按中文数字推导、朝代三组、汉字第八组、四新分类色板四处同步、画师扩展与未登记主体抛错、门禁新增 V1~V5、十四步任务拆解、ADR-T1~T7），**成稿待确认**；③ `FR/README.md` 与 `NFR/README.md` 的索引、路线图、ADR 摘要、变更记录同步（原 v0.5 四项顺延 v0.6、原 v0.6 → v0.7）；④ 修正本文表头「阶段 / 最近更新」只记到 v0.3 的漂移，§6 补 3 条管线坑位；⑤ 四份文档码点扫描全净（FFFD / U+30FB / 弯引号 / 行尾空格均为 0），临时扫描脚本已清，`.tmp/` 为空 | Agent |
 | 2026-10-30 | v0.5.0（M-A 代码） | 结构先行开工（零内容变更、501 张不变）：① 新建 `scripts/lib/numerals.mjs`（`cnNumberToValue` 纯函数，方案原写「放脚本顶层」因 import 触发全量出图而改此）；② `prepare-images.mjs` numbers 分支改按 `zh` 推导、删 `CN_NUMERAL`、`cardSubject`/`poemSvg` 未登记改抛错、`THEME` +4、补 `isDirectRun` 守卫；③ `validate-content.mjs` 新增 V1~V5 五条门禁 + 七条自守断言；④ `characterGroups.ts` 朝代三组 `POEM_GROUP_BY_DYNASTY` + `CatalogProvider` `groupOf` 改映射；⑤ 色板三处（`COLOR_TOKENS` 17→21 / `tokens.css` / 脚本 `THEME`）新增 `wave/moss/denim/linen`（`categories.ts` 四行随 M-C）；⑥ 测试 +20（`numerals.test.mjs` 10 / `seed.test.ts` 8 / `validation.test.ts` 2），243 例 / 19 文件全绿；⑦ 全量重出 518 张 `git diff -- public` 为空（含数字一~十逐字节不变）、JS gzip 174.10KB；⑧ 记偏差 D1~D4（numerals 抽库 / `categories.ts` 留 M-C / 第八组随 M-B / `POEM_SCENE_MAX` 留脚本）；⑨ `SEED_VERSION` 仍 7、版本号仍 0.4.0（内容未加，留 M-B~M-D） | Agent |
+| 2026-10-30 | v0.5.0（M-B 代码） | 内容全铺，v0.5 本版实质完成（原 M-C/M-D 的内容任务已并入）：① **汉字 241 → 321**（新增第八组「口语与常用」16 字：的/了/我/你/他/和/也/很 等，`characterGroups.ts` 同步八组 25/55/44/38/38/44/61/16）；② **数字 10 → 28**（1–20 + 整十 30~90 + 一百，图上数字由 `zh` 解析推导）；③ **古诗 30 → 50**（新增 20 首，朝代三组映射补齐：唐/宋/其它，`POEM_SCENES` 逐首登记）；④ **四个新分类各 10**：海洋动物 `sea`·小虫子 `insects`·职业 `jobs`·穿戴 `clothes`，色板四处同步 `wave/moss/denim/linen`，`categories.ts` 四行 + 封面 4 张；⑤ 画师扩展 `seaArt`/`bugArt`/`personArt`/`thingArt`/`cardBaseY` + 新场景映射；⑥ **`SEED_VERSION` 7→8**，升级合并三例（新增补卡 / 不覆盖家长编辑 / 只补新增）；⑦ 全量出图 **680 张**（既有 518 张逐字节不变）+ 全量出音频 **659 条 / 4.25 MB**；⑧ 内容修正：`的/了` 轻声白名单双向豁免、三首英译压到 ≤ 3 词、`村居` 七言拆 4 行；⑨ 用例 243 → **256 例 / 20 文件**，JS gzip 174.10 → **181.69 KB**、CSS gzip 7.04 KB；⑩ 版本号 **0.4.0 → 0.5.0**（`package.json` 与 `APP_VERSION` 两处）；⑪ FR/NFR 四份文档与本文 §1/§3/§4/§5 同步（含 NFR v0.5 §13 实现回写） | Agent |
+| 2026-10-30 | v0.5.1 | 需求方反馈「接着看这一块单独一个菜单，不要影响下方的选择」（截图：横滑条占了大半屏、右边缘卡片被切、下方分类墙被挤）：① 首页删除「接着看」横滑区与 `recentCards` 派生，分类墙重新成为首页唯一主体；② 新增 `features/learn/ui/RecentPage.tsx` → 路由 `/recent`，网格展示最近浏览 ≤ `RECENT_MAX`（24）张，删卡自动过滤，空态给「去挑一张」；③ 入口条新增菜单项「接着看（N）」（`History` 图标，仅当 `recent.length > 0` 渲染），与「我的收藏」同级；④ 删 `.slide-row` 三条样式；⑤ 单测 +3（7→10 例 `learn.test.tsx`，全库 259 例）：无记录不出入口/正文无 heading、点入口进独立页、直连空态；⑥ PRD §6「首页密度」改写 + §11 新增 D-C9，FR/NFR README 与 NFR v0.4 两处行同步；⑦ 版本号 0.5.0 → 0.5.1（`package.json` 与 `APP_VERSION`） | Agent |
+| 2026-10-30 | v0.6.0 | 需求方「再增加一个成语词典的选型…至少 150 个」→ 口径四项确认（150 条 / 释义 + 2 例句 + 近反义 + 出处 / 水墨四字卡 / 5 组）后实现：① 第 22 分类「成语」（复用 `denim`，**不新增色板**）+ 150 条 / 5 组各 30；② `Card` 加 5 个可选字段 + `kind='idiom'`，`en` 恒空、`schemaVersion` 仍 1、`SEED_VERSION` 8→9；③ 内置分组表 `IDIOM_GROUP_BY_ID` + `groupOf` idiom 分支（chips 零新 UI）；④ 详情页 `detail--idiom` 版式（释义 / 例句 / 近反义 chip / 出处）+ English 按钮整块不渲染；⑤ 管理区成语 chip 与 6 个字段、英文框隐藏、即时校验与 `validateCardRules` 同源；⑥ 听音选图 `quizPool()` 排除成语；⑦ 出图 `IDIOM_SCENES` 150 条 + 14 类墨件 + `idiomSvg`（四字 62px）+ 封面，未登记即抛错，产出 151 张（v0.6.1 已改为 2 件实物意象）；⑧ 门禁新增 V6/V7，音频改按 `en` 非空判定；⑨ 用例 259 → **274 例 / 20 文件**，JS `612.42 kB` / gzip **205.63 KB**、CSS gzip 7.19 KB（v0.6.1 为 7.14 KB）；⑩ PRD 释义口径改 6–90、`一刀切`→`一视同仁`、新增 §13 偏差台账 5 条；⑪ 新增 `NFR/v0.6/技术方案-成语词典.md`，FR/NFR README 与本文同步；⑫ 版本号 0.6.0 | Agent |
+| 2026-10-30 | v0.6.1 | 需求方「有些配图和内容完全不搭，没有真正表达出真实世界的物」+ 360px 窄屏核验：① 四字卡从「150 条 slug → 14 类意境」改为「每条 2 件实物意象」（`IDIOM_PROPS` 150 × 2 + `IDIOM_MOTIFS` 78 件），删掉 `idiomSceneMarkup`，新增 `motifMarkup` / `inkPerson` / `inkQuadruped` 骨架与 `idiomBackdrop`；② 151 张带 `--force` 重出，拼 4 张 48 格缩略图逐张目检，井 / 钟 / 龙 / 靴 / 手 / 足 / 柳 / 竹 / 山 / 台阶 / 画笔 各返工 1–3 版；按 170px 实测再修一轮：`inkPerson` 加 `DEEP` 轮廓与浅色头脸、手臂露出衫外，`scroll` 卷面改米色填充，`feet` 改大号脚印并排，`精卫填海` 改「鸟 + 海」、`黔驴技穷` 改「驴 + 虎」；③ 门禁 V6 改口径（0 件 / 超 2 件 / 未实现三种失败），解析对象改 `IDIOM_PROPS` + `IDIOM_MOTIFS`；④ 详情页图块改「stage 定高 + `height:100%; width:auto; aspect-ratio:1/1`」，修掉 `100cqh` 解析为 0 导致整站详情页图缩成 2px；⑤ 360 / 375 / 1440 三档 CDP 复测：无横向溢出、无越界元素，图块 170 / 153 / 207 且为正方形；⑥ 五道门禁全绿（274 例，JS gzip 205.63 KB、CSS gzip 7.14 KB）；⑦ PRD §6.1 / §10 / §13 与 NFR v0.6 §2.1 / §4.4 / §4.7 / §5 / §11 同步；⑧ 版本号 0.6.0 → 0.6.1 | Agent |

@@ -37,8 +37,9 @@ import {
 } from '../hooks/useSlideshow';
 import { useSpeech } from '../../speech/hooks/useSpeech';
 
-/** 诗词朗读整首正文，其余卡片（含故事）读中文名 */
+/** 诗词朗读整首正文，成语读「成语 + 释义」，其余卡片（含故事）读中文名 */
 function speechTextOf(card: Card): string {
+  if (card.kind === 'idiom') return card.meaning ? `${card.zh}，${card.meaning}` : card.zh;
   return card.lines && card.lines.length > 0 ? card.lines.join('') : card.zh;
 }
 
@@ -201,6 +202,9 @@ export function CardDetailPage() {
   const index = (sequence?.index ?? 0) + 1;
   const isPoem = card.kind === 'poem';
   const isStory = card.kind === 'story';
+  const isIdiom = card.kind === 'idiom';
+  // 成语卡没有英文：看英文模式下仍显示中文块，否则整页只剩一张图
+  const showChinese = mode !== 'en' || isIdiom;
   // 只读模式（存储不可用）首次写入提一次「不会保存」（PRD §6.3）
   const hintIfReadOnly = () => {
     if (!persistent) hintReadOnlyOnce();
@@ -240,7 +244,7 @@ export function CardDetailPage() {
       </header>
 
       <main
-        className={cx('detail', isPoem && 'detail--poem')}
+        className={cx('detail', isPoem && 'detail--poem', isIdiom && 'detail--idiom')}
         {...swipe}
         aria-label={`${card.zh} 卡片详情`}
       >
@@ -264,7 +268,7 @@ export function CardDetailPage() {
         </div>
 
         <div className="detail__words">
-          {mode !== 'en' ? (
+          {showChinese ? (
             isPoem ? (
               <>
                 <h1 className="detail__poem-title">{card.zh}</h1>
@@ -297,8 +301,8 @@ export function CardDetailPage() {
               </>
             )
           ) : null}
-          {mode !== 'zh' ? <p className="detail__en">{card.en}</p> : null}
-          {card.kind === 'character' && mode !== 'en' ? (
+          {mode !== 'zh' && card.en ? <p className="detail__en">{card.en}</p> : null}
+          {card.kind === 'character' && showChinese ? (
             <p className="detail__meta">
               {card.strokes ? <span>{card.strokes} 画</span> : null}
               {card.words && card.words.length > 0 ? <span>{card.words.join(' / ')}</span> : null}
@@ -310,6 +314,46 @@ export function CardDetailPage() {
             </p>
           ) : null}
         </div>
+
+        {/* 成语版式（v0.6 PRD §4.2）：释义 → 例句 → 近义·反义 → 出处 */}
+        {isIdiom ? (
+          <section className="detail__idiom" aria-label="成语释义与用法">
+            {card.meaning ? <p className="detail__meaning">{card.meaning}</p> : null}
+            {card.examples && card.examples.length > 0 ? (
+              <ul className="detail__examples">
+                {card.examples.map((example, exampleIndex) => (
+                  <li className="detail__example" key={`${exampleIndex}-${example}`}>
+                    <span className="detail__example-badge" aria-hidden="true">
+                      例
+                    </span>
+                    <span>{example}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {card.synonyms && card.synonyms.length > 0 ? (
+              <div className="detail__related">
+                <span className="detail__related-label">近义</span>
+                {card.synonyms.map((word) => (
+                  <span className="detail__word-chip" key={word}>
+                    {word}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {card.antonyms && card.antonyms.length > 0 ? (
+              <div className="detail__related">
+                <span className="detail__related-label">反义</span>
+                {card.antonyms.map((word) => (
+                  <span className="detail__word-chip" key={word}>
+                    {word}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {card.citation ? <p className="detail__citation">出处 · {card.citation}</p> : null}
+          </section>
+        ) : null}
 
         <div className="detail__actions">
           {isStory ? (
@@ -327,15 +371,18 @@ export function CardDetailPage() {
               <Volume2 size={22} />
               {isPoem ? '读全诗' : '中文'}
             </button>
-            <button
-              type="button"
-              className="tap-btn"
-              onClick={() => void speak(card.en, 'en-US', card.id)}
-              disabled={!enabled}
-            >
-              <Volume2 size={22} />
-              English
-            </button>
+            {/* 成语卡无英文（PRD §3.2）：不显示 English 按钮 */}
+            {isIdiom ? null : (
+              <button
+                type="button"
+                className="tap-btn"
+                onClick={() => void speak(card.en, 'en-US', card.id)}
+                disabled={!enabled}
+              >
+                <Volume2 size={22} />
+                English
+              </button>
+            )}
           </div>
 
           <div className="detail__learn">

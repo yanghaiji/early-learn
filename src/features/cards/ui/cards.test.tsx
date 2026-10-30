@@ -38,8 +38,8 @@ describe('分类页 · 分组与分页（v0.1.7）', () => {
     render(<AppRouter />);
 
     expect(await screen.findByRole('heading', { name: '汉字' })).toBeInTheDocument();
-    expect(screen.getByText(/第 1 \/ 21 页/)).toBeInTheDocument();
-    // 241 张只挂第一页的 12 个卡片块
+    expect(screen.getByText(/第 1 \/ 27 页/)).toBeInTheDocument();
+    // 321 张只挂第一页的 12 个卡片块
     expect(screen.getAllByRole('link')).toHaveLength(12);
   });
 
@@ -66,8 +66,8 @@ describe('分类页 · 分组与分页（v0.1.7）', () => {
     await screen.findByRole('heading', { name: '汉字' });
     await user.click(screen.getByRole('button', { name: /自然与季节/ }));
 
-    // 28 字 → 3 页，切组后回到第 1 页
-    expect(await screen.findByText(/第 1 \/ 3 页/)).toBeInTheDocument();
+    // 44 字 → 4 页，切组后回到第 1 页
+    expect(await screen.findByText(/第 1 \/ 4 页/)).toBeInTheDocument();
     expect(window.location.hash).toContain('group=nature');
     expect(window.location.hash).not.toContain('page=3');
   });
@@ -92,7 +92,7 @@ describe('分类页 · 分组与分页（v0.1.7）', () => {
     render(<AppRouter />);
 
     await screen.findByRole('heading', { name: '汉字' });
-    expect(screen.getByText(/第 2 \/ 3 页/)).toBeInTheDocument();
+    expect(screen.getByText(/第 2 \/ 4 页/)).toBeInTheDocument();
     await user.click(screen.getAllByRole('link')[0] as HTMLElement);
 
     await user.click(await screen.findByRole('button', { name: '返回卡片列表' }));
@@ -137,8 +137,39 @@ describe('卡片详情', () => {
     window.location.hash = '#/card/characters-shan?group=nature';
     render(<AppRouter />);
 
-    // 「山」是自然与季节组的第一张，该组 28 字
-    expect(await screen.findByLabelText('第 1 张，共 28 张')).toBeInTheDocument();
+    // 「山」是自然与季节组的第一张，该组 44 字
+    expect(await screen.findByLabelText('第 1 张，共 44 张')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '上一张' })).toBeDisabled();
+  });
+});
+
+/** 成语词典（v0.6 PRD §4.1 / §4.2）：无英文、不进出题池、详情多一块释义 */
+describe('成语词典（v0.6）', () => {
+  it('should_list_150_idioms_in_five_theme_groups_when_category_opened', async () => {
+    window.location.hash = '#/c/idioms';
+    render(<AppRouter />);
+
+    expect(await screen.findByRole('heading', { name: '成语' })).toBeInTheDocument();
+    // 150 张 → 每页 12 张，共 13 页
+    expect(screen.getByText(/第 1 \/ 13 页/)).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: '按主题组筛选' })).toBeInTheDocument();
+    for (const name of ['寓言故事', '学习求知', '品德修养', '自然景物', '生活常理']) {
+      expect(screen.getByRole('button', { name: new RegExp(name) }), name).toBeInTheDocument();
+    }
+  });
+
+  it('should_render_meaning_examples_related_and_citation_when_idiom_opened', async () => {
+    window.location.hash = '#/card/idioms-shou-zhu-dai-tu';
+    render(<AppRouter />);
+
+    expect(await screen.findByRole('heading', { name: '守株待兔' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '成语释义与用法' })).toBeInTheDocument();
+    expect(screen.getByText(/守着树桩等兔子撞上来/)).toBeInTheDocument();
+    expect(screen.getByText('光等着天上掉馅饼，就是守株待兔。')).toBeInTheDocument();
+    expect(screen.getByText('坐享其成')).toBeInTheDocument();
+    expect(screen.getByText('自食其力')).toBeInTheDocument();
+    expect(screen.getByText('出处 · 《韩非子·五蠹》')).toBeInTheDocument();
+    // 无英文 → 不出现 English 按钮，也不出现空英文行
+    expect(screen.queryByRole('button', { name: 'English' })).not.toBeInTheDocument();
   });
 });

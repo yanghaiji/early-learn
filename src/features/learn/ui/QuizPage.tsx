@@ -1,6 +1,6 @@
 /** 听音选图（v0.4 C 组 / US-A5）：听一个词、点一张图；答错只高亮正确项，不判负不计分 */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Volume2 } from 'lucide-react';
 import { useCatalog } from '../../../app/CatalogProvider';
@@ -11,6 +11,7 @@ import {
   buildDeck,
   buildQuestion,
   pickLangOptions,
+  quizPool,
   type Question,
   type QuizMode,
 } from '../../../domain/services/quiz';
@@ -34,6 +35,8 @@ export function QuizPage() {
   const { speak, enabled } = useSpeech();
 
   const [phase, setPhase] = useState<Phase>('setup');
+  // 成语卡不进听音选图：卡面就是四个字，出题等于把答案印在选项上（v0.6 PRD E-10）
+  const pool = useMemo(() => quizPool(cards), [cards]);
   const [mode, setMode] = useState<QuizMode>('zh');
   const [blocked, setBlocked] = useState<string | null>(null);
   const [deck, setDeck] = useState<Card[]>([]);
@@ -53,7 +56,7 @@ export function QuizPage() {
   }, [phase, question]);
 
   const startRound = () => {
-    if (cards.length < QUIZ_OPTIONS) {
+    if (pool.length < QUIZ_OPTIONS) {
       setBlocked('卡片太少，玩不了：先去添加几张卡片吧。');
       return;
     }
@@ -69,7 +72,7 @@ export function QuizPage() {
       return;
     }
     setBlocked(null);
-    const next = buildDeck(cards, useProgressStore.getState().doc);
+    const next = buildDeck(pool, useProgressStore.getState().doc);
     const first = next[0];
     if (!first) {
       setBlocked('卡片太少，玩不了：先去添加几张卡片吧。');
@@ -77,7 +80,7 @@ export function QuizPage() {
     }
     setDeck(next);
     setQuestionIndex(0);
-    setQuestion(buildQuestion(first, cards));
+    setQuestion(buildQuestion(first, pool));
     setRevealed(false);
     setLocked(false);
     setPhase('play');
@@ -91,7 +94,7 @@ export function QuizPage() {
     }
     setQuestionIndex(nextIndex);
     const nextCard = deck[nextIndex];
-    if (nextCard) setQuestion(buildQuestion(nextCard, cards));
+    if (nextCard) setQuestion(buildQuestion(nextCard, pool));
     setRevealed(false);
     setLocked(false);
   };

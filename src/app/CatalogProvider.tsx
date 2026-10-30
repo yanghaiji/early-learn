@@ -18,6 +18,7 @@ import { createCardRepository } from '../data/repositories/localCardRepository';
 import { createCategoryRepository } from '../data/repositories/localCategoryRepository';
 import { getSeedCatalog, SEED_VERSION } from '../data/seed';
 import { CHARACTER_GROUP_BY_ZH, GROUP_NAMES, POEM_GROUP_BY_DYNASTY } from '../data/seed/characterGroups';
+import { IDIOM_GROUP_BY_ID, IDIOM_GROUP_NAMES } from '../data/seed/idioms';
 import { STORY_GROUP_BY_ID, STORY_GROUP_NAMES } from '../data/seed/storyGroups';
 import { createSpeechPort } from '../data/speech';
 import { createCatalogStorage, type CatalogStatus, type CatalogStorage } from '../data/storage/catalogStorage';
@@ -69,10 +70,11 @@ interface CatalogContextValue {
 
 const CatalogContext = createContext<CatalogContextValue | null>(null);
 
-/** 汉字组与故事组共用一张 key → 展示名 的表 */
+/** 汉字组、故事组与成语组共用一张 key → 展示名 的表 */
 const ALL_GROUP_NAMES: Readonly<Record<string, string>> = {
   ...GROUP_NAMES,
   ...STORY_GROUP_NAMES,
+  ...IDIOM_GROUP_NAMES,
 };
 
 export function CatalogProvider({ children }: { children: ReactNode }) {
@@ -139,6 +141,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     if (card.kind === 'character') return CHARACTER_GROUP_BY_ZH.get(card.zh);
     if (card.kind === 'poem') return POEM_GROUP_BY_DYNASTY[card.dynasty ?? ''] ?? 'other';
     if (card.kind === 'story') return STORY_GROUP_BY_ID.get(card.id);
+    if (card.kind === 'idiom') return IDIOM_GROUP_BY_ID.get(card.id);
     return undefined;
   }, []);
 

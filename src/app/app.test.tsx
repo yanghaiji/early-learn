@@ -14,7 +14,7 @@ describe('AppRouter', () => {
   it('should_render_seed_categories_on_home', async () => {
     render(<AppRouter />);
     expect(await screen.findByRole('heading', { name: '童识 · 认知卡片' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /动物/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^动物/ })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /汉字/ })).toBeInTheDocument();
   });
 

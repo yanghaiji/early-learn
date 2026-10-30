@@ -128,9 +128,11 @@ export function CardAdmin() {
                 <p className="row__title">
                   {card.zh}
                   {card.kind === 'character' ? <span className="chip" style={{ marginLeft: 8 }}>汉字</span> : null}
+                  {card.kind === 'idiom' ? <span className="chip" style={{ marginLeft: 8 }}>成语</span> : null}
                 </p>
+                {/* 成语卡没有英文（v0.6）：空段不参与拼接，避免出现两个分隔点 */}
                 <p className="row__meta">
-                  {card.pinyin} · {card.en} · {categoryName(card.categoryId)}
+                  {[card.pinyin, card.en, categoryName(card.categoryId)].filter(Boolean).join(' · ')}
                 </p>
               </div>
               <IconButton label={`编辑 ${card.zh}`} small onClick={() => openEdit(card)}>

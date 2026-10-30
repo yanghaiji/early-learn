@@ -42,14 +42,14 @@ describe('管理区', () => {
     markGatePassed();
     render(<AppRouter />);
 
-    expect(await screen.findByRole('heading', { name: /分类（17）/ })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /分类（22）/ })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /新建分类/ }));
     const dialog = await screen.findByRole('dialog', { name: '新建分类' });
     await user.type(within(dialog).getByLabelText('分类名称'), '恐龙');
     await user.click(within(dialog).getByRole('button', { name: '保存' }));
 
-    expect(await screen.findByRole('heading', { name: /分类（18）/ })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /分类（23）/ })).toBeInTheDocument();
     expect(screen.getByText('恐龙')).toBeInTheDocument();
   });
 
@@ -81,7 +81,7 @@ describe('管理区', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
-  // 501 张卡逐字重算列表，并发跑门禁时实测要 3~5s，按默认 5s 会偶发超时
+  // 809 张卡逐字重算列表，并发跑门禁时实测要 3~5s，按默认 5s 会偶发超时
   it('should_filter_cards_when_keyword_typed', async () => {
     const user = userEvent.setup();
     markGatePassed();
@@ -104,7 +104,7 @@ describe('管理区', () => {
     await user.click(await screen.findByRole('button', { name: /恢复内置内容/ }));
 
     const dialog = await screen.findByRole('dialog', { name: '恢复内置内容' });
-    expect(within(dialog).getByText(/17 个分类、501 张卡片将被内置内容覆盖/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/22 个分类、809 张卡片将被内置内容覆盖/)).toBeInTheDocument();
 
     await user.click(within(dialog).getByRole('button', { name: '确认恢复' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());

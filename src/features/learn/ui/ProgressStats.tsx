@@ -1,15 +1,25 @@
-/** 首页学习进度块（v0.4 C 组）：三入口条 + 统计一句话（US-A3 末条），分类墙仍是主体 */
+/** 首页学习进度块（v0.4 C 组）：入口条 + 统计一句话（US-A3 末条），分类墙仍是主体 */
 
 import { Link } from 'react-router-dom';
-import { Heart, Headphones, Repeat } from 'lucide-react';
+import { Heart, Headphones, History, Repeat } from 'lucide-react';
 import { knownCount, unknownCount } from '../../../domain/services/progress';
 import { useProgressStore } from '../../../shared/store/progressStore';
 
-/** 顶部三入口：收藏 / 练一练不熟的（M） / 听音选图（ADR-P5：不加家长门） */
+/**
+ * 顶部入口条：接着看 / 我的收藏 / 练一练不熟的（M） / 听音选图（ADR-P5：不加家长门）。
+ * 「接着看」无浏览记录时不出：没有可继续的就不占位置（v0.5.1 从首页正文横滑区收进来）
+ */
 export function ProgressEntries() {
   const unknown = useProgressStore((state) => unknownCount(state.doc));
+  const recentCount = useProgressStore((state) => state.doc.recent.length);
   return (
     <div className="inline entry-bar">
+      {recentCount > 0 ? (
+        <Link className="btn btn--ghost" to="/recent">
+          <History size={18} />
+          接着看（{recentCount}）
+        </Link>
+      ) : null}
       <Link className="btn btn--ghost" to="/favorites">
         <Heart size={18} />
         我的收藏

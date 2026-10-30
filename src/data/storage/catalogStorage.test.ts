@@ -208,6 +208,40 @@ describe('createCatalogStorage / misc', () => {
     expect(storage.getItem(STORAGE_KEYS.meta)).toContain('"seedVersion":2');
   });
 
+  it('should_keep_parent_edits_when_merging_new_seed_cards', () => {
+    const storage = new MemoryStorage();
+    // 家长把「猫」改成了「猫咪」
+    storage.setItem(
+      STORAGE_KEYS.catalog,
+      JSON.stringify({
+        schemaVersion: SCHEMA_VERSION,
+        categories: [CATEGORY],
+        cards: [{ ...CARD, zh: '猫咪', tags: [] }],
+        savedAt: TIME,
+      }),
+    );
+    storage.setItem(STORAGE_KEYS.meta, JSON.stringify({ seedVersion: 1 }));
+
+    // 新种子：同一个 id 仍叫「猫」，另多了一张「狗」
+    const seedWithMore = (): CatalogDocument => ({
+      schemaVersion: SCHEMA_VERSION,
+      categories: [{ ...CATEGORY }],
+      cards: [{ ...CARD, tags: [] }, { ...CARD, id: 'animals-dog', zh: '狗', tags: [] }],
+      savedAt: TIME,
+    });
+    const result = createCatalogStorage({
+      storage,
+      seed: seedWithMore,
+      seedVersion: 2,
+      now: NOW,
+    }).load();
+
+    // 只增不改：家长改过的「猫咪」不被种子的「猫」覆盖，新卡「狗」被补齐
+    expect(result.doc.cards.find((card) => card.id === 'animals-cat')?.zh).toBe('猫咪');
+    expect(result.doc.cards.some((card) => card.id === 'animals-dog')).toBe(true);
+    expect(result.message).toContain('新增 1 张卡片');
+  });
+
   it('should_skip_seed_merge_when_seed_version_already_applied', () => {
     const storage = new MemoryStorage();
     storage.setItem(

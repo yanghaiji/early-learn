@@ -20,13 +20,15 @@ export function CardTile({ card, colorToken }: { card: Card; colorToken?: string
   const location = useLocation();
   // 带上当前分组与页码：详情页按同一组内序列翻页，返回时也回到这一页
   const listUrl = `${location.pathname}${location.search}`;
+  // 成语卡没有英文（v0.6）：标题回退到中文，避免看英文模式下列表出现空白块
+  const english = card.en.trim();
 
   return (
     <Link
       className="card-tile"
       to={{ pathname: `/card/${card.id}`, search: location.search }}
       state={{ listUrl }}
-      aria-label={`${card.zh} ${card.en}`}
+      aria-label={english ? `${card.zh} ${english}` : card.zh}
     >
       <div className="card-tile__media" style={categoryColorVar(colorToken)}>
         <ImageWithFallback
@@ -40,8 +42,8 @@ export function CardTile({ card, colorToken }: { card: Card; colorToken?: string
           <span className="card-tile__badge">绘本故事</span>
         ) : null}
       </div>
-      <p className="card-tile__zh">{mode === 'en' ? card.en : card.zh}</p>
-      {mode === 'both' ? <p className="card-tile__en">{card.en}</p> : null}
+      <p className="card-tile__zh">{mode === 'en' && english ? english : card.zh}</p>
+      {mode === 'both' && english ? <p className="card-tile__en">{english}</p> : null}
     </Link>
   );
 }

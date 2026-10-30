@@ -1,6 +1,6 @@
 /** 首页 · 分类墙（PRD M1 / US-01） */
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Languages, Lock } from 'lucide-react';
 import { useCatalog } from '../../../app/CatalogProvider';
@@ -12,9 +12,7 @@ import { EmptyState } from '../../../shared/ui/Feedback';
 import { Modal } from '../../../shared/ui/Modal';
 import { ParentGate } from '../../../shared/ui/ParentGate';
 import { categoryColorVar } from '../../../shared/utils/classNames';
-import { useProgressStore } from '../../../shared/store/progressStore';
 import { markGatePassed } from '../../admin/gateSession';
-import { CardTile } from '../../cards/ui/CategoryPage';
 import { ProgressEntries, ProgressStatsLine } from '../../learn/ui/ProgressStats';
 import { DisplayModeSwitch } from '../../settings/ui/DisplayModeSwitch';
 
@@ -42,21 +40,10 @@ function CategoryTile({ category, count }: { category: Category; count: number }
 }
 
 export function HomePage() {
-  const { categories, cards, counts, isReadOnly } = useCatalog();
+  const { categories, counts, isReadOnly } = useCatalog();
   const [displayOpen, setDisplayOpen] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
   const navigate = useNavigate();
-  const recent = useProgressStore((state) => state.doc.recent);
-
-  // 「接着看」横滑：按最近浏览顺序映射真实卡，删掉的自动过滤（US-A2）
-  const recentCards = useMemo(() => {
-    const cardById = new Map(cards.map((card) => [card.id, card]));
-    const colorById = new Map(categories.map((category) => [category.id, category]));
-    return recent
-      .map((entry) => cardById.get(entry.cardId))
-      .filter((card): card is NonNullable<typeof card> => Boolean(card))
-      .map((card) => ({ card, color: colorById.get(card.categoryId)?.color }));
-  }, [recent, cards, categories]);
 
   const onPass = () => {
     markGatePassed();
@@ -78,19 +65,6 @@ export function HomePage() {
 
       <main className="page">
         <ProgressEntries />
-
-        {recentCards.length > 0 ? (
-          <section aria-labelledby="continue-heading" style={{ marginTop: 20 }}>
-            <h2 className="section__title" id="continue-heading">
-              接着看
-            </h2>
-            <div className="slide-row">
-              {recentCards.map(({ card, color }) => (
-                <CardTile key={card.id} card={card} colorToken={color} />
-              ))}
-            </div>
-          </section>
-        ) : null}
 
         {categories.length === 0 ? (
           <EmptyState
