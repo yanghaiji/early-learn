@@ -35,12 +35,12 @@ describe('分类页', () => {
 describe('分类页 · 分组与分页（v0.1.7）', () => {
   it('should_paginate_when_category_has_more_than_12_cards', async () => {
     window.location.hash = '#/c/characters';
-    render(<AppRouter />);
+    const { container } = render(<AppRouter />);
 
     expect(await screen.findByRole('heading', { name: '汉字' })).toBeInTheDocument();
     expect(screen.getByText(/第 1 \/ 27 页/)).toBeInTheDocument();
-    // 321 张只挂第一页的 12 个卡片块
-    expect(screen.getAllByRole('link')).toHaveLength(12);
+    // 321 张只挂第一页的 12 个卡片块（按块数而不按链接数：页脚还有源码链接）
+    expect(container.querySelectorAll('.card-tile')).toHaveLength(12);
   });
 
   it('should_show_group_chips_only_when_category_has_groups', async () => {
@@ -89,11 +89,11 @@ describe('分类页 · 分组与分页（v0.1.7）', () => {
   it('should_return_to_same_page_when_back_from_detail', async () => {
     const user = userEvent.setup();
     window.location.hash = '#/c/characters?group=nature&page=2';
-    render(<AppRouter />);
+    const { container } = render(<AppRouter />);
 
     await screen.findByRole('heading', { name: '汉字' });
     expect(screen.getByText(/第 2 \/ 4 页/)).toBeInTheDocument();
-    await user.click(screen.getAllByRole('link')[0] as HTMLElement);
+    await user.click(container.querySelectorAll('.card-tile')[0] as HTMLElement);
 
     await user.click(await screen.findByRole('button', { name: '返回卡片列表' }));
     expect(window.location.hash).toContain('group=nature');

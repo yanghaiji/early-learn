@@ -100,7 +100,7 @@ export function CategoryPage() {
         </div>
       </header>
 
-      <main className="page">
+      <main className="page page--wide">
         {!category ? (
           <EmptyState
             emoji="🔍"

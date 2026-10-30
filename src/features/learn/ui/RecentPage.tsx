@@ -43,7 +43,7 @@ export function RecentPage() {
         </div>
       </header>
 
-      <main className="page">
+      <main className="page page--wide">
         {recentCards.length === 0 ? (
           <EmptyState
             emoji="🕘"

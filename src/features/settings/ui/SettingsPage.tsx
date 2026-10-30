@@ -1,9 +1,9 @@
 /** 设置页（PRD US-06 / US-08）：展示语言、语音开关与语速、动效偏好 */
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Lock } from 'lucide-react';
-import { APP_NAME, APP_VERSION } from '../../../app/version';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Github, Lock } from 'lucide-react';
+import { APP_NAME, APP_VERSION, REPO_URL } from '../../../app/version';
 import {
   DISPLAY_MODES,
   DISPLAY_MODE_LABEL,
@@ -165,9 +165,30 @@ export function SettingsPage() {
           </div>
         </section>
 
-        <p className="text-xs muted" style={{ textAlign: 'center' }}>
-          {APP_NAME} v{APP_VERSION}
-        </p>
+        <section className="panel">
+          <h2 className="panel__title">关于</h2>
+          <div className="row">
+            <div className="row__grow">
+              <p className="row__title">{APP_NAME}</p>
+              <p className="row__meta">
+                v{APP_VERSION} · 1–3 岁启蒙认知卡片，图片与音频都打包在本地，断网也能用
+              </p>
+            </div>
+            <a className="btn btn--ghost" href={REPO_URL} target="_blank" rel="noreferrer">
+              <Github size={18} />
+              源码
+            </a>
+          </div>
+          <div className="row">
+            <div className="row__grow">
+              <p className="row__title">使用说明</p>
+              <p className="row__meta">给家长的五分钟上手说明</p>
+            </div>
+            <Link className="btn btn--ghost" to="/guide">
+              查看
+            </Link>
+          </div>
+        </section>
       </main>
 
       {gateOpen ? (

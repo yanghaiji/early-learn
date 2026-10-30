@@ -2,8 +2,9 @@
 
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
+import { Github } from 'lucide-react';
 import { useCatalog } from '../CatalogProvider';
-import { APP_NAME } from '../version';
+import { APP_NAME, REPO_URL } from '../version';
 import { Banner } from '../../shared/ui/Feedback';
 import { ToastHost } from '../../shared/ui/ToastHost';
 import { useSettingsStore } from '../../shared/store/settingsStore';
@@ -21,10 +22,14 @@ export function AppShell() {
       {isReadOnly ? <Banner>只读模式：{message ?? '当前浏览器无法保存数据'}（浏览不受影响）</Banner> : null}
       {!isReadOnly && message && status === 'corrupted' ? <Banner tone="info">{message}</Banner> : null}
       <Outlet />
-      <footer className="page" style={{ paddingTop: 0, flex: '0 0 auto' }} aria-hidden="true">
-        <p className="text-xs muted" style={{ textAlign: 'center', margin: 0 }}>
-          {APP_NAME} · 1–3 岁启蒙认知
-        </p>
+      {/* v0.7：页脚常驻一行「应用名 + 源码地址」，全站任一页都能找到仓库 */}
+      <footer className="app-footer">
+        <span className="text-xs muted">{APP_NAME} · 1–3 岁启蒙认知</span>
+        <span className="app-footer__sep" aria-hidden="true" />
+        <a className="foot-link" href={REPO_URL} target="_blank" rel="noreferrer">
+          <Github size={13} />
+          源码 · GitHub
+        </a>
       </footer>
       <ToastHost />
     </div>

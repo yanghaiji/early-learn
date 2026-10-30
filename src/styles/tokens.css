@@ -5,47 +5,47 @@
 :root {
   color-scheme: light;
 
-  /* 基础色 */
+  /* 基础色：暖纸底 + 暖墨字（v0.6.2 主色由亮蓝改墨绿，与宣纸/成语卡同族） */
   --c-bg: #fdfcf8;
-  --c-bg-soft: #f6f2e9;
+  --c-bg-soft: #f4f0e7;
   --c-surface: #ffffff;
-  --c-ink: #2b2b2b;
-  --c-ink-soft: #6b6b6b;
-  --c-line: #e7e1d6;
-  --c-primary: #3e7bfa;
-  --c-primary-soft: #e6efff;
+  --c-ink: #2a2823;
+  --c-ink-soft: #6a6660;
+  --c-line: #e6dfd2;
+  --c-primary: #2f6b57;
+  --c-primary-soft: #e2ece6;
   --c-on-primary: #ffffff;
-  --c-danger: #c8382f;
-  --c-danger-soft: #fdecea;
-  --c-warn: #8a5200;
-  --c-warn-soft: #fff4dd;
+  --c-danger: #b8412f;
+  --c-danger-soft: #fbe9e5;
+  --c-warn: #85520c;
+  --c-warn-soft: #fdf2d9;
 
-  /* 分类主色（低饱和高明度，均与 --c-ink 达到 4.5:1 以上） */
-  --c-mint: #cdecdc;
-  --c-coral: #ffd9d2;
-  --c-leaf: #d9ebc6;
-  --c-sky: #cfe6fb;
-  --c-sand: #f2e6c9;
-  --c-peach: #ffe0cc;
-  --c-lilac: #e4dbf7;
-  --c-ocean: #cfe0ee;
-  --c-ink-tint: #dcdcdc;
+  /* 分类主色（低饱和高明度，均与 --c-ink 达到 4.5:1 以上；v0.6.2 统一降一档饱和，白卡上不再发灰） */
+  --c-mint: #c9e6d8;
+  --c-coral: #f8d8d0;
+  --c-leaf: #d6e5c4;
+  --c-sky: #cce0f2;
+  --c-sand: #ecdfc0;
+  --c-peach: #f8ddc9;
+  --c-lilac: #e0d8f2;
+  --c-ocean: #cbdae7;
+  --c-ink-tint: #dad8d2;
   /* v0.1.3 新增主题分类色 */
-  --c-rose: #ffe1e6;
-  --c-cloud: #dde7f2;
-  --c-lime: #e4f2c4;
-  --c-apricot: #ffe6c7;
-  --c-violet: #e8e1fa;
+  --c-rose: #f8dce1;
+  --c-cloud: #d9e3ed;
+  --c-lime: #e0ebc4;
+  --c-apricot: #f8e3c4;
+  --c-violet: #e2dcf4;
   /* v0.2 诗词（宣纸） */
-  --c-xuan: #f2eee2;
+  --c-xuan: #f0ebdf;
   /* v0.2 故事绘本（莓果） */
-  --c-berry: #fbe0ea;
+  --c-berry: #f6dce6;
   /* v0.5 新增主题分类色（与既有 17 色同族：低饱和高明度） */
-  --c-wave: #cfe9f2;
-  --c-moss: #e0eed2;
-  --c-denim: #d8e2f0;
-  --c-linen: #f3e7dc;
-  --c-rainbow: linear-gradient(135deg, #ffd9d2 0%, #f2e6c9 38%, #cdecdc 68%, #cfe6fb 100%);
+  --c-wave: #cce4ed;
+  --c-moss: #dfedcf;
+  --c-denim: #d5dfeb;
+  --c-linen: #eee3d7;
+  --c-rainbow: linear-gradient(135deg, #f8d8d0 0%, #ecdfc0 38%, #c9e6d8 68%, #cce0f2 100%);
 
   /* 圆角 */
   --radius-tile: 24px;
@@ -61,9 +61,14 @@
   /* 间距 */
   --space: 8px;
 
+  /* 容器宽度（v0.6.2 分档：列表页铺满、详情与表单收窄） */
+  --page-max: 1180px;
+  --page-max-wide: 1440px;
+  --page-max-narrow: 780px;
+
   /* 阴影 */
-  --shadow-tile: 0 2px 0 rgba(43, 43, 43, 0.06), 0 8px 24px rgba(43, 43, 43, 0.06);
-  --shadow-lift: 0 6px 20px rgba(43, 43, 43, 0.12);
+  --shadow-tile: 0 2px 0 rgba(72, 62, 46, 0.05), 0 8px 24px rgba(72, 62, 46, 0.07);
+  --shadow-lift: 0 6px 20px rgba(72, 62, 46, 0.14);
 
   /* 字号阶梯（详情页用 vh 阶梯，矮屏不挤坏按钮） */
   --fs-detail-zh: clamp(44px, 7.5vh, 80px);

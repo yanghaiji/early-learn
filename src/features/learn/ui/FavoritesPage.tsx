@@ -59,7 +59,7 @@ export function FavoritesPage() {
         </div>
       </header>
 
-      <main className="page">
+      <main className="page page--wide">
         {empty ? (
           <EmptyState
             emoji="⭐"

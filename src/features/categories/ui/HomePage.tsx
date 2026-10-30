@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Languages, Lock } from 'lucide-react';
+import { Github, Languages, Lock } from 'lucide-react';
 import { useCatalog } from '../../../app/CatalogProvider';
-import { APP_SLOGAN } from '../../../app/version';
+import { APP_SLOGAN, REPO_URL } from '../../../app/version';
 import type { Category } from '../../../domain/entities/category';
 import { ImageWithFallback } from '../../../shared/ui/ImageWithFallback';
 import { IconButton, Button } from '../../../shared/ui/Button';
@@ -27,13 +27,12 @@ function CategoryTile({ category, count }: { category: Category; count: number }
           colorToken={category.color}
           eager
         />
-      </div>
-      <div>
-        <h2 className="cat-tile__name">
-          {category.name}
-          {category.nameEn ? <span className="cat-tile__en">{category.nameEn}</span> : null}
-        </h2>
+        {/* 张数压在封面角上：标题行只放名称，卡片高度全书一致（v0.7） */}
         <span className="cat-tile__count">{count} 张</span>
+      </div>
+      <div className="cat-tile__foot">
+        <h2 className="cat-tile__name">{category.name}</h2>
+        {category.nameEn ? <span className="cat-tile__en">{category.nameEn}</span> : null}
       </div>
     </Link>
   );
@@ -53,19 +52,31 @@ export function HomePage() {
 
   return (
     <>
-      <header className="topbar">
-        <div style={{ flex: 1, minWidth: 0 }}>
+      {/* v0.7：标题、入口条、图标合并为一条 hero 顶栏，省掉原来单独一行的入口条高度 */}
+      <header className="topbar topbar--hero">
+        <div className="topbar__brand">
           <h1 className="topbar__title">童识 · 认知卡片</h1>
           <p className="topbar__sub">{APP_SLOGAN}</p>
         </div>
-        <IconButton label="切换显示语言" plain onClick={() => setDisplayOpen(true)}>
-          <Languages size={26} />
-        </IconButton>
+        <ProgressEntries />
+        <div className="topbar__tools">
+          <a
+            className="icon-btn icon-btn--plain"
+            href={REPO_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="源码 · GitHub"
+            title="源码 · GitHub"
+          >
+            <Github size={22} />
+          </a>
+          <IconButton label="切换显示语言" plain onClick={() => setDisplayOpen(true)}>
+            <Languages size={24} />
+          </IconButton>
+        </div>
       </header>
 
-      <main className="page">
-        <ProgressEntries />
-
+      <main className="page page--wide">
         {categories.length === 0 ? (
           <EmptyState
             emoji="🗂️"
@@ -79,9 +90,7 @@ export function HomePage() {
           />
         ) : (
           <>
-            <p className="muted text-sm" style={{ marginTop: 0 }}>
-              选一个主题开始吧
-            </p>
+            <p className="section-hint">选一个主题开始吧</p>
             <div className="grid-cats">
               {categories.map((category) => (
                 <CategoryTile key={category.id} category={category} count={counts[category.id] ?? 0} />
@@ -90,7 +99,7 @@ export function HomePage() {
           </>
         )}
 
-        <div className="inline" style={{ justifyContent: 'center', marginTop: 32 }}>
+        <div className="inline" style={{ justifyContent: 'center', marginTop: 24 }}>
           <Button variant="ghost" onClick={() => setGateOpen(true)} disabled={isReadOnly}>
             <Lock size={18} />
             家长管理
