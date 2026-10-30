@@ -8,6 +8,7 @@ import { LIMITS, PINYIN_TONE_REGEX } from '../constants';
 import type { Card, CardInput, ExportBundle } from '../entities/card';
 import { COLOR_TOKENS, type Category, type CategoryInput } from '../entities/category';
 import { DISPLAY_MODES, type Settings } from '../entities/settings';
+import { MARK_STATUSES, type ProgressDocument } from '../entities/progress';
 import { SPEECH_RATES } from '../constants';
 
 const nonEmpty = z.string().trim().min(1);
@@ -247,4 +248,19 @@ export function parseSettings(raw: unknown): Settings | undefined {
   const result = settingsSchema.safeParse(raw);
   if (!result.success) return undefined;
   return result.data as unknown as Settings;
+}
+
+/** 学习进度（v0.4 B 组）：结构容错，非法即返回 undefined，由仓储回退空文档 */
+export const progressDocumentSchema = z.object({
+  schemaVersion: z.number().int(),
+  favorites: z.array(nonEmpty),
+  recent: z.array(z.object({ cardId: nonEmpty, at: nonEmpty })),
+  marks: z.record(z.string(), z.object({ status: z.enum(MARK_STATUSES as [string, ...string[]]), at: nonEmpty })),
+});
+
+export function parseProgress(raw: unknown): ProgressDocument | undefined {
+  if (hasUnsafeKeys(raw)) return undefined;
+  const result = progressDocumentSchema.safeParse(raw);
+  if (!result.success) return undefined;
+  return result.data as unknown as ProgressDocument;
 }

@@ -1,12 +1,14 @@
 /** 数据管理（PRD M9 / US-10）：导出、导入（合并/替换）、恢复内置内容 */
 
 import { useState } from 'react';
-import { Download, RotateCcw, Upload } from 'lucide-react';
+import { Download, Eraser, RotateCcw, Upload } from 'lucide-react';
 import { useCatalog } from '../../../app/CatalogProvider';
 import { LIMITS } from '../../../domain/constants';
 import type { ExportBundle, ImportMode, ImportPlan } from '../../../domain/entities/card';
 import { exportFileName, planImport } from '../../../domain/services/importExport';
+import { knownCount, unknownCount } from '../../../domain/services/progress';
 import { parseImportBundle } from '../../../domain/services/validation';
+import { useProgressStore } from '../../../shared/store/progressStore';
 import { Button } from '../../../shared/ui/Button';
 import { DangerConfirm } from '../../../shared/ui/DangerConfirm';
 import { Modal } from '../../../shared/ui/Modal';
@@ -27,9 +29,12 @@ const MODE_LABEL: Record<ImportMode, string> = {
 
 export function DataAdmin() {
   const { categories, cards, exportBundle, importBundle, resetToSeed, usageBytes, seedVersion } = useCatalog();
+  const progressDoc = useProgressStore((state) => state.doc);
+  const resetProgress = useProgressStore((state) => state.resetProgress);
   const [mode, setMode] = useState<ImportMode>('merge');
   const [pending, setPending] = useState<PendingImport | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
+  const [clearOpen, setClearOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const usage = usageBytes();
@@ -93,6 +98,13 @@ export function DataAdmin() {
     } finally {
       setBusy(false);
     }
+  };
+
+  // 只清学习痕迹，不动内容（PRD §5 重置行）
+  const confirmClearProgress = () => {
+    resetProgress();
+    setClearOpen(false);
+    toast('已清除学习进度');
   };
 
   return (
@@ -172,6 +184,14 @@ export function DataAdmin() {
           <RotateCcw size={18} />
           恢复内置内容
         </Button>
+        <p className="muted text-sm">
+          学习进度（收藏 {progressDoc.favorites.length} 张 · 标记 {knownCount(progressDoc) + unknownCount(progressDoc)} 张 ·
+          最近浏览 {progressDoc.recent.length} 张）只存在本机，清除后无法恢复，内容卡片不受影响。
+        </p>
+        <Button variant="danger" onClick={() => setClearOpen(true)}>
+          <Eraser size={18} />
+          清除学习进度
+        </Button>
       </section>
 
       {pending ? (
@@ -207,6 +227,16 @@ export function DataAdmin() {
           busy={busy}
           onConfirm={() => void confirmReset()}
           onCancel={() => setResetOpen(false)}
+        />
+      ) : null}
+
+      {clearOpen ? (
+        <DangerConfirm
+          title="清除学习进度"
+          description="收藏、认识/不认识标记、最近浏览将全部清除，本机无法恢复。内容卡片与导出备份不受影响。"
+          confirmLabel="确认清除"
+          onConfirm={confirmClearProgress}
+          onCancel={() => setClearOpen(false)}
         />
       ) : null}
     </>

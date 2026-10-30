@@ -5,6 +5,7 @@
 
 import type { Card, CardId, CardInput, CardPatch } from '../entities/card';
 import type { Category, CategoryId, CategoryInput, CategoryPatch } from '../entities/category';
+import type { ProgressDocument } from '../entities/progress';
 
 export interface RemoveCategoryResult {
   removedCategories: number;
@@ -40,4 +41,17 @@ export interface CardRepository {
 export interface Repositories {
   categories: CategoryRepository;
   cards: CardRepository;
+}
+
+/**
+ * 学习进度仓储（v0.4 B 组）：与业务仓储分开，本机唯一一份文档。
+ * 同步接口沿用 settingsStore 的写法；存储不可用时写入静默降级（会话内仍有效）。
+ */
+export interface ProgressRepository {
+  /** 永远返回合法文档；脏数据 → 空文档；传入现存卡片 id 则在加载阶段剪枝 */
+  load(existingIds?: ReadonlySet<CardId>): ProgressDocument;
+  save(doc: ProgressDocument): void;
+  clear(): void;
+  /** UI 据此决定是否提示「不会保存」 */
+  isPersistent(): boolean;
 }

@@ -24,3 +24,14 @@ if (!('speechSynthesis' in window)) {
     },
   });
 }
+
+// jsdom 的 play/pause 会往 stderr 打「Not implemented」（不抛异常，拦不住），
+// 自带音频适配器（v0.4）在卸载时会 cancel，这里一并兜住
+Object.defineProperty(window.HTMLMediaElement.prototype, 'play', {
+  configurable: true,
+  value: () => Promise.resolve(),
+});
+Object.defineProperty(window.HTMLMediaElement.prototype, 'pause', {
+  configurable: true,
+  value: () => undefined,
+});

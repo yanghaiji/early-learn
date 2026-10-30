@@ -17,7 +17,7 @@ import { APP_VERSION } from './version';
 import { createCardRepository } from '../data/repositories/localCardRepository';
 import { createCategoryRepository } from '../data/repositories/localCategoryRepository';
 import { getSeedCatalog, SEED_VERSION } from '../data/seed';
-import { CHARACTER_GROUP_BY_ZH, GROUP_NAMES } from '../data/seed/characterGroups';
+import { CHARACTER_GROUP_BY_ZH, GROUP_NAMES, POEM_GROUP_BY_DYNASTY } from '../data/seed/characterGroups';
 import { STORY_GROUP_BY_ID, STORY_GROUP_NAMES } from '../data/seed/storyGroups';
 import { createSpeechPort } from '../data/speech';
 import { createCatalogStorage, type CatalogStatus, type CatalogStorage } from '../data/storage/catalogStorage';
@@ -137,7 +137,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   // 分组归属由内置表决定，不写进卡片数据：老数据无需迁移，家长自建卡自动落在「未分组」
   const groupOf = useCallback((card: Card): string | undefined => {
     if (card.kind === 'character') return CHARACTER_GROUP_BY_ZH.get(card.zh);
-    if (card.kind === 'poem') return card.dynasty === '唐' ? 'tang' : 'song';
+    if (card.kind === 'poem') return POEM_GROUP_BY_DYNASTY[card.dynasty ?? ''] ?? 'other';
     if (card.kind === 'story') return STORY_GROUP_BY_ID.get(card.id);
     return undefined;
   }, []);

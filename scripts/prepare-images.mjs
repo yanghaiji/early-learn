@@ -17,6 +17,7 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
+import { cnNumberToValue } from './lib/numerals.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SEED_FILE = path.join(ROOT, 'src/data/seed/cards.ts');
@@ -50,6 +51,11 @@ const THEME = {
   poems: { bg: '#F7F4EC', accent: '#3B3A33', soft: '#E7E1D2' },
   // v0.2 故事绘本（莓粉 + 暖黄）
   stories: { bg: '#FFF3F6', accent: '#8A4A5E', soft: '#FFE1EA' },
+  // v0.5 新增主题分类（与 src/styles/tokens.css 的 --c-* 同一族，缺一处就会静默串成 characters 的墨色底）
+  sea: { bg: '#E9F6FA', accent: '#2F6A80', soft: '#CFE9F2' },
+  insects: { bg: '#F1F7E9', accent: '#4F6B3A', soft: '#E0EED2' },
+  jobs: { bg: '#EEF3FA', accent: '#37507A', soft: '#D8E2F0' },
+  clothes: { bg: '#FBF4EC', accent: '#7A5A44', soft: '#F3E7DC' },
 };
 
 /** 诗词插画调色：宣纸底 + 淡墨 + 一点赭石与水青 */
@@ -141,11 +147,16 @@ function shapeMarkup(slug, accent) {
   }
 }
 
-const CN_NUMERAL = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+/** 数字卡的阿拉伯数字字号：两位以内 128，三位（100）降到 96，免得贴到白圆边上 */
+const NUMBER_FONT_SIZE = 128;
+const NUMBER_FONT_SIZE_WIDE = 96;
+/** 数字在白色圆底（cy 150）里的基线：按字号折算，128 档刚好落在原来的 y=196 上 */
+const NUMBER_TEXT_CENTER_Y = 150;
+const NUMBER_TEXT_RATIO = 0.36;
 
 /* ---------- 诗词水墨小景（v0.2）---------- */
 
-/** slug → 意境场景；未列出时走 mountain */
+/** slug → 意境场景；未登记的诗会在 poemSvg 里抛错，不再静默落到 mountain（口径见 NFR/v0.5 §4.5） */
 const POEM_SCENES = {
   yonge: 'waterfowl',
   jingyesi: 'moon',
@@ -440,7 +451,10 @@ function poemSceneMarkup(name) {
 
 function poemSvg({ slug, kind }) {
   if (kind !== 'poem') return null;
-  const scene = POEM_SCENES[slug] ?? 'mountain';
+  const scene = POEM_SCENES[slug];
+  if (!scene) {
+    throw new Error(`诗 ${slug} 未登记意境场景（请在 scripts/prepare-images.mjs 的 POEM_SCENES 增加一条）`);
+  }
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${CARD_SIZE}" height="${CARD_SIZE}">
     <rect width="${CARD_SIZE}" height="${CARD_SIZE}" fill="${INK.paper}"/>
     <rect x="0.5" y="0.5" width="${CARD_SIZE - 1}" height="${CARD_SIZE - 1}" fill="none" stroke="${INK.pale}" stroke-width="1.4" opacity="0.75"/>
@@ -511,18 +525,25 @@ function cardBaseY(slug) {
   return 272;
 }
 
-/** 卡片主体：优先取故事侧画师，其次取卡片侧画师，两者都不支持时返回空串 */
+/**
+ * 卡片主体：优先取故事侧画师，其次取卡片侧画师。
+ * 取不到即抛错中止出图（v0.5 §4.5）：旧口径返回空串，会静默产出“只有背景”的空白卡。
+ */
 function cardSubject(slug, size = 190) {
   const spec = cardSpecOf(slug);
-  if (!spec) return '';
+  if (!spec) {
+    throw new Error(`主体未登记：${slug}（请先在 scripts/prepare-images.mjs 的 CARD_SPECS 登记）`);
+  }
   const draw = CARD_ART[spec.art] ?? CAST_ART[spec.art];
-  if (!draw) return '';
+  if (!draw) {
+    throw new Error(`主体 ${slug} 的画师未登记：art=${spec.art}`);
+  }
   const { art, boost = 1, ...rest } = spec;
   const factor = boost * (CARD_BOOST[slug] ?? 1);
   return `<g transform="translate(${CARD_SIZE / 2} ${cardBaseY(slug)})">${draw(rest, { scale: (size / 96) * factor })}</g>`;
 }
 
-function cardSvg({ slug, categoryId, zh, kind, index }) {
+function cardSvg({ slug, categoryId, zh, kind }) {
   const theme = THEME[categoryId] ?? THEME.characters;
   // 天气分类用略深的天空：白云/月亮/雪花在近白底上会“消失”
   const sceneTheme = categoryId === 'weather' ? { ...theme, bg: '#D3E5F6' } : theme;
@@ -547,14 +568,20 @@ function cardSvg({ slug, categoryId, zh, kind, index }) {
   }
 
   if (categoryId === 'numbers') {
-    const value = index + 1;
+    // 按卡面上的中文读数，不再拿数组下标当数值：100 张里下标与数值早就对不上了
+    const value = cnNumberToValue(zh);
+    if (value === null) {
+      throw new Error(`数字卡 ${slug} 的中文「${zh}」无法解析为 1–100 的数值（口径见 scripts/lib/numerals.mjs）`);
+    }
+    const fontSize = String(value).length > 2 ? NUMBER_FONT_SIZE_WIDE : NUMBER_FONT_SIZE;
+    const baseline = Math.round(NUMBER_TEXT_CENTER_Y + fontSize * NUMBER_TEXT_RATIO);
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${CARD_SIZE}" height="${CARD_SIZE}">
       ${head}
       <circle cx="160" cy="150" r="96" fill="#FFFFFF" opacity="0.72"/>
-      <text x="160" y="196" font-size="128" font-weight="700" text-anchor="middle"
+      <text x="160" y="${baseline}" font-size="${fontSize}" font-weight="700" text-anchor="middle"
         font-family="Microsoft YaHei, Segoe UI" fill="${theme.accent}">${value}</text>
       <text x="160" y="248" font-size="30" text-anchor="middle"
-        font-family="KaiTi, Microsoft YaHei" fill="${theme.accent}" opacity="0.8">${CN_NUMERAL[index] ?? ''}</text>
+        font-family="KaiTi, Microsoft YaHei" fill="${theme.accent}" opacity="0.8">${zh}</text>
       <path d="M88 278 q72 -10 144 0" fill="none" stroke="${theme.accent}" stroke-width="4" stroke-linecap="round" opacity="0.35"/>
     </svg>`;
   }
@@ -3086,7 +3113,11 @@ async function main() {
   );
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+/** 守卫：`node scripts/prepare-images.mjs` 才出图，被测试 import 时不能触发全量重绘 */
+const isDirectRun = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isDirectRun) {
+  main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

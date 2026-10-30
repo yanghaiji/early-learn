@@ -2,16 +2,39 @@
 
 import { useCallback, useEffect } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ChevronLeft, ChevronRight, Volume2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+  Play,
+  Square,
+  ThumbsDown,
+  ThumbsUp,
+  Volume2,
+} from 'lucide-react';
 import { useCatalog } from '../../../app/CatalogProvider';
 import type { Card } from '../../../domain/entities/card';
 import { buildCardSequence } from '../../../domain/services/catalog';
 import { useSwipe } from '../../../shared/hooks';
+import {
+  hintReadOnlyOnce,
+  useProgressStore,
+  useIsFavorite,
+  useMarkStatus,
+} from '../../../shared/store/progressStore';
+import { toast } from '../../../shared/store/toastStore';
 import { useSettingsStore } from '../../../shared/store/settingsStore';
 import { Button, IconButton } from '../../../shared/ui/Button';
 import { EmptyState } from '../../../shared/ui/Feedback';
 import { ImageWithFallback } from '../../../shared/ui/ImageWithFallback';
 import { categoryColorVar, cx } from '../../../shared/utils/classNames';
+import {
+  bindSlideshow,
+  markDetailPageAlive,
+  notifySlideshowCard,
+  useSlideshow,
+} from '../hooks/useSlideshow';
 import { useSpeech } from '../../speech/hooks/useSpeech';
 
 /** 诗词朗读整首正文，其余卡片（含故事）读中文名 */
@@ -26,7 +49,14 @@ export function CardDetailPage() {
   const [searchParams] = useSearchParams();
   const { cards, categories, speech, groupOf } = useCatalog();
   const settings = useSettingsStore((state) => state.settings);
-  const { speak, speaking, enabled } = useSpeech();
+  const { speak, cancel, speaking, enabled } = useSpeech();
+  const favorite = useIsFavorite(cardId);
+  const mark = useMarkStatus(cardId);
+  const persistent = useProgressStore((state) => state.persistent);
+  const toggleFavorite = useProgressStore((state) => state.toggleFavorite);
+  const markCard = useProgressStore((state) => state.mark);
+  const trackRecent = useProgressStore((state) => state.trackRecent);
+  const { running: slideshowRunning, start: startSlideshow, stop: stopSlideshow } = useSlideshow();
 
   // 分类页带过来的组筛选：详情页只在该组内翻页，不串到别的主题
   const groupKey = searchParams.get('group');
@@ -48,17 +78,80 @@ export function CardDetailPage() {
 
   const goPrev = useCallback(() => {
     if (!sequence?.hasPrev) return;
+    stopSlideshow();
     const target = sequence.list[sequence.index - 1];
     if (target) navigate(`/card/${target.id}`, { replace: true });
-  }, [navigate, sequence]);
+  }, [navigate, sequence, stopSlideshow]);
 
   const goNext = useCallback(() => {
     if (!sequence?.hasNext) return;
+    stopSlideshow();
     const target = sequence.list[sequence.index + 1];
     if (target) navigate(`/card/${target.id}`, { replace: true });
-  }, [navigate, sequence]);
+  }, [navigate, sequence, stopSlideshow]);
 
   const swipe = useSwipe({ onSwipeLeft: goNext, onSwipeRight: goPrev });
+
+  // 连播（US-A6）：控制器在模块级，页面只负责提供「读这张 / 跳这张」的回调
+  const speakCardById = useCallback(
+    async (id: string): Promise<boolean> => {
+      const target = cards.find((item) => item.id === id);
+      if (!target) {
+        stopSlideshow();
+        return false;
+      }
+      // await 到这张读完为止：连播的 2s 停顿是从「读完」开始算的（技术方案 §4.3）
+      const ok = await speak(speechTextOf(target), 'zh-CN', target.id);
+      // 没出声就停，绝不「静默地一张张跳过」（PRD US-A6 末条）
+      if (!ok) stopSlideshow();
+      return ok;
+    },
+    [cards, speak, stopSlideshow],
+  );
+
+  const goCardById = useCallback(
+    (id: string) => navigate(`/card/${id}`, { replace: true }),
+    [navigate],
+  );
+
+  // 每次渲染后刷新回调：设置里改语速 / 开关后，下一个节拍用新闭包
+  useEffect(() => {
+    bindSlideshow({ speak: speakCardById, goCard: goCardById, cancelSpeech: cancel });
+  });
+
+  // 挂上哪张卡就告知状态机（非连播推进的出现方式 = 中断）
+  useEffect(() => {
+    if (cardId) notifySlideshowCard(cardId);
+  }, [cardId]);
+
+  // 组件实例只在真正离开详情页时销毁（同路由换卡是复用）
+  useEffect(() => {
+    markDetailPageAlive(true);
+    return () => markDetailPageAlive(false);
+  }, []);
+
+  // 播到一半朗读突然不可用（关开关 / 音色丢失）：停在当前这张并说明原因，不静默翻页
+  useEffect(() => {
+    if (!slideshowRunning || enabled) return;
+    stopSlideshow();
+    toast('连播已停止：当前无法朗读，请检查语音设置');
+  }, [enabled, slideshowRunning, stopSlideshow]);
+
+  const toggleSlideshow = () => {
+    if (slideshowRunning) {
+      stopSlideshow();
+      return;
+    }
+    if (!enabled) {
+      toast('连播需要朗读能力：请在系统里加装语音，并检查设置里的语音开关');
+      return;
+    }
+    const ids = sequence?.list.map((item) => item.id) ?? [];
+    const index = sequence?.index ?? 0;
+    if (ids.length === 0) return;
+    // 点下去就在手势内读出首句（风险 R2：iOS 拦非手势播放）
+    startSlideshow({ ids, index, speak: speakCardById, goCard: goCardById, cancelSpeech: cancel });
+  };
 
   // 键盘导航（家长在桌面端使用）
   useEffect(() => {
@@ -77,9 +170,14 @@ export function CardDetailPage() {
   useEffect(() => {
     if (!speakOnEnter || !currentCardId || !speech.isSupported()) return;
     const target = cards.find((item) => item.id === currentCardId);
-    if (target) void speak(speechTextOf(target), 'zh-CN');
+    if (target) void speak(speechTextOf(target), 'zh-CN', target.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentCardId, speakOnEnter]);
+
+  // 进入即记入「最近浏览」（US-A2，只在换卡时触发一次）
+  useEffect(() => {
+    if (currentCardId) trackRecent(currentCardId);
+  }, [currentCardId, trackRecent]);
 
   if (!card) {
     return (
@@ -103,6 +201,20 @@ export function CardDetailPage() {
   const index = (sequence?.index ?? 0) + 1;
   const isPoem = card.kind === 'poem';
   const isStory = card.kind === 'story';
+  // 只读模式（存储不可用）首次写入提一次「不会保存」（PRD §6.3）
+  const hintIfReadOnly = () => {
+    if (!persistent) hintReadOnlyOnce();
+  };
+  const onToggleFavorite = () => {
+    const willFavorite = !favorite;
+    hintIfReadOnly();
+    toggleFavorite(card.id);
+    toast(willFavorite ? '已加入收藏' : '已取消收藏');
+  };
+  const onMark = (status: 'known' | 'unknown') => {
+    hintIfReadOnly();
+    markCard(card.id, status);
+  };
   // 进入故事页：带上分类页 URL，返回链路不断（v0.2 ADR-S5）
   const openStory = () => {
     navigate(`/story/${card.id}`, listUrl ? { state: { listUrl } } : undefined);
@@ -137,7 +249,7 @@ export function CardDetailPage() {
             type="button"
             className={cx('detail__media-btn', speaking === 'zh-CN' && 'is-speaking')}
             style={categoryColorVar(category?.color)}
-            onClick={() => void speak(speechText, 'zh-CN')}
+            onClick={() => void speak(speechText, 'zh-CN', card.id)}
             aria-label={`朗读 ${card.zh}`}
             disabled={!enabled}
           >
@@ -209,7 +321,7 @@ export function CardDetailPage() {
             <button
               type="button"
               className="tap-btn tap-btn--primary"
-              onClick={() => void speak(speechText, 'zh-CN')}
+              onClick={() => void speak(speechText, 'zh-CN', card.id)}
               disabled={!enabled}
             >
               <Volume2 size={22} />
@@ -218,11 +330,42 @@ export function CardDetailPage() {
             <button
               type="button"
               className="tap-btn"
-              onClick={() => void speak(card.en, 'en-US')}
+              onClick={() => void speak(card.en, 'en-US', card.id)}
               disabled={!enabled}
             >
               <Volume2 size={22} />
               English
+            </button>
+          </div>
+
+          <div className="detail__learn">
+            <button
+              type="button"
+              className={cx('tap-btn', favorite && 'tap-btn--active')}
+              onClick={onToggleFavorite}
+              aria-pressed={favorite}
+              aria-label={favorite ? '取消收藏' : '收藏这张卡'}
+            >
+              <Heart size={20} fill={favorite ? 'currentColor' : 'none'} />
+              收藏
+            </button>
+            <button
+              type="button"
+              className={cx('tap-btn', mark === 'known' && 'tap-btn--active')}
+              onClick={() => onMark('known')}
+              aria-pressed={mark === 'known'}
+            >
+              <ThumbsUp size={20} />
+              认识
+            </button>
+            <button
+              type="button"
+              className={cx('tap-btn', mark === 'unknown' && 'tap-btn--active')}
+              onClick={() => onMark('unknown')}
+              aria-pressed={mark === 'unknown'}
+            >
+              <ThumbsDown size={20} />
+              不认识
             </button>
           </div>
 
@@ -236,6 +379,17 @@ export function CardDetailPage() {
             <IconButton label="下一张" small onClick={goNext} disabled={!sequence?.hasNext}>
               <ChevronRight size={24} />
             </IconButton>
+            {/* 连播开关放在翻页那一行：与「一张一张看」是同一个动作的两面 */}
+            <button
+              type="button"
+              className={cx('tap-btn', 'tap-btn--mini', slideshowRunning && 'tap-btn--active')}
+              onClick={toggleSlideshow}
+              aria-pressed={slideshowRunning}
+              aria-label={slideshowRunning ? '停止连播' : '连播'}
+            >
+              {slideshowRunning ? <Square size={18} /> : <Play size={18} />}
+              {slideshowRunning ? '停止' : '连播'}
+            </button>
           </div>
         </div>
       </main>

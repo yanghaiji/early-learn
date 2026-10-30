@@ -14,15 +14,18 @@ export function useSpeech() {
   const supported = speech.isSupported();
   const enabled = supported && settings.speechEnabled;
 
+  /** 返回是否真出声：连播需要据此决定「继续跳下一张」还是「停下来说明原因」 */
   const speak = useCallback(
-    async (text: string, lang: SpeechLang) => {
+    async (text: string, lang: SpeechLang, cardId?: string): Promise<boolean> => {
       if (!enabled) {
         toast('当前浏览器或设置不支持朗读');
-        return;
+        return false;
       }
       setSpeaking(lang);
       try {
-        await speech.speak(text, lang, { rate: settings.speechRate });
+        // cardId 用于命中自带音频（v0.4 A 组）；没音频时适配层自己回退 TTS
+        await speech.speak(text, lang, { rate: settings.speechRate, cardId });
+        return true;
       } catch (error) {
         // 适配层给出的具体原因（如「没有可用的英文音色」）直接告诉家长，比一句“朗读失败”有用
         const reason = error instanceof Error ? error.message : '';
@@ -32,6 +35,7 @@ export function useSpeech() {
             : '朗读失败，建议使用 Chrome / Edge / Safari',
           'error',
         );
+        return false;
       } finally {
         setSpeaking((current) => (current === lang ? null : current));
       }

@@ -40,6 +40,11 @@
   --c-xuan: #f2eee2;
   /* v0.2 故事绘本（莓果） */
   --c-berry: #fbe0ea;
+  /* v0.5 新增主题分类色（与既有 17 色同族：低饱和高明度） */
+  --c-wave: #cfe9f2;
+  --c-moss: #e0eed2;
+  --c-denim: #d8e2f0;
+  --c-linen: #f3e7dc;
   --c-rainbow: linear-gradient(135deg, #ffd9d2 0%, #f2e6c9 38%, #cdecdc 68%, #cfe6fb 100%);
 
   /* 圆角 */

@@ -3,7 +3,7 @@
  *
  * 汉字：把 cards.ts 里 CHARACTERS 的二十个学习组归并为七个主题，
  * 让孩子一屏 12 张就能看完整组，家长不必在 241 张里翻找。
- * 诗词：按朝代分唐诗 / 宋词（五代归入宋词）。
+ * 诗词：按朝代分唐诗 / 宋词 / 汉魏与明清（五代归入宋词，口径见 NFR/v0.5 §4.2）。
  *
  * 新增汉字时必须同步本文件，scripts/validate-content.mjs 会校验覆盖与重复。
  * 归并结果：241 字。
@@ -25,11 +25,28 @@ export const CHARACTER_GROUPS: readonly CardGroup[] = [
   { key: 'daily', name: '生活与学习' },
 ];
 
-/** 诗词按朝代分两组 */
+/** 诗词按朝代分三组：v0.5 起非唐非宋的（汉乐府 / 南北朝 / 明 / 清）单独成组 */
 export const POEM_GROUPS: readonly CardGroup[] = [
   { key: 'tang', name: '唐诗' },
   { key: 'song', name: '宋词' },
+  { key: 'other', name: '汉魏与明清' },
 ];
+
+/**
+ * 朝代 → 诗词组 key。
+ * 写死成映射而不是「不是唐就归宋」：v0.5 加了明清诗之后，二元判断会把《所见》塞进宋词。
+ * 未列出的朝代由门禁 V4 拦下，不允许静默落到兜底组。
+ */
+export const POEM_GROUP_BY_DYNASTY: Readonly<Record<string, string>> = {
+  唐: 'tang',
+  宋: 'song',
+  五代: 'song',
+  汉乐府: 'other',
+  南北朝: 'other',
+  唐前: 'other',
+  明: 'other',
+  清: 'other',
+};
 
 /** 组 key → 展示名，供分类页与详情页共用 */
 export const GROUP_NAMES: Readonly<Record<string, string>> = Object.fromEntries(

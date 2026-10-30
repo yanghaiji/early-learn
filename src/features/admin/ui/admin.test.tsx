@@ -81,6 +81,7 @@ describe('管理区', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
+  // 501 张卡逐字重算列表，并发跑门禁时实测要 3~5s，按默认 5s 会偶发超时
   it('should_filter_cards_when_keyword_typed', async () => {
     const user = userEvent.setup();
     markGatePassed();
@@ -92,7 +93,7 @@ describe('管理区', () => {
 
     expect(await screen.findByText('māo · cat · 动物')).toBeInTheDocument();
     expect(screen.getByText(/共 \d+ 张符合条件/)).toBeInTheDocument();
-  });
+  }, 20_000);
 
   it('should_ask_confirm_before_restoring_seed_content', async () => {
     const user = userEvent.setup();

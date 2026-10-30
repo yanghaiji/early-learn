@@ -5,10 +5,10 @@
  * 失败时以非 0 退出码结束，可接入 CI。
  */
 
-import { readFile } from 'node:fs/promises';
-import { access } from 'node:fs/promises';
+import { access, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { cnNumberToValue } from './lib/numerals.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CARDS_FILE = path.join(ROOT, 'src/data/seed/cards.ts');
@@ -16,6 +16,8 @@ const CATEGORIES_FILE = path.join(ROOT, 'src/data/seed/categories.ts');
 const GROUPS_FILE = path.join(ROOT, 'src/data/seed/characterGroups.ts');
 const STORY_FILE = path.join(ROOT, 'src/data/seed/stories.ts');
 const STORY_GROUPS_FILE = path.join(ROOT, 'src/data/seed/storyGroups.ts');
+const COLOR_TOKENS_FILE = path.join(ROOT, 'src/domain/entities/category.ts');
+const TOKENS_CSS_FILE = path.join(ROOT, 'src/styles/tokens.css');
 const IMAGE_SCRIPT = path.join(ROOT, 'scripts/prepare-images.mjs');
 const PUBLIC_DIR = path.join(ROOT, 'public');
 
@@ -39,6 +41,17 @@ const STORY_PAGES_MIN = 4;
 const STORY_PAGES_MAX = 8;
 const STORY_PAGE_TEXT_MAX = 60;
 const STORY_MORAL_MAX = 60;
+// v0.4 英文自带音频（口径见 FR/v0.4/PRD.md §4.1）
+const AUDIO_DIR = path.join(PUBLIC_DIR, 'assets/audio');
+const AUDIO_MANIFEST_FILE = path.join(AUDIO_DIR, 'manifest.json');
+const AUDIO_MIN_BYTES = 1024;
+const AUDIO_MAX_BYTES = 12 * 1024;
+// v0.5 内容门禁 V1~V5（口径见 NFR/v0.5/技术方案.md §5）
+/** 不走实体画师的分类：由 cardSvg 用色块/几何/数字直接画，V1 要跳过 */
+const SPECIAL_ART_CATEGORIES = new Set(['colors', 'shapes', 'numbers']);
+const NUMBER_MAX = 100;
+/** 同一意境场景最多几首诗共用：再多这一批诗看上去就是“同一张图” */
+const POEM_SCENE_MAX = 4;
 
 const errors = [];
 const fail = (message) => errors.push(message);
@@ -56,17 +69,21 @@ function parseRows(body) {
 
 async function parseCategories() {
   const source = await readFile(CATEGORIES_FILE, 'utf8');
-  return [...source.matchAll(/\{\s*id:\s*'([^']+)',\s*name:\s*'([^']+)'[^}]*cover:\s*`([^`]+)`/g)].map(
-    (item) => ({
-      id: item[1],
-      name: item[2],
-      // 种子源码里 cover 用了 IMAGE_ROOT 常量模板，这里展开为实际相对路径
-      cover: item[3].replace('${IMAGE_ROOT}', 'assets/images/covers'),
-    }),
-  );
+  return [
+    ...source.matchAll(
+      /\{\s*id:\s*'([^']+)',\s*name:\s*'([^']+)'[^}]*color:\s*'([^']+)'[^}]*cover:\s*`([^`]+)`/g,
+    ),
+  ].map((item) => ({
+    id: item[1],
+    name: item[2],
+    color: item[3],
+    // 种子源码里 cover 用了 IMAGE_ROOT 常量模板，这里展开为实际相对路径
+    cover: item[4].replace('${IMAGE_ROOT}', 'assets/images/covers'),
+  }));
 }
 
-async function parseCards() {
+/** 卡片解析口径对外导出：scripts/prepare-audio.mjs 复用，避免两处真相 */
+export async function parseCards() {
   const source = await readFile(CARDS_FILE, 'utf8');
   const cards = [];
 
@@ -186,7 +203,7 @@ async function parseCharacterGroups() {
 }
 
 /** 故事绘本：从 stories.ts 解析每本的 slug / 标题 / 每页文字与插图 */
-async function parseStories() {
+export async function parseStories() {
   const source = await readFile(STORY_FILE, 'utf8');
   const stories = [];
   const blockRe = /\{\s*slug: '([^']+)',\s*zh: '([^']+)',\s*pinyin: '([^']+)',\s*en: '([^']+)',[\s\S]*?difficulty: (\d),\s*moral: '([^']+)',[\s\S]*?pages: \[([\s\S]*?)\n    \],/g;
@@ -242,29 +259,208 @@ async function parseStoryGroups() {
   }));
 }
 
-/** 出图脚本里的场景与主体 key：页里写了不存在的 key 会静默画成占位块 */
+/**
+ * 出图脚本里的场景与主体 key：页里写了不存在的 key 会静默画成占位块。
+ * v0.5 起补充卡片侧主体（V1）、诗景（V3）、主题色（V5）三张表。
+ */
 async function parseImageKeys() {
   const source = await readFile(IMAGE_SCRIPT, 'utf8');
   const castBody = /const CAST_SPECS = \{([\s\S]*?)\n\};/.exec(source)?.[1] ?? '';
   const subjects = new Set([...castBody.matchAll(/^  ([a-zA-Z]+): \{ art:/gm)].map((item) => item[1]));
   const sceneBody = /const STORY_SCENES = \{([\s\S]*?)\n\};/.exec(source)?.[1] ?? '';
   const scenes = new Set([...sceneBody.matchAll(/^  ([a-z]+): \(\) =>/gm)].map((item) => item[1]));
-  return { subjects, scenes };
+
+  // 卡片侧实体：别名 / 卡专属 / 故事侧三张表取齐（键可能带引号，如 'fire-truck'）
+  const cardSlugs = new Set();
+  for (const name of ['CARD_ALIAS', 'CARD_SPECS', 'CAST_SPECS']) {
+    const body = new RegExp(`const ${name} = \\{([\\s\\S]*?)\\n\\};`).exec(source)?.[1] ?? '';
+    for (const item of body.matchAll(/^  '?(\w[\w-]*)'?:(?!\s*\[)/gm)) cardSlugs.add(item[1]);
+  }
+
+  // slug → 意境场景（带引号的值），V3 要查登记与共用数
+  const poemSceneBody = /const POEM_SCENES = \{([\s\S]*?)\n\};/.exec(source)?.[1] ?? '';
+  const poemScenes = new Map(
+    [...poemSceneBody.matchAll(/^  '?(\w[\w-]*)'?: '([a-z]+)'/gm)].map((item) => [item[1], item[2]]),
+  );
+
+  const themeBody = /^const THEME = \{([\s\S]*?)\n\};/m.exec(source)?.[1] ?? '';
+  const themes = new Map(
+    [...themeBody.matchAll(/^  (\w[\w-]*): \{ bg: '([^']+)'[^}]*\}/gm)].map((item) => [item[1], item[2]]),
+  );
+
+  return { subjects, scenes, cardSlugs, poemScenes, themes };
+}
+
+/** V4/V5 要的两张前端表：朝代→诗组映射、色板 token 与 tokens.css 变量 */
+async function parseStyleTables() {
+  const [groupsSource, tokensSource, cssSource] = await Promise.all([
+    readFile(GROUPS_FILE, 'utf8'),
+    readFile(COLOR_TOKENS_FILE, 'utf8'),
+    readFile(TOKENS_CSS_FILE, 'utf8'),
+  ]);
+
+  const poemGroupBody = /const POEM_GROUPS[^[\[]*\[([\s\S]*?)\n\];/.exec(groupsSource)?.[1] ?? '';
+  const poemGroupKeys = new Set(
+    [...poemGroupBody.matchAll(/\{ key: '([a-z]+)', name: '([^']+)' \}/g)].map((item) => item[1]),
+  );
+  const dynastyBody = /const POEM_GROUP_BY_DYNASTY[^=]*= \{([\s\S]*?)\n\};/.exec(groupsSource)?.[1] ?? '';
+  const dynastyToGroup = new Map(
+    [...dynastyBody.matchAll(/^\s*'?([^':]+)'?: '([a-z]+)'/gm)].map((item) => [item[1], item[2]]),
+  );
+
+  const tokenBody = /export const COLOR_TOKENS = \[([\s\S]*?)\] as const;/.exec(tokensSource)?.[1] ?? '';
+  const colorTokens = new Set([...tokenBody.matchAll(/'([a-z]+)'/g)].map((item) => item[1]));
+  const cssVars = new Set([...cssSource.matchAll(/^(\s*)--c-([a-z]+):/gm)].map((item) => item[2]));
+
+  return { poemGroupKeys, dynastyToGroup, colorTokens, cssVars };
+}
+
+/**
+ * 英文音频门禁：每张内置卡都要有一条同名 mp3，清单与磁盘一一对应。
+ * 背景：设备没有本地英文音色时 TTS 会静默失败（NFR/v0.1 §9.4），自带音频是唯一保证。
+ */
+async function checkAudio(cards) {
+  let manifest;
+  try {
+    manifest = JSON.parse(await readFile(AUDIO_MANIFEST_FILE, 'utf8'));
+  } catch {
+    fail('音频清单缺失：public/assets/audio/manifest.json（运行 npm run prepare:audio）');
+    return null;
+  }
+  if (typeof manifest !== 'object' || manifest === null) {
+    fail('音频清单格式非法：应为 { cardId: 路径 } 映射');
+    return null;
+  }
+
+  const cardIds = new Set(cards.map((card) => card.id));
+  let bytes = 0;
+  for (const card of cards) {
+    const entry = manifest[card.id];
+    const expected = `assets/audio/${card.id}.mp3`;
+    if (entry !== expected) {
+      fail(`卡片 ${card.id} 的音频清单条目应为 ${expected}（实际 ${String(entry)}）`);
+      continue;
+    }
+    try {
+      const info = await stat(path.join(PUBLIC_DIR, expected));
+      bytes += info.size;
+      if (info.size < AUDIO_MIN_BYTES) fail(`音频 ${card.id} 只有 ${info.size} B，可能是静音文件`);
+      else if (info.size > AUDIO_MAX_BYTES) fail(`音频 ${card.id} 体积 ${info.size} B 超过 ${AUDIO_MAX_BYTES} B`);
+    } catch {
+      fail(`音频缺失：public/${expected}（运行 npm run prepare:audio）`);
+    }
+  }
+
+  // 清单里指向不存在的卡（删卡或改 slug 后未重生清单）会造成死引用
+  for (const cardId of Object.keys(manifest)) {
+    if (!cardIds.has(cardId)) fail(`音频清单多余条目：${cardId}（该卡已不存在，请重跑 prepare:audio）`);
+  }
+
+  return { count: Object.keys(manifest).length, bytes };
+}
+
+/**
+ * V1 实物卡主体登记：cardSubject 已从「静默空串」改为抛错，门禁要提前报出同一个 slug，
+ * 不能等到出图跑到一半才中断。
+ */
+function checkImagePipelines(cards, imageKeys) {
+  for (const card of cards) {
+    if (card.kind !== 'object' || SPECIAL_ART_CATEGORIES.has(card.categoryId)) continue;
+    if (!imageKeys.cardSlugs.has(card.slug)) {
+      fail(`卡片 ${card.id} 的主体未登记，出图会只有背景（请在 CARD_SPECS 增加 ${card.slug}）`);
+    }
+  }
+}
+
+/** V2 数字卡：中文必须能解析、不重复、按书写顺序严格递增（下标不再等于数值，见 NFR/v0.5 §4.1） */
+function checkNumberCards(cards) {
+  const numberCards = cards.filter((card) => card.categoryId === 'numbers');
+  if (numberCards.length === 0) {
+    fail('数字分类没有任何卡片');
+    return;
+  }
+  const idByValue = new Map();
+  let previous = 0;
+  for (const card of numberCards) {
+    const value = cnNumberToValue(card.zh);
+    if (value === null || value < 1 || value > NUMBER_MAX) {
+      fail(`数字卡 ${card.id} 的中文数字无法解析为 1–${NUMBER_MAX}：${card.zh}`);
+      continue;
+    }
+    const duplicated = idByValue.get(value);
+    if (duplicated) fail(`数字卡 ${card.id} 的数值 ${value} 与 ${duplicated} 重复`);
+    else idByValue.set(value, card.id);
+    if (value <= previous) fail(`数字卡 ${card.id} 的数值 ${value} 没有比前一张（${previous}）递增`);
+    previous = Math.max(previous, value);
+  }
+}
+
+/** V3 诗景：不再允许落到默认 mountain，同一场景最多 POEM_SCENE_MAX 首 */
+function checkPoemScenes(cards, imageKeys) {
+  const usage = new Map();
+  for (const card of cards) {
+    if (card.kind !== 'poem') continue;
+    const scene = imageKeys.poemScenes.get(card.slug);
+    if (!scene) {
+      fail(`诗 ${card.id} 未登记场景（请在 prepare-images.mjs 的 POEM_SCENES 增加 ${card.slug}）`);
+      continue;
+    }
+    const count = (usage.get(scene) ?? 0) + 1;
+    usage.set(scene, count);
+    if (count > POEM_SCENE_MAX) fail(`场景 ${scene} 被 ${count} 首共用，超过 ${POEM_SCENE_MAX} 首`);
+  }
+}
+
+/** V4 朝代有组：二元判断会让明清诗静默混进宋词，必须查映射表 */
+function checkPoemDynasties(cards, styleTables) {
+  for (const card of cards) {
+    if (card.kind !== 'poem') continue;
+    const dynasty = card.dynasty ?? '';
+    const key = styleTables.dynastyToGroup.get(dynasty);
+    if (!key) {
+      fail(`诗 ${card.id} 的朝代「${dynasty}」没有对应分组（请同步 src/data/seed/characterGroups.ts）`);
+    } else if (!styleTables.poemGroupKeys.has(key)) {
+      fail(`朝代「${dynasty}」映射到不存在的分组 ${key}`);
+    }
+  }
+}
+
+/** V5 分类四处齐色：categories.ts 的 color 必须在三处都有下落，缺一处就会静默串色 */
+function checkCategoryColors(categories, imageKeys, styleTables) {
+  for (const category of categories) {
+    const missing = [];
+    if (!styleTables.colorTokens.has(category.color)) missing.push('COLOR_TOKENS');
+    if (!styleTables.cssVars.has(category.color)) missing.push('tokens.css');
+    if (!imageKeys.themes.has(category.id)) missing.push('prepare-images THEME');
+    if (missing.length > 0) {
+      fail(`分类 ${category.id} 缺少色值：${missing.join(' / ')}（与 categories.ts 四处需齐备）`);
+    }
+  }
 }
 
 async function main() {
-  const [categories, baseCards, groups, stories, storyGroups, imageKeys] = await Promise.all([
-    parseCategories(),
-    parseCards(),
-    parseCharacterGroups(),
-    parseStories(),
-    parseStoryGroups(),
-    parseImageKeys(),
-  ]);
+  const [categories, baseCards, groups, stories, storyGroups, imageKeys, styleTables] =
+    await Promise.all([
+      parseCategories(),
+      parseCards(),
+      parseCharacterGroups(),
+      parseStories(),
+      parseStoryGroups(),
+      parseImageKeys(),
+      parseStyleTables(),
+    ]);
   const cards = [...baseCards, ...stories];
 
   if (categories.length === 0) fail('未解析到任何分类');
   if (cards.length === 0) fail('未解析到任何卡片');
+  // 镜像校验自守：V1~V5 靠正则读源码，表头一改写法就会解出空集，宁可不通过也不能默许“全通过”
+  if (imageKeys.cardSlugs.size === 0) fail('未解析到 CARD_SPECS / CAST_SPECS / CARD_ALIAS，V1 形同虚设');
+  if (imageKeys.poemScenes.size === 0) fail('未解析到 POEM_SCENES，V3 形同虚设');
+  if (imageKeys.themes.size === 0) fail('未解析到出图脚本的 THEME，V5 形同虚设');
+  if (styleTables.dynastyToGroup.size === 0) fail('未解析到 POEM_GROUP_BY_DYNASTY，V4 形同虚设');
+  if (styleTables.poemGroupKeys.size === 0) fail('未解析到 POEM_GROUPS，V4 形同虚设');
+  if (styleTables.colorTokens.size === 0) fail('未解析到 COLOR_TOKENS，V5 形同虚设');
+  if (styleTables.cssVars.size === 0) fail('未解析到 tokens.css 的分类色变量，V5 形同虚设');
   if (stories.length !== STORY_COUNT) {
     fail(`故事应为 ${STORY_COUNT} 本（实际 ${stories.length} 本，口径见 FR/v0.2 §4）`);
   }
@@ -421,11 +617,22 @@ async function main() {
     if (!storySlugs.has(slug)) fail(`分组里的故事「${slug}」没有对应卡片（可能已删除或改 slug）`);
   }
 
+  const audio = await checkAudio(cards);
+
+  checkImagePipelines(baseCards, imageKeys, styleTables);
+  checkNumberCards(baseCards);
+  checkPoemScenes(baseCards, imageKeys);
+  checkPoemDynasties(baseCards, styleTables);
+  checkCategoryColors(categories, imageKeys, styleTables);
+
   console.log('内容统计：');
   for (const category of categories) {
     console.log(`  ${category.name.padEnd(6, ' ')} ${String(perCategory.get(category.id) ?? 0).padStart(3, ' ')} 张`);
   }
   console.log(`  ${'合计'.padEnd(6, ' ')} ${String(cards.length).padStart(3, ' ')} 张 / ${categories.length} 个分类`);
+  if (audio) {
+    console.log(`  ${'音频'.padEnd(6, ' ')} ${String(audio.count).padStart(3, ' ')} 条 / ${(audio.bytes / 1024 / 1024).toFixed(2)} MB`);
+  }
 
   if (groups.length > 0) {
     console.log('汉字分组（分类页筛选）：');
@@ -450,7 +657,10 @@ async function main() {
   console.log('\n内容校验通过 ✓');
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+const isDirectRun = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isDirectRun) {
+  main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

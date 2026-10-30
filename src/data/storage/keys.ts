@@ -5,6 +5,7 @@ export const STORAGE_PREFIX = 'early-learn:v1:';
 export const STORAGE_KEYS = {
   catalog: `${STORAGE_PREFIX}catalog`,
   settings: `${STORAGE_PREFIX}settings`,
+  progress: `${STORAGE_PREFIX}progress`,
   meta: `${STORAGE_PREFIX}meta`,
   corrupted: `${STORAGE_PREFIX}corrupted`,
   autoBackup: `${STORAGE_PREFIX}auto-backup`,

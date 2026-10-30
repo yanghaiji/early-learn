@@ -7,6 +7,11 @@ export const DEFAULT_SPEECH_ERROR_MESSAGE = '当前环境不支持语音朗读';
 
 export interface SpeakOptions {
   rate?: number;
+  /**
+   * 传入卡片 id 即允许适配层尝试该卡的预录音频（v0.4 A 组）；
+   * 音频不存在或没出声时依旧回退设备 TTS，行为与不传一致
+   */
+  cardId?: string;
 }
 
 export interface SpeechPort {

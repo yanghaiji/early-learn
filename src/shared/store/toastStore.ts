@@ -22,7 +22,9 @@ export const useToastStore = create<ToastState>((set, get) => ({
   toasts: [],
   push: (message, tone = 'info') => {
     const id = createId('toast');
-    set({ toasts: [...get().toasts, { id, message, tone }] });
+    // 同文案只保留最新一条：幼儿连点收藏 20 次不堆 20 层提示（PRD §6.3）
+    const rest = get().toasts.filter((item) => item.message !== message);
+    set({ toasts: [...rest, { id, message, tone }] });
     setTimeout(() => {
       set({ toasts: get().toasts.filter((toast) => toast.id !== id) });
     }, TOAST_DURATION_MS);

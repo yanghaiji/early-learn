@@ -50,6 +50,28 @@ export type SpeechRate = (typeof SPEECH_RATES)[number];
 export const SPEECH_DEFAULT_RATE: SpeechRate = 0.8;
 export const SPEECH_RATE_MIN = 1;
 
+/**
+ * 预录英文音频（v0.4 A 组）
+ * 路径约定与图片同构：音频按卡片 id 定名，真人录音同名覆盖即生效，无需改代码
+ */
+export const AUDIO_ROOT = 'assets/audio';
+export const AUDIO_MANIFEST_PATH = `${AUDIO_ROOT}/manifest.json`;
+/** 点了没声就换路：超过该时长仍未开播，即认定这条音频没出声 */
+export const AUDIO_TIMEOUT_MS = 3000;
+
+/** 学习进度（v0.4 B 组） */
+/** 「最近浏览」只保留最近这么多张不重复的卡片 */
+export const RECENT_MAX = 24;
+/** 复习每轮抽这么多张 */
+export const REVIEW_ROUND_MAX = 10;
+/** 听音选图一局这么多题 */
+export const QUIZ_QUESTIONS = 10;
+/** 听音选图每题这么多选项 */
+export const QUIZ_OPTIONS = 4;
+
+/** 连播（v0.4 D 组）：读完一张后停顿这么多毫秒再跳下一张（PRD US-A6） */
+export const SLIDESHOW_GAP_MS = 2000;
+
 /** 家长门 */
 export const GATE = {
   LONG_PRESS_MS: 3000,

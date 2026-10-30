@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  categorySchema,
   countWords,
   hasUnsafeKeys,
   parseCatalogDocument,
@@ -150,6 +151,21 @@ describe('validateCategoryRules', () => {
 
   it('should_allow_new_name', () => {
     expect(validateCategoryRules(existing, { name: '水果' })).toEqual([]);
+  });
+});
+
+/** 色板四处同步（v0.5 §4.4）：token 名不得带数字，apricot2 那类写法一律拒绝 */
+describe('categorySchema · 分类色板 token', () => {
+  it('should_accept_new_color_tokens_when_parsing_category', () => {
+    for (const color of ['wave', 'moss', 'denim', 'linen']) {
+      const result = categorySchema.safeParse({ ...makeCategory('c-new', '新分类'), color });
+      expect(result.success, color).toBe(true);
+    }
+  });
+
+  it('should_reject_unknown_color_token_when_parsing_category', () => {
+    const result = categorySchema.safeParse({ ...makeCategory('c-new', '新分类'), color: 'apricot2' });
+    expect(result.success).toBe(false);
   });
 });
 

@@ -23,6 +23,11 @@ export const COLOR_TOKENS = [
   'xuan',
   // v0.2 故事绘本
   'berry',
+  // v0.5 新增主题分类（海洋动物 / 小虫子 / 职业 / 穿戴）
+  'wave',
+  'moss',
+  'denim',
+  'linen',
 ] as const;
 
 export type ColorToken = (typeof COLOR_TOKENS)[number];
