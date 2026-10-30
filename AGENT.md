@@ -24,27 +24,34 @@
 │  │  └─ 内容体系与首批卡片清单.md         分类体系、451 张卡片（汉字 241、古诗 30）、七个主题组、字段与图片规范
 │  ├─ v0.2/PRD-故事绘本.md                 50 本故事（一页读完）、US-S1~S6、故事页交互约束、pages/moral、综合图主体画风约束、边界与 DoD
 │  └─ v0.4/ · v0.5/ · v0.6/                听得准记得住 · 内容大扩容 · 成语词典（v0.6 词表在 PRD-成语词典.md：150 条 / 5 组 / 版式 / 出图 / DoD）
+│     └─ v0.7/PRD-搜索与离线.md            全局搜索 /search、PWA 安装与离线、路由懒加载、超宽屏与顶栏对齐（US-V1~V8）
 ├─ NFR/                                   技术设计（版本化 + 总览）
 │  ├─ README.md                           技术总览：约束、技术栈、分层、目录、门禁、ADR 摘要
 │  ├─ v0.1/技术方案.md                      ADR、领域模型、数据模型、仓储、TTS、图片、任务拆解、风险、验证
 │  ├─ v0.2/技术方案-故事绘本.md             ADR-S1~S7、故事数据模型、故事页设计、综合图聚合管线、风险
 │  ├─ v0.3/技术方案-主体插画.md             ADR-C1、9 画师分层、CAST_TONES 同族色板、落脚线、尺度补偿、光晕退场
 │  └─ v0.4/ · v0.5/ · v0.6/                预录音频与学习进度 · 内容管线与门禁 V1~V5 · 成语词典（ADR-I1~I6、idiom 扩契约、内置分组表、门禁 V6/V7）
+│     └─ v0.7/技术方案-搜索与离线.md        搜索复用与 URL 唯一事实源、SW 两条策略、懒加载分块、顶栏反算对齐（ADR-V1~V5）
 ├─ scripts/
 │  ├─ lib/numerals.mjs                    中文数字解析纯函数（无副作用，可被测试直接 import）
 │  ├─ prepare-images.mjs                  内置素材生成：种子源码 → SVG → WebP（幂等，可 --force/--only）
 │  ├─ prepare-audio.mjs                   内置英文音频：SAPI5 → WAV → ffmpeg → mp3（--force 全量）
+│  ├─ build-icons.mjs                     PWA 图标：public/icons/icon.svg → sharp → 192 / 512 / maskable PNG
 │  └─ validate-content.mjs                内容门禁：字段规则 + 图片/音频齐备性 + V1~V7（V6 成语意象件登记、V7 成语分组双向覆盖）
-├─ public/assets/
-│  ├─ images/                             卡片与封面、故事综合图
-│  │  ├─ {categoryId}/{slug}.webp         卡片图 320×320
-│  │  ├─ covers/{categoryId}.webp         分类封面 480×360
-│  │  ├─ stories/{slug}/cover.webp        故事综合图 480×360（一故事一张）
-│  │  └─ manifest.json                    素材清单（尺寸/字节/生成时间）
-│  └─ audio/                              英文预录音频 {cardId}.mp3（32kbps mono）+ manifest.json
+├─ public/
+│  ├─ manifest.webmanifest                PWA 安装信息（standalone / 墨绿主题色 / 三档图标）
+│  ├─ sw.js                               手写 Service Worker：导航网络优先 + 同源静态缓存优先，缓存名 early-learn:v1
+│  ├─ icons/                              icon.svg 源 + icon-192 / icon-512 / icon-maskable-512.png
+│  └─ assets/
+│     ├─ images/                          卡片与封面、故事综合图
+│     │  ├─ {categoryId}/{slug}.webp      卡片图 320×320
+│     │  ├─ covers/{categoryId}.webp      分类封面 480×360
+│     │  ├─ stories/{slug}/cover.webp     故事综合图 480×360（一故事一张）
+│     │  └─ manifest.json                 素材清单（尺寸/字节/生成时间）
+│     └─ audio/                           英文预录音频 {cardId}.mp3（32kbps mono）+ manifest.json
 └─ src/
-   ├─ app/                                main.tsx · router.tsx · ErrorBoundary · CatalogProvider · layout/AppShell
-   ├─ features/                           categories / cards / speech / learn（复习·听音选图·收藏·接着看）/ settings / admin / misc（均含 ui/）
+   ├─ app/                                main.tsx · router.tsx（含 lazy 拆分）· pwa.ts · ErrorBoundary · CatalogProvider · layout/AppShell（Suspense 边界）
+   ├─ features/                           categories / cards / speech / learn（复习·听音选图·收藏·接着看）/ search（全局搜索）/ settings / admin / misc（均含 ui/）
    ├─ domain/                             entities · ports · services（无 React / 无浏览器 API）
    ├─ data/                               storage（catalogStorage/迁移/keys）· repositories · seed（cards / stories / idioms · characterGroups / storyGroups / IDIOM_GROUP_BY_ID 分组表）· speech
    ├─ shared/                             ui（Button/Modal/Toast/ParentGate…）· hooks · store · utils
@@ -128,6 +135,7 @@ graph LR
 | 11 听得准 · 记得住（v0.4） | 预录音频 + 学习进度 + 复习/听音选图 + 连播与家长说明页 | 501 条音频齐全、进度不进导出包、连播四类中断 | T-A1–T-D3 | ✅ |
 | 12 内容大扩容（v0.5） | 汉字 241→321、数字 10→28、古诗 30→50、四个新分类各 10；出图/出音频全量重出 | 内容门禁 **659 张 / 21 分类** + 659 条音频；V1~V5 全绿；既有图逐字节不变 | T-C1–T-C14 | ✅（设备矩阵待真机） |
 | 13 成语词典（v0.6） | 第 22 分类「成语」+ 150 条（5 组各 30）：`meaning` / `examples` / `synonyms` / `antonyms` / `citation` 五个可选字段、内置分组表、详情页成语版式、管理区表单、听音选图排除、水墨四字卡出图 | 内容门禁 **809 张 / 22 分类** + 659 条音频；V1~V7 全绿；274 例全绿 | T-I1–T-I14 | ✅（设备矩阵待真机） |
+| 14 搜索与离线（v0.7） | `/search` 全局搜索（复用 `searchCards` + URL 唯一事实源）、`CardTile` 抽公用、manifest + 手写 `sw.js` + sharp 图标、六个低频页懒加载、超宽屏 1680 与顶栏反算对齐、详情页图与右列重心对齐 | 搜索 7 例全绿；主 chunk gzip 206.11 → **196.00**；CDP 四档顶栏对齐 + 断网 reload 首页完整 | T-V1–T-V8 | ✅（真机安装待验） |
 
 ### 3.1 关键实现顺序理由
 
@@ -165,30 +173,36 @@ graph LR
 | 成语分组 | 走内置表 `IDIOM_GROUP_BY_ID`（`idioms-<slug>` → 组 key），**不写 `tags`**；组 key 统一 `idiom-` 前缀防与汉字组撞名 | NFR v0.6 §4.2 |
 | 听音选图与成语 | 成语不进题池：`quizPool()` 在 `domain/services/quiz.ts` 一层排除，页面零特判 | NFR v0.6 §4.6 |
 | 成语配图 | 每条成语登记 **2 件实物意象**（`IDIOM_PROPS` → `IDIOM_MOTIFS` 78 件），未登记 / 未实现即抛错；淡远山与地平线只做背景（`opacity 0.62`） | NFR v0.6 §4.7 |
+| 全局搜索 | `/search`：直接复用 `searchCards`（中文 / 英文 / 带声调与去声拼音 / tags），**URL 是唯一事实源**（`?q=` + `?page=`，`replace: true`），不做防抖也不做 state↔URL 双向同步；每页 12 张 | NFR v0.7 §2 |
+| 离线 | `public/sw.js` 手写：导航请求网络优先并回退 `index.html`，同源 `.js/.css/.webp/.mp3/...` 缓存优先，跨源不拦；缓存名 `early-learn:v1`；注册带 `import.meta.env.PROD` 守卫（dev / vitest 不注册），失败静默降级 | NFR v0.7 §3 |
+| 顶栏对齐 | 顶栏用 `--topbar-max` + `--topbar-pad` 反算 `padding-inline`（`max()` 形式，≥1100px 生效），**必须排在 `.topbar--hero/--wide/--narrow/--story` 之后**（同为单类特异性，靠顺序覆盖）；用 `%` 不用 `100vw`（滚动条 8px 偏移） | NFR v0.7 §5 |
 
 ---
 
 ## 5. 验证方式
 
-### 5.1 自动门禁（每次提交前，四道全绿）
+### 5.1 自动门禁（每次提交前，五道全绿）
 
 ```bash
-npm run typecheck   # tsc --noEmit
-npm run lint        # eslint，0 error 0 warning
-npm run test        # vitest run，领域层覆盖率 ≥ 80%
-npm run build       # 产物构建 + 首屏 JS ≤ 350KB gzip
+npm run typecheck        # tsc --noEmit
+npm run lint             # eslint，0 error 0 warning
+npm run test             # vitest run，领域层覆盖率 ≥ 80%
+npm run build            # 产物构建 + 首屏 JS ≤ 350KB gzip
+npm run validate:content # 内容门禁（卡片/分类/图片/音频/分组）
 ```
 
-**最近一次实测（2026-10-30，v0.6.1）**
+**最近一次实测（2026-10-30，v0.7.0）**
 
 | 门禁 | 结果 | 关键数据 |
 | --- | --- | --- |
 | `typecheck` | ✅ | 0 error（strict：`noUncheckedIndexedAccess` / `verbatimModuleSyntax` / 未使用变量均开启） |
 | `lint` | ✅ | 0 error / 0 warning |
-| `test` | ✅ | **20 个测试文件、274 个用例全绿**（v0.6 +15 例：`seed` 7 / `validation` 6 / `quiz` 2 / `cards` 2；既有断言回写：分类 21→22、卡片 659→809）；覆盖率本轮未重跑，沿用 v0.4 实测（行 82.25% / 分支 80.14%） |
-| `build` | ✅ | JS `612.42 kB` → **gzip `205.63 kB`**；CSS `30.95 kB` → gzip `7.14 kB`（预算 350 KB；v0.5 → v0.6 +23.75 KB，略超 v0.5 自设的「≤ 200 KB」目标，不触硬线） |
-| `validate:content` | ✅ | **809 张 / 22 分类** + 659 条音频逐条存在（共 4.25 MB，单条 5137–10048 B ≤ 12 KB）；V1~V7 全生效；成语 150 条 / 5 组各 30；每条成语实际登记 2 件意象、`IDIOM_MOTIFS` 共 78 件 |
-| 静态资源 | ✅ | 1492 个文件 / 6.63 MB（卡片与封面 831 张 WebP / 2.33 MB + 音频 659 条 mp3 / 4.25 MB + 2 个 manifest） |
+| `test` | ✅ | **21 个测试文件、281 个用例全绿**（v0.7 +7：`search.test.tsx` 6 → 7；`admin.test.tsx` 因 `CardAdmin` 改懒加载，`findByRole` 显式放宽到 5000ms）；覆盖率本轮未重跑，沿用 v0.4 实测（行 82.25% / 分支 80.14%） |
+| `build` | ✅ | 主 chunk `580.27 kB` → **gzip `196.00 kB`**（v0.6.2：613.95 / 206.11）；CSS `38.25 kB` → gzip `8.36 kB`；另拆出 CardAdmin 16.45 / DataAdmin 6.38 / CategoryAdmin 5.35 / QuizPage 4.68 / StoryReaderPage 3.06 / GuidePage 2.67 kB（minify 后） |
+| `validate:content` | ✅ | **809 张 / 22 分类** + 659 条音频逐条存在；V1~V7 全生效；成语 150 条 / 5 组各 30 |
+| PWA 产物 | ✅ | `manifest.webmanifest` + `sw.js` + 三档图标随 dist 输出；生产构建下 `sw` 实测进入 `active`，`Network.emulateNetworkConditions{offline:true}` + reload 后首页 22 分类完整渲染 |
+
+> 离线能力只能在生产构建里验证（`npm run preview`）：dev 下 `import.meta.env.PROD` 为假，按设计不注册 SW。
 
 > v0.5.1 为纯版面调整（删首页横滑区 + 新增 `/recent` 页），用例 256 → 259，体积与内容计数不变。
 
@@ -332,6 +346,12 @@ npm run validate:content     # 等价于 node scripts/validate-content.mjs
 | 2026-10-30 | 决策 | 容器宽度必须**分档**，不能用一个值管到底：列表页（首页 / 分类 / 收藏 / 最近）要横向铺开才不空（1440），详情页两侧要留白才好读（960），设置与表单类维持 1180。容器收窄没有代价，但**网格列数要与「每页 12 张」整除**（2 / 4 / 6），否则每页末尾都会拖一条半行空白 |
 | 2026-10-30 | 坑位 | 「画对了」不等于「看得见」：`inkPerson` 首版头/身同一个 `NEAR`、手臂与长衫同色、`scroll` 卷面用近白的 `WHITE`，在 320px 原图里还成形，缩到卡片 170px 就只剩「一块灰石头」和「两个小圆点」，连累近 30 张卡；规矩是**主体一律勾 `DEEP` 轮廓、内部至少留一处深浅对比、纸面/卷轴类不用近白填充**，且必须按**卡片实际尺寸（170px）**判读而不是拼图缩放后再放大看 |
 | 2026-10-30 | 坑位 | 「足」若画成「两根小腿 + 脚掌椭圆」的写实画法，170px 下会被读成两块石头（画蛇添足首版即如此）；改用大号脚印符号（`inkFoot` × 1.7 并排）比写实画法识别度高一档——同一件实物有多种画法时，选**符号化后仍可辨认**的那一种 |
+| 2026-10-30 | 坑位 | 顶栏「全宽 sticky + 固定内距」与「居中容器」天然错位：只对齐容器宽度不对齐内距，1440 下顶栏比正文靠左 4px、详情页靠左 8px，1826 下更是差 169px。正确做法是 `--topbar-max` + `--topbar-pad` 两个变量一起反算 `padding-inline`，且这条 `@media` 规则**必须排在 `.topbar--hero/--wide/--narrow/--story` 之后**——同为单类特异性，CSS 不比较声明先后以外的任何东西，写在前面的修饰类会被覆盖 |
+| 2026-10-30 | 坑位 | 用 `100vw` 算居中会在有竖向滚动条的页面上向右偏约 8px（`100vw` 含滚动条，`%` 不含）；顶栏、全幅背景这类「相对视口居中」的盒子一律用 `%` |
+| 2026-10-30 | 坑位 | 详情页改 grid 后若用 `rows: 1fr auto`，图片列撑满整列居中、右列却「首行贴底、次行贴顶」，实测图中心 468 而文字块中心 691，看上去就是「图偏上、文字偏下」两截重心；修法：普通卡 `grid-template-rows: auto auto` + `align-content: center` 让整组跟着图居中（修后 468 / 467）。**诗词 / 成语卡必须用 `:not()` 排除**：它们的内容会超出容器，`align-content: center` 会把溢出部分推到 scrollTop 负方向，滚不到 |
+| 2026-10-30 | 坑位 | 测试里 `findByRole(...)` 默认只等 1000ms：页面一旦改 `lazy()`，首屏要等 chunk 下载，单跑可能刚好够、全量并发跑就红（本次 `admin.test.tsx` 的搜索框就是如此，单跑 1.3s）。修法：给该查询显式 `{ timeout: 5000 }` 并注释原因，不要用 `waitFor` 掩盖 |
+| 2026-10-30 | 决策 | 搜索页把 **URL 当唯一事实源**：输入框 `value` 直接读 `?q=`，每次输入 `setSearchParams(params, { replace: true })`。不做「本地 state + 防抖 + 双向同步」：809 张全内存过滤 < 5ms，防抖只会把「边打边出」变成「停手才出」，而两份状态互相追赶时还会抢光标；`replace` 则避开每个字符一条历史记录 |
+| 2026-10-30 | 坑位 | SW 只能在生产构建里验：`import.meta.env.PROD` 守卫 + `vite dev` 不走构建，所以「本地断网没反应」不能当成 bug；验证要走 `npm run build && npm run preview`，再 `Network.emulateNetworkConditions{offline:true}` + `Page.reload`，并先确认 `navigator.serviceWorker.getRegistration()` 已 `active` |
 
 ---
 
@@ -349,6 +369,7 @@ npm run validate:content     # 等价于 node scripts/validate-content.mjs
 | 构建 | `npm run build` |
 | 生成内置素材 | `npm run prepare:images`（可选 `-- --force` / `-- --only=animals`） |
 | 生成内置英文音频 | `npm run prepare:audio`（依赖本机 Zira 音色与 ffmpeg，中间 WAV 落 `.tmp/audio`） |
+| 生成 PWA 图标 | `npm run prepare:icons`（`public/icons/icon.svg` → 192 / 512 / maskable PNG） |
 | 内容校验 | `npm run validate:content` |
 
 ---
@@ -381,3 +402,4 @@ npm run validate:content     # 等价于 node scripts/validate-content.mjs
 | 2026-10-30 | v0.6.0 | 需求方「再增加一个成语词典的选型…至少 150 个」→ 口径四项确认（150 条 / 释义 + 2 例句 + 近反义 + 出处 / 水墨四字卡 / 5 组）后实现：① 第 22 分类「成语」（复用 `denim`，**不新增色板**）+ 150 条 / 5 组各 30；② `Card` 加 5 个可选字段 + `kind='idiom'`，`en` 恒空、`schemaVersion` 仍 1、`SEED_VERSION` 8→9；③ 内置分组表 `IDIOM_GROUP_BY_ID` + `groupOf` idiom 分支（chips 零新 UI）；④ 详情页 `detail--idiom` 版式（释义 / 例句 / 近反义 chip / 出处）+ English 按钮整块不渲染；⑤ 管理区成语 chip 与 6 个字段、英文框隐藏、即时校验与 `validateCardRules` 同源；⑥ 听音选图 `quizPool()` 排除成语；⑦ 出图 `IDIOM_SCENES` 150 条 + 14 类墨件 + `idiomSvg`（四字 62px）+ 封面，未登记即抛错，产出 151 张（v0.6.1 已改为 2 件实物意象）；⑧ 门禁新增 V6/V7，音频改按 `en` 非空判定；⑨ 用例 259 → **274 例 / 20 文件**，JS `612.42 kB` / gzip **205.63 KB**、CSS gzip 7.19 KB（v0.6.1 为 7.14 KB）；⑩ PRD 释义口径改 6–90、`一刀切`→`一视同仁`、新增 §13 偏差台账 5 条；⑪ 新增 `NFR/v0.6/技术方案-成语词典.md`，FR/NFR README 与本文同步；⑫ 版本号 0.6.0 | Agent |
 | 2026-10-30 | v0.6.1 | 需求方「有些配图和内容完全不搭，没有真正表达出真实世界的物」+ 360px 窄屏核验：① 四字卡从「150 条 slug → 14 类意境」改为「每条 2 件实物意象」（`IDIOM_PROPS` 150 × 2 + `IDIOM_MOTIFS` 78 件），删掉 `idiomSceneMarkup`，新增 `motifMarkup` / `inkPerson` / `inkQuadruped` 骨架与 `idiomBackdrop`；② 151 张带 `--force` 重出，拼 4 张 48 格缩略图逐张目检，井 / 钟 / 龙 / 靴 / 手 / 足 / 柳 / 竹 / 山 / 台阶 / 画笔 各返工 1–3 版；按 170px 实测再修一轮：`inkPerson` 加 `DEEP` 轮廓与浅色头脸、手臂露出衫外，`scroll` 卷面改米色填充，`feet` 改大号脚印并排，`精卫填海` 改「鸟 + 海」、`黔驴技穷` 改「驴 + 虎」；③ 门禁 V6 改口径（0 件 / 超 2 件 / 未实现三种失败），解析对象改 `IDIOM_PROPS` + `IDIOM_MOTIFS`；④ 详情页图块改「stage 定高 + `height:100%; width:auto; aspect-ratio:1/1`」，修掉 `100cqh` 解析为 0 导致整站详情页图缩成 2px；⑤ 360 / 375 / 1440 三档 CDP 复测：无横向溢出、无越界元素，图块 170 / 153 / 207 且为正方形；⑥ 五道门禁全绿（274 例，JS gzip 205.63 KB、CSS gzip 7.14 KB）；⑦ PRD §6.1 / §10 / §13 与 NFR v0.6 §2.1 / §4.4 / §4.7 / §5 / §11 同步；⑧ 版本号 0.6.0 → 0.6.1 | Agent |
 | 2026-10-30 | v0.6.2 | 需求方「整体调整一下这个布局吧以及点击去的布局 感觉留白太多 换一个更好和更完美的布局颜色 在一个合适的位置加入源码地址」：① 容器分档 `--page-max` / `--page-max-wide` / `--page-max-narrow`，新增 `.page--wide`（1440）挂首页 / 分类 / 收藏 / 最近 4 页，`.detail` 1180 → 960；② 分类卡改「封面 + `.cat-tile__foot` + 角标」三件，卡片 `height:100%` 等高，22 张实测统一 205 / 178px；③ 首页顶栏 `topbar--hero`（标题 + 入口条 + 源码 + 语言），<960px 入口条换行横滑 + `mask-image` 右渐隐，`.topbar--hero .entry-bar .btn` 加 `flex:0 0 auto` 防竖排；④ 主色 `#3E7BFA` → `#2F6B57`、21 分类色降一档饱和、阴影改暖、`.chip.is-active` 改主色；⑤ `.grid-cards` 固定 2 / 4 / 6 列与每页 12 张整除；⑥ `.detail--idiom` 桌面三行网格（`stage words` / `stage idiom` / `stage actions`），图块 207 → 396px，释义块内部滚动；⑦ `REPO_URL` 三处入口（页脚 / 顶栏 / 设置页「关于」），页脚去 `aria-hidden`；⑧ `cards.test.tsx` 两处改按 `.card-tile` 计数；⑨ CDP 1440 / 360 实测无横向溢出；五道门禁全绿（274 例，CSS gzip 7.89KB / JS gzip 206.11KB）；⑩ 新增 `FR/v0.6/PRD-界面改版.md` + `NFR/v0.6/技术方案-界面改版.md`，§6 补 3 条坑位 / 1 条决策；⑪ 版本号 0.6.1 → 0.6.2 | Agent |
+| 2026-10-30 | v0.7.0 | 需求方「继续规划实现」（承接已确认口径：打磨包 + 能力包合并做 v0.7、超宽屏补一档 ≥1700px → 1680）：① 新增 `/search`（复用 `searchCards`、URL 唯一事实源 `?q=`/`?page=` + `replace`、12 张一页、分类角标、≤ 6 张给分类 chips / 0 张给「换个思路」出口）与 7 例测试（`should_offer_category_entries_when_nothing_matches`）；② `CardTile` 抽公用（`CategoryPage` / `FavoritesPage` / `RecentPage` 改 import）；③ PWA：`manifest.webmanifest` + 手写 `sw.js`（`early-learn:v1`：导航网络优先回退 `index.html`、同源静态缓存优先、跨源不拦）+ `scripts/build-icons.mjs`（sharp 出 192 / 512 / maskable）+ `src/app/pwa.ts`（`import.meta.env.PROD` 守卫、失败静默）；④ 六页 `lazy`（管理区三页 / Quiz / Story / Guide）+ `AppShell` 内 `Suspense` + `RouteFallback`（页脚不闪）；⑤ `--page-max-wide` 补 ≥1700px → 1680，顶栏 `--topbar-max` / `--topbar-pad` 反算 `padding-inline`（用 `%` 不用 `100vw`，排在四类修饰类之后）；⑥ 详情页普通卡改 `grid-template-rows: auto auto` + `align-content: center`（诗词 / 成语 `:not()` 排除），修掉图中心 468 与文字块 691 的 220px 重心错位；⑦ `tsconfig.json` types 加 `vite/client`；⑧ 五道门禁全绿（281 例 / 21 文件，CSS 38.25 kB gzip 8.36 / JS 580.27 kB gzip 196.00），CDP 四档 + 断网 reload 实测通过；⑨ FR/NFR 四份文档按实现逐条校准（无防抖、URL 唯一事实源、缓存名固定、角标右下角）；⑩ 版本号 0.6.2 → 0.7.0 | Agent |

@@ -8,7 +8,7 @@ import type { Card } from '../../../domain/entities/card';
 import { useProgressStore } from '../../../shared/store/progressStore';
 import { IconButton } from '../../../shared/ui/Button';
 import { EmptyState } from '../../../shared/ui/Feedback';
-import { CardTile } from '../../cards/ui/CategoryPage';
+import { CardTile } from '../../cards/ui/CardTile';
 
 /** 按收藏/最近顺序把 id 映射成真实卡片，删掉的卡自然被过滤掉 */
 function resolve(orderIds: string[], byId: Map<string, Card>): Card[] {

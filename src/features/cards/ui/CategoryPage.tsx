@@ -1,52 +1,17 @@
 /** 分类页 · 卡片墙（PRD M2 / US-02)：组筛选 + 每页 12 张分页（v0.1.7） */
 
 import { useMemo } from 'react';
-import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { useCatalog } from '../../../app/CatalogProvider';
 import { cardsOfCategory } from '../../../domain/services/catalog';
-import type { Card } from '../../../domain/entities/card';
 import { IconButton } from '../../../shared/ui/Button';
 import { EmptyState } from '../../../shared/ui/Feedback';
-import { ImageWithFallback } from '../../../shared/ui/ImageWithFallback';
-import { useSettingsStore } from '../../../shared/store/settingsStore';
-import { categoryColorVar, cx } from '../../../shared/utils/classNames';
+import { cx } from '../../../shared/utils/classNames';
+import { CardTile } from './CardTile';
 
 /** 每页卡片数：平板 4 列 × 3 行，一屏看完不用滚动 */
 const PAGE_SIZE = 12;
-
-export function CardTile({ card, colorToken }: { card: Card; colorToken?: string }) {
-  const mode = useSettingsStore((state) => state.settings.displayMode);
-  const location = useLocation();
-  // 带上当前分组与页码：详情页按同一组内序列翻页，返回时也回到这一页
-  const listUrl = `${location.pathname}${location.search}`;
-  // 成语卡没有英文（v0.6）：标题回退到中文，避免看英文模式下列表出现空白块
-  const english = card.en.trim();
-
-  return (
-    <Link
-      className="card-tile"
-      to={{ pathname: `/card/${card.id}`, search: location.search }}
-      state={{ listUrl }}
-      aria-label={english ? `${card.zh} ${english}` : card.zh}
-    >
-      <div className="card-tile__media" style={categoryColorVar(colorToken)}>
-        <ImageWithFallback
-          src={card.image}
-          alt={card.zh}
-          fallbackText={card.zh}
-          colorToken={colorToken}
-        />
-        {/* 故事卡标出「绘本故事」，让孩子一眼看出这本可以讲（v0.2 US-S1） */}
-        {card.kind === 'story' ? (
-          <span className="card-tile__badge">绘本故事</span>
-        ) : null}
-      </div>
-      <p className="card-tile__zh">{mode === 'en' && english ? english : card.zh}</p>
-      {mode === 'both' && english ? <p className="card-tile__en">{english}</p> : null}
-    </Link>
-  );
-}
 
 export function CategoryPage() {
   const { categoryId = '' } = useParams();
@@ -87,7 +52,7 @@ export function CategoryPage() {
 
   return (
     <>
-      <header className="topbar topbar--bordered">
+      <header className="topbar topbar--bordered topbar--wide">
         <IconButton label="返回分类" plain onClick={() => navigate('/')}>
           <ArrowLeft size={26} />
         </IconButton>
@@ -98,6 +63,10 @@ export function CategoryPage() {
             {list.length} 张卡片
           </p>
         </div>
+        {/* 搜索入口：从分类页直接换到全局搜，不用先回首页（v0.7 US-V2） */}
+        <IconButton label="搜索卡片" plain onClick={() => navigate('/search')}>
+          <Search size={24} />
+        </IconButton>
       </header>
 
       <main className="page page--wide">

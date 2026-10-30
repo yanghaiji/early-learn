@@ -61,10 +61,11 @@
   /* 间距 */
   --space: 8px;
 
-  /* 容器宽度（v0.6.2 分档：列表页铺满、详情与表单收窄） */
+  /* 容器宽度（v0.6.2 分档：列表页铺满、详情与表单收窄；v0.7 补详情档与超宽屏档） */
   --page-max: 1180px;
   --page-max-wide: 1440px;
   --page-max-narrow: 780px;
+  --page-max-detail: 960px;
 
   /* 阴影 */
   --shadow-tile: 0 2px 0 rgba(72, 62, 46, 0.05), 0 8px 24px rgba(72, 62, 46, 0.07);
@@ -83,6 +84,13 @@
   /* 安全区 */
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+/* 超宽屏（≥1700px，如 1826 / 1920）：列表页再放一档，两侧余白 193 → 73（v0.7） */
+@media (min-width: 1700px) {
+  :root {
+    --page-max-wide: 1680px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

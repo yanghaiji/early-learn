@@ -232,7 +232,7 @@ export function CardDetailPage() {
 
   return (
     <>
-      <header className="topbar">
+      <header className="topbar topbar--narrow">
         <IconButton label="返回卡片列表" plain onClick={() => navigate(listUrl)}>
           <ArrowLeft size={26} />
         </IconButton>

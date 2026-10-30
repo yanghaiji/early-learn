@@ -82,13 +82,18 @@ describe('管理区', () => {
   });
 
   // 809 张卡逐字重算列表，并发跑门禁时实测要 3~5s，按默认 5s 会偶发超时
+  // v0.7：CardAdmin 改为懒加载，首次断言要等 chunk 落地，故 findByRole 显式放宽到 5s
   it('should_filter_cards_when_keyword_typed', async () => {
     const user = userEvent.setup();
     markGatePassed();
     window.location.hash = '#/admin/cards';
     render(<AppRouter />);
 
-    const search = await screen.findByRole('searchbox', { name: '搜索卡片' });
+    const search = await screen.findByRole(
+      'searchbox',
+      { name: '搜索卡片' },
+      { timeout: 5000 },
+    );
     await user.type(search, '猫');
 
     expect(await screen.findByText('māo · cat · 动物')).toBeInTheDocument();

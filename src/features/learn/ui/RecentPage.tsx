@@ -8,7 +8,7 @@ import { RECENT_MAX } from '../../../domain/constants';
 import { useProgressStore } from '../../../shared/store/progressStore';
 import { IconButton } from '../../../shared/ui/Button';
 import { EmptyState } from '../../../shared/ui/Feedback';
-import { CardTile } from '../../cards/ui/CategoryPage';
+import { CardTile } from '../../cards/ui/CardTile';
 
 export function RecentPage() {
   const navigate = useNavigate();

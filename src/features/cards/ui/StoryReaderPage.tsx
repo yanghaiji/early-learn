@@ -94,7 +94,7 @@ export function StoryReaderPage() {
 
   return (
     <>
-      <header className="topbar">
+      <header className="topbar topbar--story">
         <IconButton label="返回故事详情" plain onClick={back}>
           <ArrowLeft size={26} />
         </IconButton>

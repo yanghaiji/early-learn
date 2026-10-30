@@ -93,18 +93,54 @@ a {
   align-items: center;
   gap: 12px;
   padding: 12px 20px;
+  /* 顶栏全宽、内容按所属容器居中：不跟容器对齐时，宽屏会与正文错位上百 px（v0.7） */
+  --topbar-max: var(--page-max);
+  --topbar-pad: 20px;
+  /* 占位：窄屏由下方媒体查询重置，此处只声明变量 */
   background: color-mix(in srgb, var(--c-bg) 90%, transparent);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid transparent;
   transition: border-color var(--motion-fast);
 }
 
+/* 内容起点 = 容器左边缘 + 24px：用 % 而不是 100vw，否则滚动条宽度会让顶栏向右偏 8px */
+
 /* 首页顶栏（v0.6.2）：标题 + 入口条 + 图标收在一行，不再单独占一条横带 */
 .topbar--hero {
+  --topbar-max: var(--page-max-wide);
+  --topbar-pad: 24px;
   flex-wrap: wrap;
   row-gap: 10px;
   padding: 14px 24px 12px;
   border-bottom-color: var(--c-line);
+}
+
+/* 列表页顶栏（分类 / 搜索）：与 .page--wide 同宽 */
+.topbar--wide {
+  --topbar-max: var(--page-max-wide);
+  --topbar-pad: 24px;
+}
+
+/* 详情页顶栏：对齐 960 详情容器（≥900px 时 .detail 左右内距 32px） */
+.topbar--narrow {
+  --topbar-max: var(--page-max-detail);
+  --topbar-pad: 32px;
+}
+
+/* 故事页顶栏：对齐宽屏两栏故事容器 */
+.topbar--story {
+  --topbar-max: 1120px;
+  --topbar-pad: 16px;
+}
+
+/* 必须排在 --hero / --wide / --narrow 之后：同为单类特异性，靠顺序覆盖它们的 padding 左右值 */
+@media (min-width: 1100px) {
+  .topbar {
+    padding-inline: max(
+      var(--topbar-pad),
+      calc((100% - var(--topbar-max)) / 2 + var(--topbar-pad))
+    );
+  }
 }
 
 .topbar__brand {
@@ -384,6 +420,14 @@ a {
   .page {
     padding: 12px 14px calc(24px + var(--safe-b));
   }
+  /* 小屏把顶栏内距同步收到 14px，与 .page 的内容左边缘对齐 */
+  .topbar,
+  .topbar--hero,
+  .topbar--wide,
+  .topbar--narrow,
+  .topbar--story {
+    padding-inline: 14px;
+  }
 }
 
 /* ---------- 分类卡（v0.6.2：等高、名称单行、张数改封面角标） ---------- */
@@ -569,6 +613,120 @@ a {
   backdrop-filter: blur(4px);
 }
 
+/* 搜索结果卡片的分类角标（v0.7）：封面左上，与故事角标同位置但只出现在搜索页 */
+.card-tile__cat {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c-surface) 84%, transparent);
+  color: var(--c-ink-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(4px);
+  max-width: calc(100% - 16px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- 搜索页（v0.7） ---------- */
+.search-box {
+  flex: 1;
+  min-width: 0;
+  /* 限宽并居中：1440 下一整行 1300px 的输入框并不好敲 */
+  max-width: 680px;
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius-btn);
+  background: var(--c-surface);
+  color: var(--c-ink-soft);
+  transition:
+    border-color var(--motion-fast),
+    box-shadow var(--motion-fast);
+}
+
+.search-box:focus-within {
+  border-color: color-mix(in srgb, var(--c-primary) 45%, var(--c-line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-primary) 12%, transparent);
+}
+
+.search-box__input {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--c-ink);
+  font-family: inherit;
+}
+
+.search-box__input::placeholder {
+  color: var(--c-ink-soft);
+  font-weight: 500;
+}
+
+/* 去掉 type=search 的原生清除按钮：否则会与自定义的 × 并列两个 */
+.search-box__input::-webkit-search-cancel-button,
+.search-box__input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.search-box__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--c-bg-soft);
+  color: var(--c-ink-soft);
+  cursor: pointer;
+}
+
+/* 空关键词时的示例词：一行 chip，点一下就能搜 */
+.search-samples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.search-samples .chip {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+/* 搜索结果少于 6 张时补的分类入口：把右侧空白接住（v0.7） */
+.search-browse {
+  margin-top: 28px;
+}
+
+.search-browse__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.search-browse__chips .chip {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 14px;
+  text-decoration: none;
+}
+
 /* ---------- 主题组筛选（v0.1.7） ---------- */
 .chips {
   display: flex;
@@ -688,7 +846,7 @@ a {
 /* v0.6.2 收窄：1180 → 960。再窄（如 780）会让 ≥900px 的两栏版式把图挤到 360px 以下 */
 .detail {
   width: 100%;
-  max-width: 960px;
+  max-width: var(--page-max-detail);
   margin: 0 auto;
   padding: 12px 20px calc(12px + var(--safe-b));
   flex: 1 1 auto;
@@ -1063,6 +1221,22 @@ a {
     justify-self: stretch;
   }
 
+  /* 普通卡：图保持正方形，不再被整列高度拉成竖长条（v0.7） */
+  .detail__media-btn {
+    height: auto;
+    width: min(100%, 62vh);
+    max-height: 100%;
+  }
+
+  /* 普通卡：行高交给内容、整组垂直居中（v0.7）。
+     原来 rows 是 1fr / auto：图列撑满整列居中，右列却贴着首行底、次行顶，
+     实测图中心 468 而文字块中心 691，左右两截重心上下错开 220px。
+     诗词 / 成语卡内容会超出容器，居中会让溢出部分滚不到，故排除。 */
+  .detail:not(.detail--poem):not(.detail--idiom) {
+    grid-template-rows: auto auto;
+    align-content: center;
+  }
+
   .detail__words {
     grid-area: words;
     align-self: end;
@@ -1399,6 +1573,8 @@ a {
   color: var(--c-ink-soft);
   margin: 0;
   max-width: 34ch;
+  /* 两行文案别把「（」丢到行首、也别留孤字（v0.7；不支持的浏览器忽略） */
+  text-wrap: pretty;
 }
 
 .banner {

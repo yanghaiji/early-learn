@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="童识 · 认知卡片">
+  <!-- 全部为几何图形，不依赖任何字体：sharp 在任何机器上渲染结果一致 -->
+  <rect width="512" height="512" rx="112" fill="#2F6B57" />
+  <rect x="120" y="96" width="272" height="320" rx="40" fill="#FDFCF8" />
+  <circle cx="256" cy="184" r="46" fill="#E8B44A" />
+  <rect x="160" y="264" width="192" height="20" rx="10" fill="#2F6B57" opacity="0.78" />
+  <rect x="160" y="308" width="144" height="20" rx="10" fill="#2F6B57" opacity="0.56" />
+  <rect x="160" y="352" width="96" height="20" rx="10" fill="#2F6B57" opacity="0.34" />
+</svg>

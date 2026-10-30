@@ -1,8 +1,8 @@
 /** 首页 · 分类墙（PRD M1 / US-01） */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Github, Languages, Lock } from 'lucide-react';
+import { Github, Languages, Lock, Search } from 'lucide-react';
 import { useCatalog } from '../../../app/CatalogProvider';
 import { APP_SLOGAN, REPO_URL } from '../../../app/version';
 import type { Category } from '../../../domain/entities/category';
@@ -50,6 +50,26 @@ export function HomePage() {
     navigate('/admin');
   };
 
+  // 桌面端按 / 直接进搜索：焦点已在输入框时不抢键（US-V2）
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      event.preventDefault();
+      navigate('/search');
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [navigate]);
+
   return (
     <>
       {/* v0.7：标题、入口条、图标合并为一条 hero 顶栏，省掉原来单独一行的入口条高度 */}
@@ -60,6 +80,9 @@ export function HomePage() {
         </div>
         <ProgressEntries />
         <div className="topbar__tools">
+          <IconButton label="搜索卡片" plain onClick={() => navigate('/search')}>
+            <Search size={24} />
+          </IconButton>
           <a
             className="icon-btn icon-btn--plain"
             href={REPO_URL}

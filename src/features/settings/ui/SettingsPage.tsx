@@ -181,6 +181,14 @@ export function SettingsPage() {
           </div>
           <div className="row">
             <div className="row__grow">
+              <p className="row__title">装到桌面</p>
+              <p className="row__meta">
+                浏览器菜单里选「安装」或「添加到主屏幕」；装好后图标单独一个，断网也能打开
+              </p>
+            </div>
+          </div>
+          <div className="row">
+            <div className="row__grow">
               <p className="row__title">使用说明</p>
               <p className="row__meta">给家长的五分钟上手说明</p>
             </div>
