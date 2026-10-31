@@ -49,7 +49,14 @@ export const LIMITS = {
   IDIOM_RELATED_MIN: 1,
   IDIOM_RELATED_MAX: 3,
   IDIOM_CITATION_MAX: 40,
+  /** 导入 JSON 里的图片体积单卡校验（v0.9 起上传图走压缩，此值只管导入） */
   IMAGE_MAX_BYTES: 500 * 1024,
+  /** 上传原图上限（压缩前，NFR/v0.9 §5.1） */
+  IMAGE_RAW_MAX_BYTES: 8 * 1024 * 1024,
+  /** 压缩后硬上限，写入前校验（NFR/v0.9 §5.1） */
+  IMAGE_TARGET_BYTES: 150 * 1024,
+  /** 压缩最长边（NFR/v0.9 §5.1） */
+  IMAGE_MAX_EDGE: 1280,
   IMPORT_MAX_BYTES: 5 * 1024 * 1024,
   IMPORT_MAX_CARDS: 2000,
   STORAGE_WARN_BYTES: 3 * 1024 * 1024,
