@@ -1,0 +1,3 @@
+# Arphic Public License 要求分发时保留许可证文件「未经改动」（unaltered），
+# 这里关掉行尾转换，避免 checkout 时被自动改写。
+licenses/ARPHICPL.TXT -text
