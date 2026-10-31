@@ -77,7 +77,7 @@ describe('管理区', () => {
     await user.click(await screen.findByRole('button', { name: '删除 动物' }));
 
     const dialog = await screen.findByRole('dialog', { name: '删除分类「动物」' });
-    expect(within(dialog).getByText(/22 张卡片也会一并删除/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/19 张卡片也会一并删除/)).toBeInTheDocument();
 
     await user.click(within(dialog).getByRole('button', { name: '取消' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());

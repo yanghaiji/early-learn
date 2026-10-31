@@ -16,7 +16,7 @@ import {
 import { APP_VERSION } from './version';
 import { createCardRepository } from '../data/repositories/localCardRepository';
 import { createCategoryRepository } from '../data/repositories/localCategoryRepository';
-import { getSeedCatalog, SEED_VERSION } from '../data/seed';
+import { getSeedCatalog, RETIRED_SEED_CARD_IDS, SEED_VERSION } from '../data/seed';
 import { CHARACTER_GROUP_BY_ZH, GROUP_NAMES, POEM_GROUP_BY_DYNASTY } from '../data/seed/characterGroups';
 import { IDIOM_GROUP_BY_ID, IDIOM_GROUP_NAMES } from '../data/seed/idioms';
 import { STORY_GROUP_BY_ID, STORY_GROUP_NAMES } from '../data/seed/storyGroups';
@@ -90,6 +90,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       storage: safeLocalStorage(),
       seed: getSeedCatalog,
       seedVersion: SEED_VERSION,
+      retiredCardIds: RETIRED_SEED_CARD_IDS,
     });
     const initial = storage.load();
     bootRef.current = {

@@ -8,6 +8,7 @@
 import { describe, expect, it } from 'vitest';
 import { SEED_CARDS } from './cards';
 import { SEED_CATEGORIES } from './categories';
+import { RETIRED_SEED_CARD_IDS } from './index';
 import { POEM_GROUPS, POEM_GROUP_BY_DYNASTY, CHARACTER_GROUPS, CHARACTER_GROUP_BY_ZH } from './characterGroups';
 import { IDIOM_GROUPS, IDIOM_GROUP_BY_ID } from './idioms';
 import { COLOR_TOKENS } from '../../domain/entities/category';
@@ -184,6 +185,63 @@ describe('成语词典（v0.6 §3.2 / §5）', () => {
       const slug = card.id.replace(/^idioms-/, '');
       expect(card.image, card.zh).toBe(`assets/images/idioms/${slug}.webp`);
       expect(card.categoryId).toBe('idioms');
+    }
+  });
+});
+
+/** v0.11 分类归属纠偏：7 张卡换分类就换了 id，这里把归属钉死，防止将来又被掘回去 */
+describe('分类归属纠偏（v0.11）', () => {
+  const byCategory = (categoryId: string) => SEED_CARDS.filter((card) => card.categoryId === categoryId);
+
+  const MOVED: readonly (readonly [string, string, string])[] = [
+    ['蜜蜂', 'insects-bee', 'insects'],
+    ['蝴蝶', 'insects-butterfly', 'insects'],
+    ['鱼', 'sea-fish', 'sea'],
+    ['鞋子', 'clothes-shoes', 'clothes'],
+    ['帽子', 'clothes-hat', 'clothes'],
+    ['书包', 'school-backpack', 'school'],
+    ['老师', 'jobs-teacher', 'jobs'],
+  ];
+
+  it('should_attach_moved_cards_to_their_new_category_when_seeded', () => {
+    for (const [zh, id, categoryId] of MOVED) {
+      const card = SEED_CARDS.find((item) => item.id === id);
+      expect(card, `${zh} 应该叫 ${id}`).toBeDefined();
+      expect(card?.zh, id).toBe(zh);
+      expect(card?.categoryId, id).toBe(categoryId);
+      expect(card?.image, id).toBe(`assets/images/${categoryId}/${id.slice(categoryId.length + 1)}.webp`);
+    }
+  });
+
+  it('should_keep_new_counts_when_listing_eight_categories', () => {
+    const expected: Record<string, number> = {
+      animals: 19,
+      insects: 12,
+      sea: 11,
+      daily: 12,
+      clothes: 12,
+      school: 13,
+      jobs: 11,
+      family: 11,
+    };
+    for (const [categoryId, count] of Object.entries(expected)) {
+      expect(byCategory(categoryId), categoryId).toHaveLength(count);
+    }
+  });
+
+  it('should_drop_the_old_category_when_card_moved', () => {
+    // 同一件东西不能同时挂在两个分类里（这正是「分类不明确」的根因）
+    const zh = (categoryId: string) => byCategory(categoryId).map((card) => card.zh);
+    for (const word of ['蜜蜂', '蝴蝶', '鱼']) expect(zh('animals'), word).not.toContain(word);
+    for (const word of ['鞋子', '帽子', '书包']) expect(zh('daily'), word).not.toContain(word);
+    expect(zh('family')).not.toContain('老师');
+  });
+
+  it('should_not_keep_retired_ids_in_seed_when_moving_cards', () => {
+    // 退役名单与种子必须互斥：名单里还有的 id 说明那张卡没挪到位
+    const ids = new Set(SEED_CARDS.map((card) => card.id));
+    for (const retired of RETIRED_SEED_CARD_IDS) {
+      expect(ids, `${retired} 已退役却仍在种子里`).not.toContain(retired);
     }
   });
 });

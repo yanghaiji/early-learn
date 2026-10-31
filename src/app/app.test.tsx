@@ -25,7 +25,7 @@ describe('AppRouter', () => {
     expect(screen.getByText('māo')).toBeInTheDocument();
     // 默认展示模式为中文，英文不显示
     expect(screen.queryByText('cat')).toBeNull();
-    expect(screen.getAllByText('1 / 22').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('1 / 19').length).toBeGreaterThan(0);
   });
 
   it('should_render_not_found_when_route_unknown', async () => {

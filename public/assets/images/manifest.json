@@ -9,7 +9,6 @@
     "rabbit",
     "chicken",
     "duck",
-    "fish",
     "bird",
     "elephant",
     "tiger",
@@ -19,9 +18,7 @@
     "lion",
     "giraffe",
     "frog",
-    "turtle",
-    "bee",
-    "butterfly"
+    "turtle"
   ],
   "fruit": [
     "apple",
@@ -85,11 +82,8 @@
     "umbrella",
     "toothbrush",
     "towel",
-    "shoes",
-    "hat",
     "clock",
-    "key",
-    "backpack"
+    "key"
   ],
   "body": [
     "eyes",
@@ -166,8 +160,7 @@
     "uncle",
     "aunt",
     "family",
-    "friend",
-    "teacher"
+    "friend"
   ],
   "weather": [
     "sunny",
@@ -223,7 +216,8 @@
     "glue",
     "scissors",
     "classroom",
-    "playground"
+    "playground",
+    "backpack"
   ],
   "sea": [
     "whale",
@@ -235,7 +229,8 @@
     "octopus",
     "jellyfish",
     "seahorse",
-    "shell"
+    "shell",
+    "fish"
   ],
   "insects": [
     "ladybug",
@@ -247,7 +242,9 @@
     "ant",
     "earthworm",
     "dragonfly",
-    "cicada"
+    "cicada",
+    "bee",
+    "butterfly"
   ],
   "jobs": [
     "doctor",
@@ -259,7 +256,8 @@
     "driver",
     "mail-carrier",
     "soldier",
-    "painter"
+    "painter",
+    "teacher"
   ],
   "clothes": [
     "shirt",
@@ -271,7 +269,9 @@
     "gloves",
     "scarf",
     "vest",
-    "boots"
+    "boots",
+    "shoes",
+    "hat"
   ],
   "characters": [
     "yi",

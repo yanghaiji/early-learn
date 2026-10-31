@@ -274,3 +274,107 @@ describe('createCatalogStorage / misc', () => {
     expect(listener).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('createCatalogStorage / 退役内置卡（v0.11）', () => {
+  const RETIRED = ['animals-bee'];
+  const INSECTS_CATEGORY: Category = { ...CATEGORY, id: 'insects', name: '小虫子', sortOrder: 2 };
+  const INSECT_BEE: Card = {
+    ...CARD,
+    id: 'insects-bee',
+    categoryId: 'insects',
+    zh: '蜜蜂',
+    en: 'bee',
+    image: 'assets/images/insects/bee.webp',
+  };
+
+  function seedWithBee(): CatalogDocument {
+    return {
+      schemaVersion: SCHEMA_VERSION,
+      categories: [{ ...CATEGORY }, { ...INSECTS_CATEGORY }],
+      cards: [{ ...CARD, tags: [] }, { ...INSECT_BEE, tags: [] }],
+      savedAt: TIME,
+    };
+  }
+
+  it('should_drop_retired_card_and_add_moved_one_when_seed_version_increased', () => {
+    const storage = new MemoryStorage();
+    // v9 本地数据：猫 + 旧 id 的蜜蜂
+    storage.setItem(
+      STORAGE_KEYS.catalog,
+      JSON.stringify({
+        schemaVersion: SCHEMA_VERSION,
+        categories: [CATEGORY],
+        cards: [{ ...CARD, tags: [] }, { ...CARD, id: 'animals-bee', zh: '蜜蜂', tags: [] }],
+        savedAt: TIME,
+      }),
+    );
+    storage.setItem(STORAGE_KEYS.meta, JSON.stringify({ seedVersion: 9 }));
+
+    const result = createCatalogStorage({
+      storage,
+      seed: seedWithBee,
+      seedVersion: 10,
+      retiredCardIds: RETIRED,
+      now: NOW,
+    }).load();
+
+    const ids = result.doc.cards.map((card) => card.id);
+    expect(ids).not.toContain('animals-bee');
+    expect(ids).toContain('insects-bee');
+    expect(ids).toContain('animals-cat');
+    // 家长自己的卡不受影响，总数 = 保留 1 + 新增 1
+    expect(result.doc.cards).toHaveLength(2);
+  });
+
+  it('should_keep_retired_card_when_seed_version_already_applied', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      STORAGE_KEYS.catalog,
+      JSON.stringify({
+        schemaVersion: SCHEMA_VERSION,
+        categories: [CATEGORY],
+        cards: [{ ...CARD, id: 'animals-bee', zh: '蜜蜂', tags: [] }],
+        savedAt: TIME,
+      }),
+    );
+    storage.setItem(STORAGE_KEYS.meta, JSON.stringify({ seedVersion: 10 }));
+
+    const result = createCatalogStorage({
+      storage,
+      seed: seedWithBee,
+      seedVersion: 10,
+      retiredCardIds: RETIRED,
+      now: NOW,
+    }).load();
+
+    // 已升到 v10 的数据不再被剔一次（否则每次打开都像「刚升级」）
+    expect(result.doc.cards.map((card) => card.id)).toEqual(['animals-bee']);
+  });
+
+  it('should_stay_idempotent_when_loading_twice_with_retired_ids', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      STORAGE_KEYS.catalog,
+      JSON.stringify({
+        schemaVersion: SCHEMA_VERSION,
+        categories: [CATEGORY],
+        cards: [{ ...CARD, id: 'animals-bee', zh: '蜜蜂', tags: [] }],
+        savedAt: TIME,
+      }),
+    );
+    storage.setItem(STORAGE_KEYS.meta, JSON.stringify({ seedVersion: 9 }));
+
+    const catalog = createCatalogStorage({
+      storage,
+      seed: seedWithBee,
+      seedVersion: 10,
+      retiredCardIds: RETIRED,
+      now: NOW,
+    });
+    const first = catalog.load();
+    const second = catalog.load();
+
+    expect(first.doc.cards).toHaveLength(2);
+    expect(second.doc.cards.map((card) => card.id).sort()).toEqual(['animals-cat', 'insects-bee']);
+  });
+});

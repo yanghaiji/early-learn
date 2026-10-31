@@ -7,7 +7,7 @@
 export const SCHEMA_VERSION = 1;
 
 /** 内置种子内容版本，仅用于提示与「重置为内置内容」 */
-export const SEED_VERSION = 9;
+export const SEED_VERSION = 10;
 
 export const LIMITS = {
   CATEGORY_NAME_MAX: 12,

@@ -61,6 +61,8 @@ interface StorageDeps {
   seed: () => CatalogDocument;
   /** 内置内容版本；为 0 时不做种子增量合并（默认，兼容测试替身） */
   seedVersion?: number;
+  /** 新版已挪走的旧内置卡 id（v0.11）：合并时先剔除，否则老用户会看到新旧两张同名卡 */
+  retiredCardIds?: readonly string[];
   now?: () => string;
 }
 
@@ -107,7 +109,13 @@ function dedupeById<T extends { id: string }>(items: readonly T[]): T[] {
   return [...map.values()];
 }
 
-export function createCatalogStorage({ storage, seed, seedVersion = 0, now = () => new Date().toISOString() }: StorageDeps): CatalogStorage {
+export function createCatalogStorage({
+  storage,
+  seed,
+  seedVersion = 0,
+  retiredCardIds = [],
+  now = () => new Date().toISOString(),
+}: StorageDeps): CatalogStorage {
   let cached: LoadResult | null = null;
 
   const safeGet = (key: string): string | null => {
@@ -172,13 +180,15 @@ export function createCatalogStorage({ storage, seed, seedVersion = 0, now = () 
   };
 
   /**
-   * 内置内容升级：按 id 增量补齐新增分类与卡片，不覆盖家长已有内容。
-   * 仅当本地记录的版本落后于当前 SEED_VERSION 时生效。
+   * 内置内容升级：先剔除已退役的旧卡，再按 id 增量补齐新增分类与卡片，不覆盖家长已有内容。
+   * 仅当本地记录的版本落后于当前 SEED_VERSION 时生效（已经合并过的不会重复剔）。
    */
   const mergeSeedCards = (doc: CatalogDocument): { doc: CatalogDocument; added: number } => {
     if (readSeedVersion() >= seedVersion) return { doc, added: 0 };
     const fresh = seedDocument();
-    const cardIds = new Set(doc.cards.map((card) => card.id));
+    const retired = new Set(retiredCardIds);
+    const keptCards = retired.size > 0 ? doc.cards.filter((card) => !retired.has(card.id)) : doc.cards;
+    const cardIds = new Set(keptCards.map((card) => card.id));
     const categoryIds = new Set(doc.categories.map((category) => category.id));
     const addedCategories = fresh.categories.filter((category) => !categoryIds.has(category.id));
     const addedCards = fresh.cards.filter((card) => !cardIds.has(card.id));
@@ -186,7 +196,7 @@ export function createCatalogStorage({ storage, seed, seedVersion = 0, now = () 
       doc: {
         ...doc,
         categories: [...doc.categories, ...addedCategories],
-        cards: [...doc.cards, ...addedCards],
+        cards: [...keptCards, ...addedCards],
       },
       added: addedCards.length,
     };

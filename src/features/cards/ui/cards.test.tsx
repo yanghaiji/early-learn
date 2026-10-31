@@ -19,7 +19,7 @@ describe('分类页', () => {
     render(<AppRouter />);
 
     expect(await screen.findByRole('heading', { name: '动物' })).toBeInTheDocument();
-    expect(screen.getByText(/22 张卡片/)).toBeInTheDocument();
+    expect(screen.getByText(/19 张卡片/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '猫 cat' })).toBeInTheDocument();
   });
 
@@ -112,7 +112,7 @@ describe('卡片详情', () => {
 
     await user.click(screen.getByRole('button', { name: '下一张' }));
 
-    expect(await screen.findByLabelText('第 2 张，共 22 张')).toBeInTheDocument();
+    expect(await screen.findByLabelText('第 2 张，共 19 张')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '上一张' })).toBeEnabled();
   });
 

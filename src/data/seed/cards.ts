@@ -37,7 +37,6 @@ const ANIMALS: readonly Row[] = [
   ['rabbit', '兔', 'tù', 'rabbit', 1],
   ['chicken', '鸡', 'jī', 'chicken', 1],
   ['duck', '鸭', 'yā', 'duck', 1],
-  ['fish', '鱼', 'yú', 'fish', 1],
   ['bird', '鸟', 'niǎo', 'bird', 1],
   ['elephant', '大象', 'dà xiàng', 'elephant', 2],
   ['tiger', '老虎', 'lǎo hǔ', 'tiger', 2],
@@ -48,8 +47,6 @@ const ANIMALS: readonly Row[] = [
   ['giraffe', '长颈鹿', 'cháng jǐng lù', 'giraffe', 3],
   ['frog', '青蛙', 'qīng wā', 'frog', 2],
   ['turtle', '乌龟', 'wū guī', 'turtle', 2],
-  ['bee', '蜜蜂', 'mì fēng', 'bee', 2],
-  ['butterfly', '蝴蝶', 'hú dié', 'butterfly', 2],
 ];
 
 const FRUIT: readonly Row[] = [
@@ -117,11 +114,8 @@ const DAILY: readonly Row[] = [
   ['umbrella', '伞', 'sǎn', 'umbrella', 3],
   ['toothbrush', '牙刷', 'yá shuā', 'toothbrush', 3],
   ['towel', '毛巾', 'máo jīn', 'towel', 2],
-  ['shoes', '鞋子', 'xié zi', 'shoes', 2],
-  ['hat', '帽子', 'mào zi', 'hat', 2],
   ['clock', '钟表', 'zhōng biǎo', 'clock', 2],
   ['key', '钥匙', 'yào shi', 'key', 2],
-  ['backpack', '书包', 'shū bāo', 'backpack', 2],
 ];
 
 const BODY: readonly Row[] = [
@@ -208,7 +202,6 @@ const FAMILY: readonly Row[] = [
   ['aunt', '阿姨', 'ā yí', 'aunt', 3],
   ['family', '家人', 'jiā rén', 'family', 2],
   ['friend', '朋友', 'péng you', 'friend', 2],
-  ['teacher', '老师', 'lǎo shī', 'teacher', 2],
 ];
 
 /** v0.1.3 主题分类：天气 Weather */
@@ -273,6 +266,8 @@ const SCHOOL: readonly Row[] = [
   ['scissors', '剪刀', 'jiǎn dāo', 'scissors', 3],
   ['classroom', '教室', 'jiào shì', 'classroom', 3],
   ['playground', '操场', 'cāo chǎng', 'playground', 3],
+  // v0.11：书包从「日常用品」归到学校用品（PRD §1）
+  ['backpack', '书包', 'shū bāo', 'backpack', 2],
 ];
 
 const CHARACTERS: readonly CharRow[] = [
@@ -835,6 +830,8 @@ const SEA: readonly Row[] = [
   ['jellyfish', '水母', 'shuǐ mǔ', 'jellyfish', 3],
   ['seahorse', '海马', 'hǎi mǎ', 'seahorse', 3],
   ['shell', '贝壳', 'bèi ké', 'shell', 2],
+  // v0.11：鱼从「动物」归到海洋动物（PRD §1）
+  ['fish', '鱼', 'yú', 'fish', 1],
 ];
 
 /** v0.5 新分类：小虫子 Insects */
@@ -849,6 +846,9 @@ const INSECTS: readonly Row[] = [
   ['earthworm', '蚯蚓', 'qiū yǐn', 'earthworm', 3],
   ['dragonfly', '蜻蜓', 'qīng tíng', 'dragonfly', 3],
   ['cicada', '蝉', 'chán', 'cicada', 3],
+  // v0.11：蜜蜂与蝴蝶从「动物」归到小虫子（PRD §1）
+  ['bee', '蜜蜂', 'mì fēng', 'bee', 2],
+  ['butterfly', '蝴蝶', 'hú dié', 'butterfly', 2],
 ];
 
 /** v0.5 新分类：职业 Jobs */
@@ -863,6 +863,8 @@ const JOBS: readonly Row[] = [
   ['mail-carrier', '邮递员', 'yóu dì yuán', 'mail carrier', 3],
   ['soldier', '军人', 'jūn rén', 'soldier', 3],
   ['painter', '画家', 'huà jiā', 'painter', 2],
+  // v0.11：老师从「家人」归到职业（PRD §1）
+  ['teacher', '老师', 'lǎo shī', 'teacher', 2],
 ];
 
 /** v0.5 新分类：穿戴 Clothes */
@@ -877,6 +879,9 @@ const CLOTHES: readonly Row[] = [
   ['scarf', '围巾', 'wéi jīn', 'scarf', 2],
   ['vest', '背心', 'bèi xīn', 'vest', 3],
   ['boots', '靴子', 'xuē zi', 'boots', 2],
+  // v0.11：鞋子与帽子从「日常用品」归到穿戴（PRD §1）
+  ['shoes', '鞋子', 'xié zi', 'shoes', 2],
+  ['hat', '帽子', 'mào zi', 'hat', 2],
 ];
 
 function buildObjects(categoryId: string, rows: readonly Row[]): Card[] {

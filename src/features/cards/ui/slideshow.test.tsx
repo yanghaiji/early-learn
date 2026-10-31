@@ -137,15 +137,15 @@ describe('详情页连播（US-A6）', () => {
   it('should_toast_group_finished_and_not_loop_when_last_card_reached', async () => {
     const user = userEvent.setup();
     stubChineseVoices();
-    // 蝴蝶是内置动物分类的末位卡
-    window.location.hash = '#/card/animals-butterfly';
+    // 乌龟是内置动物分类的末位卡（v0.11 将蜜蜂 / 蝴蝶 / 鱼移走，末位从蝴蝶变为乌龟）
+    window.location.hash = '#/card/animals-turtle';
     render(<AppRouter />);
 
     await user.click(await screen.findByRole('button', { name: '连播' }));
 
     expect(await screen.findByText('这一组看完啦')).toBeInTheDocument();
     await wait(200);
-    expect(screen.getByLabelText('蝴蝶 卡片详情')).toBeInTheDocument();
+    expect(screen.getByLabelText('乌龟 卡片详情')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '连播' })).toBeInTheDocument();
   });
 
