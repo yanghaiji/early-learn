@@ -6,7 +6,7 @@
 | --- | --- |
 | 项目 | 童识 · 认知卡片（工程代号 `early-learn`） |
 | 技术定位 | 纯前端单页应用（SPA）+ 静态托管 |
-| 当前版本 | **v0.8.0（分龄与拼音辅助）已实现**：首页两档分龄入口（1–3 岁 / 3–6 岁）+ `/age/:band` 分龄分类墙 + 分类页 `?band=` 筛选 + 详情页按龄翻页（复用 `difficulty`，零契约变更）、管理区拼音候选（构建期字典 3755 字 / gzip 19.1 kB，点选才写入）；**307 个用例 / 22 文件全绿**，主 chunk gzip 197.08 kB（偏差 D-1）；复审已修「详情 → 故事页 → 详情」往返丢 `?band=` 与拼音点选覆盖已确认读音。上一版 **v0.7.0（搜索与离线）已实现**：新增 `/search`（复用 `searchCards`，URL 唯一事实源，12 张一页）、PWA（manifest + 手写 `sw.js`，导航网络优先 / 静态缓存优先，sharp 生成三档图标）、六个低频页懒加载（主 chunk 613.95 → 580.27 kB，gzip 206.11 → 196.00）、超宽屏 ≥1700 px → 1680 与顶栏 `--topbar-max` / `--topbar-pad` 反算对齐；**281 个用例 / 21 文件**，零契约与零数据变更。上一版 **v0.6.1（成语词典）收尾到 v0.6.2**：659 → **809 张 / 21 → 22 分类**（新增第 22 分类「成语」150 条 / 5 组各 30，`kind=idiom` + 5 个可选字段）、图片 831 张（+150 四字卡 +1 封面）、音频仍 659 条（成语无英文）、`SEED_VERSION` 8→9，`schemaVersion` 仍 1；扩契约不升版（`CardKind` 加 `idiom`）；**274 个用例 / 20 文件**，JS gzip 206.11KB（硬线 350KB）。v0.6.1：四字卡从「14 类意境」改为「每条 2 件实物意象」（`IDIOM_PROPS` 150×2 + `IDIOM_MOTIFS` 78 件），并修掉详情页图块 `100cqh` 解析为 0 导致的图片塌陷。v0.6.2 界面改版：容器分档（列表 1440 / 详情 960）、分类卡等高、首页顶栏合并、主色改墨绿、源码入口三处，零契约与零数据变更。上一版 v0.5.0 内容大扩容（659 张 / 21 分类）已实现；设备矩阵待真机验收 |
+| 当前版本 | **v0.8.0（分龄与拼音辅助）已实现**：首页两档分龄入口（1–3 岁 / 3–6 岁）+ `/age/:band` 分龄分类墙 + 分类页 `?band=` 筛选 + 详情页按龄翻页（复用 `difficulty`，零契约变更）、管理区拼音候选（构建期字典 3755 字 / gzip 19.1 kB，点选才写入）；**307 个用例 / 22 文件全绿**，主 chunk gzip 197.08 kB（偏差 D-1）；复审已修「详情 → 故事页 → 详情」往返丢 `?band=` 与拼音点选覆盖已确认读音。**下一版 v0.9.0（笔顺与生产工具）已规划**：汉字详情逐笔动画（321 字、按 8 个汉字主题组切片懒加载、`hanzi-writer` 作懒加载依赖）、CSV 批量录入（整表拒绝）、上传图 canvas 压缩（最长边 1280 / WebP / ≤150 KB）、IndexedDB 内容快照与回滚（保留 5 份）；首屏不增长，技术方案见 §7。上一版 **v0.7.0（搜索与离线）已实现**：新增 `/search`（复用 `searchCards`，URL 唯一事实源，12 张一页）、PWA（manifest + 手写 `sw.js`，导航网络优先 / 静态缓存优先，sharp 生成三档图标）、六个低频页懒加载（主 chunk 613.95 → 580.27 kB，gzip 206.11 → 196.00）、超宽屏 ≥1700 px → 1680 与顶栏 `--topbar-max` / `--topbar-pad` 反算对齐；**281 个用例 / 21 文件**，零契约与零数据变更。上一版 **v0.6.1（成语词典）收尾到 v0.6.2**：659 → **809 张 / 21 → 22 分类**（新增第 22 分类「成语」150 条 / 5 组各 30，`kind=idiom` + 5 个可选字段）、图片 831 张（+150 四字卡 +1 封面）、音频仍 659 条（成语无英文）、`SEED_VERSION` 8→9，`schemaVersion` 仍 1；扩契约不升版（`CardKind` 加 `idiom`）；**274 个用例 / 20 文件**，JS gzip 206.11KB（硬线 350KB）。v0.6.1：四字卡从「14 类意境」改为「每条 2 件实物意象」（`IDIOM_PROPS` 150×2 + `IDIOM_MOTIFS` 78 件），并修掉详情页图块 `100cqh` 解析为 0 导致的图片塌陷。v0.6.2 界面改版：容器分档（列表 1440 / 详情 960）、分类卡等高、首页顶栏合并、主色改墨绿、源码入口三处，零契约与零数据变更。上一版 v0.5.0 内容大扩容（659 张 / 21 分类）已实现；设备矩阵待真机验收 |
 | 核心约束 | 无后端、无账号、数据仅存浏览器本地；1–3 岁可用性优先 |
 | 最近更新 | 2026-10-31 |
 
@@ -43,6 +43,9 @@
 | 语音 | Web Speech API（`speechSynthesis`） | 浏览器原生 | 零成本、无网络依赖；需自建适配层与降级（ADR-008） |
 | 离线 | 手写 Service Worker + Web App Manifest | 浏览器原生 | 零新依赖、策略只有两条可审；不引 Workbox（ADR-V3） |
 | 图标渲染 | sharp（devDependency） | 0.34 | 从 `public/icons/icon.svg` 出一份 192 / 512 / maskable PNG，与图片管线同一依赖 |
+| 笔顺数据 | `hanzi-writer-data`（devDependency，Arphic 许可） + `scripts/build-stroke-data.mjs` | 2.x / — | 构建期只抽 321 字、按 8 主题组切块，运行时零加载；导出 `manifest.json` 供首屏判断与门禁 V8 共用（ADR-X2） |
+| 笔顺演示 | `hanzi-writer` | 3 | 逐笔时序、描边动画、暂停/重播开箱即用，MIT 且零依赖；仅被 `StrokePlayer` 懒加载引用（ADR-X1） |
+| 内容快照 | 原生 IndexedDB（窄用途） | 浏览器原生 | 只用于「内容快照与回滚」5 份，接口端口化可换内存实现；业务主数据仍单 key localStorage（ADR-X5） |
 | 测试 | Vitest + @testing-library/react + jsdom | 3 / 16 | 与 Vite 同源配置，启动快 |
 | 规范 | ESLint（flat config）+ Prettier | 9 / 3 | 统一风格；`tsc --noEmit` 做类型门禁 |
 | 包管理 | npm（Node 24） | — | 环境已具备，无需额外安装 |
@@ -57,7 +60,7 @@
 | TanStack Query | 无网络请求，缓存需求由仓储 + 轻量 hook 满足 |
 | UI 组件库（AntD/MUI） | 儿童化视觉需要高度定制，组件库反而成为负担 |
 | 动画库（默认） | CSS transition 足够；若 v0.2 需要手势弹簧效果再评估 |
-| IndexedDB | v0.2 数据量（501 卡 + 小图 + 故事正文段落）仍在 localStorage 内；容量预警后再迁移（见技术方案风险 R3） |
+| IndexedDB | v0.2 数据量（501 卡 + 小图 + 故事正文段落）仍在 localStorage 内；容量预警后再迁移（见技术方案风险 R3）。v0.9 例外：仅「内容快照」用 IndexedDB，业务主数据仍单 key localStorage，不改变「读路径只用 localStorage」这一取舍（ADR-X5） |
 | Workbox / next-pwa | 策略只有「导航网络优先 + 静态缓存优先」两条，手写 90 行可审；引入后多一层构建期 precache manifest，对 7 MB 资产的收益不抵复杂度（ADR-V3） |
 
 ---
@@ -120,7 +123,7 @@ early-learn/
 | 规范 | `npm run lint` | 0 error，0 warning |
 | 测试 | `npm run test` | 全绿；领域层覆盖率 ≥ 80% |
 | 构建 | `npm run build` | 成功；首屏 JS ≤ 350KB gzip |
-| 内容 | `npm run validate:content` | 卡片 / 分类 / 图片 / 音频 / 分组齐全，成语规则 V6 / V7 全过 |
+| 内容 | `npm run validate:content` | 卡片 / 分类 / 图片 / 音频 / 分组齐全，成语规则 V6 / V7 全过；v0.9 新增 V8：`manifest.json` 笔画数与 321 张汉字卡 `strokes` 双向一致 |
 | 手工 | 设备矩阵 + PRD 第 12 节清单 | 全部勾选 |
 
 提交前必须五道自动门禁全绿（含 `validate:content`）；不允许 `--no-verify` 跳过。
@@ -139,6 +142,7 @@ early-learn/
 | 覆盖率 | `npm run test:coverage` |
 | 生成内置素材 | `npm run prepare:images`（依赖 sharp；可 `-- --force` / `-- --only=animals`） |
 | 生成 PWA 图标 | `npm run prepare:icons`（从 `public/icons/icon.svg` 出 192 / 512 / maskable 三份 PNG） |
+| 生成笔顺数据 | `npm run prepare:strokes`（v0.9：从 `hanzi-writer-data` 抽 321 字，出 8 组模块与 `manifest.json`；二次运行幂等） |
 
 > 规约第 1 条：所有临时下载（图片原图、第三方脚本）置于项目内 `.tmp/`，任务结束立即清理。
 
@@ -161,6 +165,7 @@ early-learn/
 | v0.6.2 | `NFR/v0.6/技术方案-界面改版.md` | 界面改版（零契约变更）：token 暖调 + 主色墨绿 `#2F6B57` + 21 分类色降饱和、容器分档 `.page`/`.page--wide`/`.detail`（1180 / 1440 / 960）、`.grid-cats` 6 列与 `.grid-cards` 2·4·6 列整除 12 张、`.cat-tile` 改「封面 + 单行名称 + 角标」、首页 `topbar--hero` 合并与窄屏横滑 + `mask-image`、`.detail--idiom` 三行网格（左图 396px / 右文内部滚动）、`REPO_URL` 三处入口、ADR-U1~U3 与 CDP 两档实测 | **已实现**（274 例全绿，CSS gzip 7.89KB / JS gzip 206.11KB） |
 | v0.7 | `NFR/v0.7/技术方案-搜索与离线.md` | 搜索与离线（零契约变更）：复用 `searchCards` + URL 唯一事实源（不做防抖与 state↔URL 双向同步）、`CardTile` 抽公用与 `.card-tile__cat` 角标、manifest + 手写 `sw.js`（`early-learn:v1`，导航网络优先 / 静态缓存优先 / 跨源不拦）、sharp 三档图标、六个低频页 `lazy` + `AppShell` 内 `Suspense`、`--page-max-detail` 与 ≥1700 px → 1680、顶栏 `--topbar-max` / `--topbar-pad` 反算对齐、详情页图与右列重心对齐、ADR-V1~V5 与 CDP 四档 + 断网实测 | **已实现**（281 例全绿，CSS gzip 8.36KB / JS gzip 196.00KB） |
 | v0.8 | `NFR/v0.8/技术方案-分龄与拼音辅助.md` | 分龄与拼音辅助（零契约变更）：龄段 `AgeBand`（`1-3` / `3-6`）复用既有 `difficulty` 做映射（难度 2 为重叠带）、`isAgeBand` / `matchesBand` / `countCardsByBand` 领域纯函数、`?band=` 走 URL 唯一事实源（沿用 v0.7）、首页 `.band-row` 两张大卡 + `/age/:band` 分类墙（静态 import）+ 分类页筛龄 + 详情页序列合并过滤并修「翻页丢 `?group=`」、`CategoryTile` 从 `HomePage` 抽出公用、拼音候选改为 `pinyin-pro`（devDependency）+ `prepare:pinyin` 构建期生成 GB2312 一级字字典（运行时零依赖）、`PinyinSuggest` 按字点选不静默写入、ADR-W1~W4 与风险 R1~R5；笔顺动画顺延 v0.8.1 | **已实现**（v0.8.0：307 例全绿；主 chunk gzip 197.08 kB；字典 gzip 19.1 kB；五道门禁与 CDP 三档见 §5 实测；复审另补故事页往返透传与拼音按位沿用 `value`） |
+| v0.9 | `NFR/v0.9/技术方案-笔顺与生产工具.md` | 笔顺与生产工具（零契约变更）：笔顺数据管线（`build-stroke-data.mjs` 只抽 321 字 → 8 组模块 + `manifest.json`，门禁 V8 双向校验笔画数）、`StrokePlayer` 状态机 + `reduceMotion` + 组 chunk 懒加载 + 失败降级、CSV 解析器（RFC4180 子集）与整表拒绝、上传图档位压缩（1280 / WebP / ≤150 KB）、IndexedDB 快照端口（保留 5 份 / 单份 8 MB / 恢复前自动备份 / 隐私模式降级）、ADR-X1~X5 与风险 R1~R6 | **已规划**（PRD 与 NFR 成稿，待实现；任务拆解 T-X1~T-X12，预估 307 → 约 349 例） |
 
 **版本化规则**：技术设计随 FR 版本推进；`vX.Y` 目录对应需求版本。破坏性技术变更（换存储、换路由模式、换框架）必须新增 ADR 并在此表登记。
 
@@ -193,6 +198,7 @@ early-learn/
 | U1–U3 | 界面改版（v0.6.2）：容器**分档**不分全站放宽 / 主色改墨绿且分类色只做浅色底 / 窄屏入口条**横滑 + 右渐隐**而不换行堆叠 | 详见 `NFR/v0.6/技术方案-界面改版.md` §10 |
 | V1–V5 | 搜索与离线（v0.7）：搜索全前端复用 `searchCards` 不建索引 / 详情翻页仍按同分类不按结果集 / 手写 `sw.js` 不引 Workbox / 懒加载只拆低频页不动高频页 / 超宽屏用 `:root` 变量覆盖 + `%` 反算顶栏内距（不用 `100vw`） | 详见 `NFR/v0.7/技术方案-搜索与离线.md` §7 |
 | W1–W4 | 分龄与拼音辅助（v0.8）：分龄**复用 `difficulty`** 不加 `ageBand` 字段 / 龄段走 **URL `?band=`** 不做全局设置项 / 拼音字典**构建期生成**（`pinyin-pro` 只作 devDependency）/ 拼音只做**按字候选**不猜整词 | 详见 `NFR/v0.8/技术方案-分龄与拼音辅助.md` §7 |
+| X1–X5 | 笔顺与生产工具（v0.9）：笔顺渲染引 **`hanzi-writer`（懒加载）** 而不自写 / 数据产物分 **8 组模块 + `manifest.json`** / CSV 走 `bulkUpsert` 且**整表拒绝** / 图片压缩用 canvas `toBlob` **不引压缩库** / 快照放 **IndexedDB 且端口化**（业务主数据仍在 localStorage） | 详见 `NFR/v0.9/技术方案-笔顺与生产工具.md` §9 |
 
 ---
 
@@ -227,3 +233,4 @@ early-learn/
 | 2026-10-31 | v0.8.0（技术方案） | 新增 `NFR/v0.8/技术方案-分龄与拼音辅助.md`（规划稿，零契约变更）：① §1 事实核对 8 条——`difficulty` 从 v0.1 就在实体里但**前台从未读取**、种子已按难度标好（实物 58/115/64、汉字 92/150/79、古诗 12/21/17、故事 15/31/4、成语 23/58/69）、`buildCardSequence` 已支持筛选器、`CardTile` 已透传 `location.search`、详情页 `goPrev/goNext` 不带 search 是既有 bug、无任何拼音库、`AGENT.md` §6 禁自动生成；② §2 龄段 `AgeBand` + `AGE_BAND_DIFFICULTIES`（`1-3` = 难度 1+2、`3-6` = 难度 2+3，难度 2 重叠带；只取难度 1 会让蔬菜/海洋/小虫/职业/穿戴 5 类为 0 张，58 → 173 张）+ 三个领域纯函数 + `?band=` URL 约定；③ §3 首页 `.band-row` 两张大卡、新增 `AgePage`（静态 import、0 张分类不渲染）、`CategoryPage` 认 `?band=` 且 `goto` 保留 band、详情页序列合并 band 过滤并修翻页丢参、`CategoryTile` 抽公用（`countSuffix` / `search`）；④ §4 拼音走「构建期生成字典」——`scripts/build-pinyin-dict.mjs` + `npm run prepare:pinyin` 出 `src/data/pinyin/dict.ts`（GB2312 一级字 3755，45–55 kB / gzip 20–25 kB），`PinyinSuggest` 按字列全部读音、点选才写入、`zh` 变化清空已选、库外字回退手输；⑤ §5 五道门禁与 CDP 三档待回填、§6 任务拆解 12 步（测试先行）、§7 ADR-W1~W4、§8 风险 R1~R5（含 v0.8.1 笔顺数据授权与体积） | Architect / Agent |
 | 2026-10-31 | v0.8.0（实现） | 分龄与拼音辅助落地（T-W1–T-W12）：① 领域 `AgeBand` / `AGE_BAND_*` / `isAgeBand` / `matchesBand` / `countCardsByBand`（难度 2 重叠带），`catalog.test.ts` +6；② `CategoryTile` 抽公用（`countSuffix` / `search`），首页 `.band-row` 两张分龄大卡（576 / 609）；③ 新增 `AgePage` + 静态路由 `age/:band`，0 张分类不渲染、非法 band 空态；④ 分类页 `?band=` 双层 `all` / `list`（6 / 13）、`goto` 加 `nextBand`、年龄 chips + 「看全部」、0 张给出口；⑤ 详情页序列合并 band 谓词，`goPrev/goNext` 透传 `location.search` 与 `state`（修 v0.7 丢 `?group=`）；⑥ `scripts/build-pinyin-dict.mjs` + `prepare:pinyin` 出 3755 字字典（76.7 kB / gzip 19.1 kB，幂等），`PinyinSuggest` 只回调 `onPick`；⑦ 五道门禁全绿（**303 例 / 22 文件**，+22：领域 6 / 页面 12 / 拼音 4；CSS gzip 8.55 kB）；⑧ CDP 360 / 1440 / 1826 三档：溢 0，分龄卡 332 / 683 / 810 宽、高恒 105，分类墙 2 / 6 / 6 列，1826 容器 1680；⑨ 偏差 D-1：主 chunk gzip 196.00 → 197.08（+1.08，分龄入口与 `AgePage` 静态 import）；⑩ 版本号 0.8.0 | Agent |
 | 2026-10-31 | v0.8.0（复审） | 全量代码复审后修订 4 条：① `NFR/v0.8` §3.4 补「详情 → 故事页 → 详情」往返链路（`openStory` / `StoryReaderPage.detailUrl` 带 `location.search`，修前序列从 35 张退回 50 张）；② §4.3/§4.4 `PinyinSuggest` 改收可选 `value`，点选按「被点位 > 已选 > `value[i]` > 首读音」补齐并补缺字点名 / 改词提示；③ §5.1 test 303 → **307**、`CardAdmin` gzip 25.89、`built in 6.60s`（主 chunk gzip 仍 197.08）；④ §5.2 新增 CDP 9 步复核（含故事往返）；低优先 L1~L5 仅登记 `AGENT.md` §6 待办 | Agent |
+| 2026-10-31 | v0.9.0（技术方案） | 新增 `NFR/v0.9/技术方案-笔顺与生产工具.md`（规划稿，零契约变更）：① §1 事实核对 12 条（汉字 321 张分 8 组 25/55/44/38/38/44/61/16、笔顺只有 `strokes: number`、`hanzi-writer@3.7.3` MIT 零依赖 / `hanzi-writer-data@2.0.1` Arphic 32.3 MB、「一」0.4 KB 与「赢」4.5 KB 单字体量、上传入口全站唯一、`auto-backup` 无读取入口、`bulkUpsert` 已就绪、`storage.replace` + `run()` 可复用、`resolveJsonModule` 已开）；② §2 笔顺管线：脚本产物 8 组模块 + `manifest.json`（幂等、缺字非零退出）、`hasStrokeData` 静态判断 + 组 chunk 动态 import + Promise 缓存、`charDataLoader` 接入、门禁 V8 三条；③ §3 `StrokePlayer` 状态机（idle/loading/playing/done/stopped）、固定方块 `clamp(120px, 36vw, 220px)`、`reduceMotion` 直接显示整字、lazy + Suspense 占位、四类失败降级；④ §4 CSV：RFC4180 子集解析器、10 列映射、整表拒绝、同分类同 `zh` 判重跳过、`bulkCreateCards` 接入、模板带 BOM；⑤ §5 图片压缩档位（0.82/0.72/0.62/0.55 × 1280/1024/800）与 `LIMITS` 新增三项；⑥ §6 快照端口与 IndexedDB 实现、保留 5 份 / 单份 8 MB / 5 处自动触发 / 恢复流程 / 隐私模式降级；⑦ §7 门禁与 CDP 7 步待回填、§8 T-X1~T-X12（预估 +42 例）、§9 ADR-X1~X5、§10 风险 6 条 | Architect / Agent |
