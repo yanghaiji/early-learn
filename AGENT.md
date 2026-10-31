@@ -140,6 +140,7 @@ graph LR
 | 14 搜索与离线（v0.7） | `/search` 全局搜索（复用 `searchCards` + URL 唯一事实源）、`CardTile` 抽公用、manifest + 手写 `sw.js` + sharp 图标、六个低频页懒加载、超宽屏 1680 与顶栏反算对齐、详情页图与右列重心对齐 | 搜索 7 例全绿；主 chunk gzip 206.11 → **196.00**；CDP 四档顶栏对齐 + 断网 reload 首页完整 | T-V1–T-V8 | ✅（真机安装待验） |
 | 15 分龄与拼音辅助（v0.8） | 首页两档分龄大卡（1–3 岁 / 3–6 岁）+ `/age/:band` 分龄分类墙 + 分类页 `?band=` 筛选（含「看全部」）+ 详情页按龄翻页（全部复用既有 `difficulty`，零新字段）；`CategoryTile` 从 `HomePage` 抽出公用；管理区拼音候选（构建期字典 + 按字点选）；顺手修详情页翻页丢 `?group=`、`?band=` 的既有缺陷；工期中复审再修「详情 → 故事页 → 详情」返程丢参 | 22 个分类在 1–3 岁全部非空（576 张）；蔬菜 13 → 6；字典 gzip 19.1 kB、主 chunk gzip +1.08（偏差 D-1）；新增领域 6 例 / 页面 13 例 / 拼音 7 例 | T-W1–T-W12 | ✅（真机待验） |
 | 16 笔顺与生产工具（v0.9，进行中） | 汉字详情逐笔动画（`hanzi-writer` + `prepare:strokes` 出 8 组数据与 `manifest.json`，组 chunk 懒加载、遵循 `reduceMotion`、无数据不显示按钮）；数据管理三件：CSV 批量录入（预览 + 整表拒绝）、上传图压缩（最长边 1280 / WebP / ≤150 KB）、IndexedDB 内容快照与一键回滚（保留 5 份） | T-X1~T-X6、T-X8~T-X10 已落：321 字全覆盖且笔画数与卡片一致（门禁 V8）、主 chunk 仍 gzip 197.57（余量 0.01）、播放器五态接进详情页、CSV 解析器 + 10 列映射 + 整表拒绝、图片压缩纯函数与 12 档、压缩接进 `CardForm`（原图上限 500 KB → 8 MB，jsdom 打桩）、快照端口与保留策略（内存端口测），用例 307 → **370**。待做：CSV 预览与写入（T-X7）、快照面板 + IndexedDB 端口（T-X11）、门禁 V8（T-X12）；写入前建快照依赖 T-X11 把 `createIdbSnapshotPort()` 接上 | T-X1–T-X12 | 进行中（T-X1~T-X6、T-X8~T-X10 完成） |
+| 17 首页信息架构（v0.10） | 分龄大卡改「左文右图」（封面复用水果 / 古诗，不新出图）；分类墙按语义分四段——认物 17 / 字卡 2（汉字排在数字前）/ 诗文 2 / 绘本 1，三小段三列并排 + 横卡；管理区新建分类落「更多」兜底段；为腾首屏预算把 `DisplayModeSwitch` / `SettingsPage` / `AdminGuard` / 家长门改懒加载 | 1440 首页总高 1981 → **1368**；主 chunk gzip 197.57 → **195.48**（余量 2.10）、CSS 8.86；382 例 / 32 文件全绿；CDP 360 / 768 / 1440 / 1826 四档 `overflowX = 0`；零契约变更 | H-1–H-4 | ✅（H-5 移动端入口条收纳待排期） |
 
 ### 3.1 关键实现顺序理由
 
@@ -201,14 +202,14 @@ npm run build            # 产物构建 + 首屏 JS ≤ 350KB gzip
 npm run validate:content # 内容门禁（卡片/分类/图片/音频/分组）
 ```
 
-**最近一次实测（2026-10-31，v0.9.0，T-X10 落地后）**
+**最近一次实测（2026-10-31，v0.10.0，首页信息架构落地后）**
 
 | 门禁 | 结果 | 关键数据 |
 | --- | --- | --- |
 | `typecheck` | ✅ | 0 error（strict：`noUncheckedIndexedAccess` / `verbatimModuleSyntax` / 未使用变量均开启） |
 | `lint` | ✅ | 0 error / 0 warning |
-| `test` | ✅ | **30 个测试文件、370 个用例全绿**（v0.9 以来 307 → 370：笔顺产物 5、笔顺入口 5、播放器 5、详情接入 2、CSV 解析 8、CSV 映射与整表拒绝 9、图片压缩纯函数 11、压缩链路 8、快照端口 8、上传图压缩 UI 1，另产物自守 +1）；覆盖率未重跑，沿用 v0.4 实测（行 82.25% / 分支 80.14%） |
-| `build` | ✅ | 主 chunk `585.59 kB` → **gzip `197.57 kB`**（预算 197.58，余量 0.01）；CSS gzip **8.70**；`StrokePlayer` chunk 12.13；`CardAdmin` 25.98；8 个笔顺数据 chunk 13.93 / 51.83 / 40.35 / 45.87 / 29.55 / 44.38 / **60.34** / 14.97；`built in 7.31s` |
+| `test` | ✅ | **32 个测试文件、382 个用例全绿**（v0.10 新增 12：`categoryGroups.test.ts` 6 / `home.test.tsx` 6；v0.9 以来 307 → 370：笔顺产物 5、笔顺入口 5、播放器 5、详情接入 2、CSV 解析 8、CSV 映射与整表拒绝 9、图片压缩纯函数 11、压缩链路 8、快照端口 8、上传图压缩 UI 1，另产物自守 +1）；覆盖率未重跑，沿用 v0.4 实测（行 82.25% / 分支 80.14%） |
+| `build` | ✅ | 主 chunk `579.09 kB` → **gzip `195.48 kB`**（预算 197.58，余量 **2.10**）；CSS `41.53 kB` → gzip **8.86**（预算 9.2，余量 0.34）；`StrokePlayer` chunk 12.13；`CardAdmin` 26.00；`AdminGateModal` 0.26 / gzip 0.20；8 个笔顺数据 chunk 13.93 / 51.83 / 40.35 / 45.87 / 29.55 / 44.38 / **60.34** / 14.97；`built in 7.35s` |
 | `validate:content` | ✅ | **809 张 / 22 分类** + 659 条音频逐条存在；V1~V7 全生效（内容零变更，V8 待 T-X12） |
 | `prepare:pinyin` / `prepare:strokes` | ✅ | 拼音字典 3755 字 · gzip 19.1 kB；笔顺 321 字 / 8 组 / 727.5 kB（gzip 303.5），缺字 0，两个脚本重跑均输出「未变化」 |
 | PWA 产物 | ✅ | `manifest.webmanifest` + `sw.js` + 三档图标随 dist 输出（v0.8 未改 PWA 链路）；v0.7 已验证生产构建下断网 reload 首页完整 |
@@ -216,6 +217,8 @@ npm run validate:content # 内容门禁（卡片/分类/图片/音频/分组）
 > 历史偏差 D-1（v0.8）：方案预期「主 chunk 不增长」，实际 gzip +1.08 kB（分龄入口与 `AgePage` 静态 import），详见 `NFR/v0.8` §5.1。
 
 > **v0.9 实测口径**：主 chunk 197.08 → **197.57**（+0.49，详情页 `lazy` 桩与挂载 + 压缩接线），**余量只剩 0.01 kB**，后续往首屏加任何常量前先看 `NFR/v0.9` §7.1；`daily` 数据 chunk 60.34 超单组上限 0.34 kB（0.6%，记录在案）；CDP 的 CSV / 压缩 / 快照三项待对应任务落地后补测（压缩的选图 → 写入已在 jsdom 钉住，真浏览器待跑）。
+
+> **v0.10 实测口径**：主 chunk gzip 197.57 → **195.48**（−2.09：腾预算 −2.67、首屏改版 +0.58），余量从 0.01 回到 **2.10**；CSS 8.70 → 8.86（+0.16，新增 4 组选择器），余量 0.34。代价落在 CSS 而不是 JS——分龄卡只加了两个 `<div>`（`__body` / `__media`），分类墙换了网格容器，22 张 `CategoryTile` 一个都没多。
 
 > 离线能力只能在生产构建里验证（`npm run preview`）：dev 下 `import.meta.env.PROD` 为假，按设计不注册 SW。
 
@@ -393,6 +396,9 @@ npm run validate:content     # 等价于 node scripts/validate-content.mjs
 | 2026-10-30 | 决策 | 搜索页把 **URL 当唯一事实源**：输入框 `value` 直接读 `?q=`，每次输入 `setSearchParams(params, { replace: true })`。不做「本地 state + 防抖 + 双向同步」：809 张全内存过滤 < 5ms，防抖只会把「边打边出」变成「停手才出」，而两份状态互相追赶时还会抢光标；`replace` 则避开每个字符一条历史记录 |
 | 2026-10-31 | 坑位 | 管理区 chunk 去读 `LIMITS.xxx` 会把常量钉回主 chunk：T-X8 把三个图片常量放进 `LIMITS` 时一切正常（没人引用 → 被剪掉，dist 里 0 命中）；T-X9 在 `CardForm` 一接线，`constants.ts` 是主 chunk 的静态依赖，那条属性就再也摇不掉，主 chunk gzip 从 197.56 顶到 **197.61**（预算 197.58）。规矩：**只被懒加载 chunk 用的常量就放那个 chunk 自己的模块里**（本例 `shared/utils/image.ts`）；并且「0 命中」不能当成「不会占首屏」的证据，接线后必须重测 |
 | 2026-10-31 | 坑位 | jsdom 里没有真 canvas：`getContext` 返回 null、`toBlob` 从不回调，不桩就直接卡在「压缩中…」。三处必桩 —— `HTMLCanvasElement.prototype.getContext`（返回只带 `drawImage` 的假上下文）、`toBlob`（同步回调一个指定体积的 `Blob`，体积按调用次数据定才能模拟逐档重试）、`createImageBitmap`（返回 `{ width, height, close }`）；WebP 探测走 `toDataURL`，不桩会静默落 JPEG。桩完要 `vi.restoreAllMocks()` + `vi.unstubAllGlobals()`，否则后续用例拿到的 `URL` / `Image` 还是假的 |
+| 2026-10-31 | 坑位 | `.cat-tile--row` 必须写在 `.cat-tile` **之后**：两者特异性相同，`display:grid` 会被后面的 `display:flex` 覆盖，三列横卡被拉成整栅高的巨卡（看着像「绘本卡撑满一屏」）。改成横卡变体时先查定义顺序，别直接加在文件末尾 |
+| 2026-10-31 | 坑位 | `grid` 的默认 `align-items` 是 `stretch`：「字卡」列有两张卡而「绘本」列只有一张时，绘本卡会被拉伸到与另两列等高（同一张卡在 1440 下比 360 下高出一倍）。三列并排必须显式 `align-items: start`，让短列自己短 |
+| 2026-10-31 | 坑位 | 「上面分龄卡 + 下面一堆卡」看起来像两个不相干的世界，根因不一定是排版：先把 809 张按分类数一遍。实测认物 17 个入口只占 210 张（26%）、字卡 2 个入口占 349 张（43%），入口数与内容量是**倒挂**的；而且「动物 22」里装着蜜蜂 / 蝴蝶 / 鱼（与小虫子、海洋动物交叉）、「日常用品」装着鞋子帽子、「家人」里是老师与朋友。**先修分类归属与权重，再动版式**，否则只是把乱的换个摆法 |
 
 ---
 
@@ -454,3 +460,4 @@ npm run validate:content     # 等价于 node scripts/validate-content.mjs
 | 2026-10-31 | v0.9.0（T-X8 图片压缩纯函数） | 需求方「继续 T-X8（图片压缩，先做无依赖的那部分）」：① `shared/utils/image.ts` 新增 `ImageAttempt` 与两张档位表（质量 0.82 / 0.72 / 0.62 / 0.55、边长 1280 / 1024 / 800）、`fitWithin`（等比缩最长边、小图不放大、非正尺寸返 0、细长图两侧下限 1）、`imageAttempts` / `firstAttempt` / `nextAttempt`（共 12 档：先降质量、降到最低再缩边，末档与非档位值均返 `null`）、`withinTarget`（按 `blob.size` 判 150 KB，0 字节视为编码失败）；② `LIMITS` 新增 `IMAGE_RAW_MAX_BYTES`（8 MB）/ `IMAGE_TARGET_BYTES`（150 KB）/ `IMAGE_MAX_EDGE`（1280），并把 `IMAGE_MAX_BYTES` 的语义收窄为「只管导入 JSON」；③ `readImageAsDataUrl` 的 500 KB 前置拒绝**未动**——放宽必须与压缩接入同步，否则 667 KB 的 base64 会直接写进 localStorage；④ 新增 `image.test.ts` 9 例（342 → **351 例 / 28 文件**）；⑤ 五道门禁全绿，主 chunk 585 619 B / gzip 197.56 与 `CardAdmin` 25.89 逐字节不变（新函数未被引用，连三个新常量一起被剪掉）；⑥ NFR §5.2 / §7.1 / §7.2 / §8 / §11、PRD §3 / D-X10 / §6、FR 与 NFR 两份 README 同步 | Agent |
 | 2026-10-31 | v0.9.0（T-X10 快照端口） | 需求方「继续 T-X10 快照端口（内存实现 + 单测，先不接 UI）」：① 新增 `src/data/storage/snapshotStore.ts` —— `SnapshotLabel` 六种来源 + `SNAPSHOT_LABEL_TEXT`（面板直接渲染）、`SnapshotRecord` / `SnapshotPort`（`list` / `put` / `remove`）、`SNAPSHOT_KEEP` 5 / `SNAPSHOT_MAX_BYTES` 8 MB、`estimateSnapshotBytes`、`createSnapshotStore({ port, now, keep, maxBytes })`；② `create` 超限**不写库**、只回 `{ ok: false, reason: 'too-large', bytes }`，写库后按 `createdAt` 新在前截断到 5 份并删多余；③ `id` = `snap-<createdAt>-<序号>`（序号取写入前列表长度），同毫秒按序号降序配对；④ `restore(id)` 只回 `doc`，`parseCatalogDocument` 与 `storage.replace` 留给 T-X11 的恢复流程；⑤ 内存端口放 `src/test/snapshotPort.ts`（可注入 `list` / `put` / `remove` 失败），jsdom 不需要 `fake-indexeddb`；⑥ 新增 `snapshotStore.test.ts` 8 例（351 → **359 例 / 29 文件**）；⑦ 五道门禁全绿，主 chunk 585 619 B / gzip 197.56 与 `CardAdmin` 25.89 仍逐字节不变（尚未被引用，dist 里 `SNAPSHOT_KEEP` / `before-csv` 0 命中）；⑧ NFR §6.1 / §7.1 / §7.2 / §8 / §11、PRD §3 / §6、FR 与 NFR 两份 README、本文 §3 / §5.1 / §6 / §8 同步 | Agent |
 | 2026-10-31 | v0.9.0（T-X9 压缩接入表单） | 需求方「继续 T-X9：把 `compressImageFile` 接进 `CardForm`，同时把 `readImageAsDataUrl` 的原图上限从 500 KB 放宽到 8 MB，jsdom 下给 `createImageBitmap` / canvas `toBlob` 打桩」：① `shared/utils/image.ts` 补齐副作用层——`decodeImage`（`createImageBitmap` 优先，失败回退 `<img>` + `objectURL`，两者都释放）、`preferredMime`（1×1 画布探 WebP，不缓存）、`encodeAttempt`（`getContext` / `toBlob` 抛错返 null 交下一档）、`compressImageFile`（空文件与超 8 MB 先拒、解码一次、12 档循环、命中即 `FileReader` 转 dataURL，用尽抛 `ImageCompressError`）；② `readImageAsDataUrl` 的前置拒绝改用 `IMAGE_RAW_MAX_BYTES`；③ 三个压缩常量从 `LIMITS` 摆到 `image.ts`——放 `LIMITS` 时主 chunk gzip **197.61** 顶穿 197.58 预算，摆出后 **197.57**（§6 已记坑位）；④ `CardForm` 选图「压缩中…」+ `aria-busy` + `disabled`，`onChange` 先清 `value` 否则同一张图重选不触发，toast 改「已压缩：A → B · W×H」；⑤ 新增 11 例（`imageCompress.test.ts` 8 / `image.test.ts` 2 / `admin.test.tsx` 1），359 → **370 例 / 30 文件**；⑥ 五道门禁全绿（主 chunk 197.57、`CardAdmin` 25.98、CSS 8.70、`built in 7.31s`）；⑦ NFR §5.1~§5.4 / §7.1 / §7.2 / §8 / §11、PRD §3 / §6、FR 与 NFR 两份 README、本文 §3 / §5.1 / §6 / §8 同步 | Agent |
+| 2026-10-31 | v0.10.0（首页信息架构） | 需求方「感觉首页不是很好看，上面 1–3 岁、下面又是卡片，分类不明确」：① 分龄卡改 `.band-card` 左文右图（`__body` / `__media`，封面复用 `fruit.webp` / `poems.webp`，不新出图）；② 新增 `domain/services/categoryGroups.ts`（四段清单 + `FALLBACK_GROUP` 兜底 + 组内按清单排序，不给实体加字段）；③ 首页改「分龄大卡 → 认物整行网格 → 三小段三列横卡」，`CategoryTile` 加 `row` 变体；④ 三步腾预算：`DisplayModeSwitch` / `SettingsPage` + `AdminGuard` / 新增 `AdminGateModal` 全部懒加载，主 chunk gzip 197.57 → 194.90，改版后 **195.48**（余量 2.10），CSS 8.86（余量 0.34）；⑤ 新增 12 例（`categoryGroups.test.ts` 6 / `home.test.tsx` 6），370 → **382 例 / 32 文件**；⑥ CDP 360 / 768 / 1440 / 1826 四档 `overflowX = 0`，1440 首页总高 1981 → **1368**；⑦ 新增 `FR/v0.10/PRD-首页信息架构.md` 与 `NFR/v0.10/技术方案-首页信息架构.md`；⑧ 首轮复审发现遗留：「认物 17 张吃满两屏、字卡 349 张只两个入口」属分类体系与权重问题，已登记 §6 坑位，待 v0.11 处理 | Agent |

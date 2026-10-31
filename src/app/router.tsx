@@ -2,14 +2,14 @@
  * 路由表。
  * 使用 HashRouter：配合 vite base './' 与相对图片路径，静态托管（含子路径）无需重写规则（NFR §6.3）。
  *
- * 懒加载分工（v0.7 ADR-V4）：管理区三页、听音选图、故事页、使用说明走 lazy，
- * 高频页（首页 / 分龄墙 / 分类 / 详情 / 收藏 / 最近 / 复习 / 搜索 / 设置）保持静态，
- * 避免「点一张卡要先等一个 chunk」。
+ * 懒加载分工（v0.7 ADR-V4，v0.10 扩到设置页与管理区门禁）：管理区三页、听音选图、故事页、
+ * 使用说明、设置页走 lazy，高频页（首页 / 分龄墙 / 分类 / 详情 / 收藏 / 最近 / 复习 / 搜索）保持静态，
+ * 避免「点一张卡要先等一个 chunk」。v0.10 把设置页与 `AdminGuard` 也移出主 chunk：两者都只在点进去后
+ * 才需要，却把 `ParentGate` / `Modal` 整套家长门一起钉在了首屏（主 chunk 预算已无余量）。
  */
 
 import { lazy } from 'react';
 import { HashRouter, Route, Routes } from 'react-router-dom';
-import { AdminGuard } from '../features/admin/ui/AdminGuard';
 import { AdminLayout } from '../features/admin/ui/AdminLayout';
 import { CardDetailPage } from '../features/cards/ui/CardDetailPage';
 import { CategoryPage } from '../features/cards/ui/CategoryPage';
@@ -20,7 +20,6 @@ import { RecentPage } from '../features/learn/ui/RecentPage';
 import { ReviewPage } from '../features/learn/ui/ReviewPage';
 import { NotFoundPage } from '../features/misc/ui/NotFoundPage';
 import { SearchPage } from '../features/search/ui/SearchPage';
-import { SettingsPage } from '../features/settings/ui/SettingsPage';
 import { CatalogProvider } from './CatalogProvider';
 import { AppShell } from './layout/AppShell';
 
@@ -41,6 +40,12 @@ const StoryReaderPage = lazy(() =>
 );
 const GuidePage = lazy(() =>
   import('../features/misc/ui/GuidePage').then((m) => ({ default: m.GuidePage })),
+);
+const SettingsPage = lazy(() =>
+  import('../features/settings/ui/SettingsPage').then((m) => ({ default: m.SettingsPage })),
+);
+const AdminGuard = lazy(() =>
+  import('../features/admin/ui/AdminGuard').then((m) => ({ default: m.AdminGuard })),
 );
 
 /** 路由表（懒加载边界在 AppShell 的页面出口处，见 AppShell.tsx） */

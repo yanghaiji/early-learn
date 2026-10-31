@@ -1,6 +1,6 @@
 /** 首页 · 分类墙（PRD M1 / US-01） */
 
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Github, Languages, Lock, Search } from 'lucide-react';
 import { useCatalog } from '../../../app/CatalogProvider';
@@ -10,16 +10,37 @@ import {
   AGE_BAND_LABEL,
   AGE_BAND_NAME,
   AGE_BAND_TAGLINE,
+  type AgeBand,
 } from '../../../domain/entities/card';
 import { countCardsByBand } from '../../../domain/services/catalog';
+import { groupCategories } from '../../../domain/services/categoryGroups';
 import { Button, IconButton } from '../../../shared/ui/Button';
 import { EmptyState } from '../../../shared/ui/Feedback';
-import { Modal } from '../../../shared/ui/Modal';
-import { ParentGate } from '../../../shared/ui/ParentGate';
+import { ImageWithFallback } from '../../../shared/ui/ImageWithFallback';
 import { markGatePassed } from '../../admin/gateSession';
 import { ProgressEntries, ProgressStatsLine } from '../../learn/ui/ProgressStats';
-import { DisplayModeSwitch } from '../../settings/ui/DisplayModeSwitch';
 import { CategoryTile } from './CategoryTile';
+
+/** 显示语言切换只有点开「语言」才需要，离开主 chunk（v0.10 首页改版腾预算） */
+const DisplayModeSwitch = lazy(() =>
+  import('../../settings/ui/DisplayModeSwitch').then((m) => ({ default: m.DisplayModeSwitch })),
+);
+/** 家长门（Modal + ParentGate 约 5.7 kB）同样只在点「家长管理」时才需要 */
+const AdminGateModal = lazy(() =>
+  import('../../admin/ui/AdminGateModal').then((m) => ({ default: m.AdminGateModal })),
+);
+
+/** 分龄卡封面（v0.10）：复用已有的分类封面，不新出图 */
+const BAND_COVER: Record<AgeBand, string> = {
+  '1-3': 'assets/images/covers/fruit.webp',
+  '3-6': 'assets/images/covers/poems.webp',
+};
+
+/**
+ * 三小段（v0.10）：字卡 / 诗文 / 绘本各只有 1–2 张分类，铺在 6 列网格里会空出大半行，
+ * 改为三列并排、每列一张横卡；其余段（认物 / 更多）继续走整行分类墙。
+ */
+const RAIL_GROUPS = new Set(['character', 'poem', 'story']);
 
 export function HomePage() {
   const { categories, cards, counts, isReadOnly } = useCatalog();
@@ -35,6 +56,9 @@ export function HomePage() {
     }),
     [cards],
   );
+
+  // 分类墙分段（v0.10）：认物 / 字卡 / 诗文 / 绘本，管理区新建的分类落「更多」兜底组
+  const sections = useMemo(() => groupCategories(categories), [categories]);
 
   const onPass = () => {
     markGatePassed();
@@ -105,24 +129,70 @@ export function HomePage() {
           />
         ) : (
           <>
-            {/* 分龄入口（v0.8 US-W1）：分类墙上方两张大卡，窄屏上下堆叠 */}
+            {/* 分龄入口（v0.10 H-1）：两张带封面的分龄大卡，与下方分类卡同一套视觉语言 */}
             <div className="band-row" role="group" aria-label="按年龄浏览">
               {AGE_BANDS.map((band) => (
                 <Link key={band} className="band-card" to={`/age/${band}`}>
-                  <span className="band-card__label">
-                    {AGE_BAND_LABEL[band]} · {AGE_BAND_NAME[band]}
-                  </span>
-                  <span className="band-card__tagline">{AGE_BAND_TAGLINE[band]}</span>
-                  <span className="band-card__count">{bandCounts[band]} 张适龄</span>
+                  <div className="band-card__body">
+                    <span className="band-card__label">
+                      {AGE_BAND_LABEL[band]} · {AGE_BAND_NAME[band]}
+                    </span>
+                    <span className="band-card__tagline">{AGE_BAND_TAGLINE[band]}</span>
+                    <span className="band-card__count">{bandCounts[band]} 张适龄</span>
+                  </div>
+                  <div className="band-card__media">
+                    <ImageWithFallback
+                      src={BAND_COVER[band]}
+                      alt=""
+                      fallbackText={AGE_BAND_NAME[band]}
+                      eager
+                    />
+                  </div>
                 </Link>
               ))}
             </div>
-            <p className="section-hint">或者选一个主题开始吧</p>
-            <div className="grid-cats">
-              {categories.map((category) => (
-                <CategoryTile key={category.id} category={category} count={counts[category.id] ?? 0} />
+            {/* 分类墙分段（v0.10 H-2）：整行段（认物 / 更多）先排，三小段随后三列并排 */}
+            {sections
+              .filter((section) => !RAIL_GROUPS.has(section.group.id))
+              .map((section) => (
+                <section key={section.group.id} className="cat-section">
+                  <h2 className="cat-section__title">
+                    <span className="cat-section__name">{section.group.name}</span>
+                    <span className="cat-section__hint">{section.group.hint}</span>
+                  </h2>
+                  <div className="grid-cats">
+                    {section.items.map((category) => (
+                      <CategoryTile
+                        key={category.id}
+                        category={category}
+                        count={counts[category.id] ?? 0}
+                      />
+                    ))}
+                  </div>
+                </section>
               ))}
-            </div>
+            {sections.some((section) => RAIL_GROUPS.has(section.group.id)) ? (
+              <div className="cat-row">
+                {sections
+                  .filter((section) => RAIL_GROUPS.has(section.group.id))
+                  .map((section) => (
+                    <section key={section.group.id} className="cat-section">
+                      <h2 className="cat-section__title">
+                        <span className="cat-section__name">{section.group.name}</span>
+                        <span className="cat-section__hint">{section.group.hint}</span>
+                      </h2>
+                      {section.items.map((category) => (
+                        <CategoryTile
+                          key={category.id}
+                          category={category}
+                          count={counts[category.id] ?? 0}
+                          row
+                        />
+                      ))}
+                    </section>
+                  ))}
+              </div>
+            ) : null}
           </>
         )}
 
@@ -148,12 +218,20 @@ export function HomePage() {
         ) : null}
       </main>
 
-      <DisplayModeSwitch open={displayOpen} onClose={() => setDisplayOpen(false)} />
+      {displayOpen ? (
+        <Suspense fallback={null}>
+          <DisplayModeSwitch open onClose={() => setDisplayOpen(false)} />
+        </Suspense>
+      ) : null}
 
       {gateOpen ? (
-        <Modal title="家长管理" onClose={() => setGateOpen(false)}>
-          <ParentGate onPass={onPass} />
-        </Modal>
+        <Suspense fallback={null}>
+          <AdminGateModal
+            title="家长管理"
+            onClose={() => setGateOpen(false)}
+            onPass={onPass}
+          />
+        </Suspense>
       ) : null}
     </>
   );

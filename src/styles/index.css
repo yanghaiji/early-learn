@@ -373,6 +373,24 @@ a {
   }
 }
 
+/* 只有 1–2 个分类的段（字卡 / 诗文 / 绘本）：三列并排，每列标题 + 横卡，不再按 6 列留空（v0.10） */
+.cat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  /* 三列各自成列，不拉伸到同行最高：否则只有 1 张卡的「绘本」会被拉成巨卡 */
+  align-items: start;
+  gap: 0 18px;
+  margin-top: 22px;
+}
+
+.cat-row .cat-section + .cat-section {
+  margin-top: 0;
+}
+
+.cat-row .cat-tile + .cat-tile {
+  margin-top: 10px;
+}
+
 /* 卡片墙每页 12 张：列数取 2 / 4 / 6，保证每页都是整行（不留半行空白） */
 .grid-cards {
   display: grid;
@@ -397,6 +415,26 @@ a {
   font-size: 18px;
   font-weight: 700;
   margin: 0 0 12px;
+}
+
+/* ---------- 首页分类墙分段（v0.10）：每段一行标题 + 一句说明 ---------- */
+.cat-section + .cat-section {
+  margin-top: 22px;
+}
+
+.cat-section__title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.cat-section__hint {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-ink-soft);
 }
 
 /* 首页分类墙上方的一句提示（v0.6.2）：比正文小一号，不再占一整行高 */
@@ -525,12 +563,32 @@ a {
   text-overflow: ellipsis;
 }
 
-/* ---------- 首页分龄入口（v0.8）：分类墙上方两张并排大卡，窄屏上下堆叠 ---------- */
+/* 横卡变体（v0.10）：必须排在 .cat-tile 之后，否则 display:grid 被它的 display:flex 覆盖 */
+.cat-tile--row {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.cat-tile--row .cat-tile__media {
+  aspect-ratio: 1 / 1;
+  border-radius: 14px;
+}
+
+@media (min-width: 560px) {
+  .cat-tile--row .cat-tile__foot {
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+
+/* ---------- 首页分龄入口（v0.10：左文右图的大卡，与分类卡同一套视觉语言） ---------- */
 .band-row {
   display: grid;
   grid-template-columns: 1fr;
   gap: 12px;
-  margin-bottom: 18px;
+  margin-bottom: 22px;
 }
 
 @media (min-width: 640px) {
@@ -540,10 +598,10 @@ a {
 }
 
 .band-card {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 16px 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 88px;
+  align-items: stretch;
+  overflow: hidden;
   border: 1px solid var(--c-line);
   border-radius: var(--radius-tile);
   background: var(--c-surface);
@@ -554,6 +612,26 @@ a {
     transform var(--motion-fast),
     box-shadow var(--motion-fast),
     border-color var(--motion-fast);
+}
+
+@media (min-width: 640px) {
+  .band-card {
+    grid-template-columns: minmax(0, 1fr) 104px;
+  }
+}
+
+.band-card__body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 14px 12px 14px 18px;
+}
+
+.band-card__media {
+  position: relative;
+  background: var(--c-bg-soft);
 }
 
 @media (hover: hover) {
