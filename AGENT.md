@@ -139,7 +139,7 @@ graph LR
 | 13 成语词典（v0.6） | 第 22 分类「成语」+ 150 条（5 组各 30）：`meaning` / `examples` / `synonyms` / `antonyms` / `citation` 五个可选字段、内置分组表、详情页成语版式、管理区表单、听音选图排除、水墨四字卡出图 | 内容门禁 **809 张 / 22 分类** + 659 条音频；V1~V7 全绿；274 例全绿 | T-I1–T-I14 | ✅（设备矩阵待真机） |
 | 14 搜索与离线（v0.7） | `/search` 全局搜索（复用 `searchCards` + URL 唯一事实源）、`CardTile` 抽公用、manifest + 手写 `sw.js` + sharp 图标、六个低频页懒加载、超宽屏 1680 与顶栏反算对齐、详情页图与右列重心对齐 | 搜索 7 例全绿；主 chunk gzip 206.11 → **196.00**；CDP 四档顶栏对齐 + 断网 reload 首页完整 | T-V1–T-V8 | ✅（真机安装待验） |
 | 15 分龄与拼音辅助（v0.8） | 首页两档分龄大卡（1–3 岁 / 3–6 岁）+ `/age/:band` 分龄分类墙 + 分类页 `?band=` 筛选（含「看全部」）+ 详情页按龄翻页（全部复用既有 `difficulty`，零新字段）；`CategoryTile` 从 `HomePage` 抽出公用；管理区拼音候选（构建期字典 + 按字点选）；顺手修详情页翻页丢 `?group=`、`?band=` 的既有缺陷；工期中复审再修「详情 → 故事页 → 详情」返程丢参 | 22 个分类在 1–3 岁全部非空（576 张）；蔬菜 13 → 6；字典 gzip 19.1 kB、主 chunk gzip +1.08（偏差 D-1）；新增领域 6 例 / 页面 13 例 / 拼音 7 例 | T-W1–T-W12 | ✅（真机待验） |
-| 16 笔顺与生产工具（v0.9，规划中） | 汉字详情逐笔动画（`hanzi-writer` + `prepare:strokes` 出 8 组数据与 `manifest.json`，组 chunk 懒加载、遵循 `reduceMotion`、无数据不显示按钮）；数据管理三件：CSV 批量录入（预览 + 整表拒绝）、上传图压缩（最长边 1280 / WebP / ≤150 KB）、IndexedDB 内容快照与一键回滚（保留 5 份） | 待实现：321 字全覆盖且笔画数与卡片一致（门禁 V8）、主 chunk 不增长；预估 307 → 约 349 例 | T-X1–T-X12 | 已规划（PRD/NFR 成稿） |
+| 16 笔顺与生产工具（v0.9，进行中） | 汉字详情逐笔动画（`hanzi-writer` + `prepare:strokes` 出 8 组数据与 `manifest.json`，组 chunk 懒加载、遵循 `reduceMotion`、无数据不显示按钮）；数据管理三件：CSV 批量录入（预览 + 整表拒绝）、上传图压缩（最长边 1280 / WebP / ≤150 KB）、IndexedDB 内容快照与一键回滚（保留 5 份） | T-X1~T-X6 已落：321 字全覆盖且笔画数与卡片一致（门禁 V8）、主 chunk 仍 gzip 197.56（余量 0.02）、播放器五态接进详情页、CSV 解析器 + 10 列映射 + 整表拒绝，用例 307 → **342**。待做：CSV 预览与写入、图片压缩、内容快照（写入前建快照依赖 T-X10 的快照端口） | T-X1–T-X12 | 进行中（T-X1~T-X6 完成） |
 
 ### 3.1 关键实现顺序理由
 
@@ -201,19 +201,21 @@ npm run build            # 产物构建 + 首屏 JS ≤ 350KB gzip
 npm run validate:content # 内容门禁（卡片/分类/图片/音频/分组）
 ```
 
-**最近一次实测（2026-10-31，v0.8.0）**
+**最近一次实测（2026-10-31，v0.9.0，T-X1~T-X6 落地后）**
 
 | 门禁 | 结果 | 关键数据 |
 | --- | --- | --- |
 | `typecheck` | ✅ | 0 error（strict：`noUncheckedIndexedAccess` / `verbatimModuleSyntax` / 未使用变量均开启） |
 | `lint` | ✅ | 0 error / 0 warning |
-| `test` | ✅ | **22 个测试文件、307 个用例全绿**（v0.8 +26：领域 `catalog.test.ts` +6、新 `age.test.tsx` 13、`admin.test.tsx` +7 拼音候选）；覆盖率未重跑，沿用 v0.4 实测（行 82.25% / 分支 80.14%） |
-| `build` | ✅（含偏差 D-1） | 主 chunk `584.11 kB` → **gzip `197.08 kB`**（v0.7：580.27 / 196.00；+1.08 来自分龄入口与 `AgePage` 的静态 import；复审后 gzip 无变化）；CSS `39.76 kB` → gzip `8.55 kB`；管理区 `CardAdmin` 73.57 kB / gzip 25.89（含拼音字典 gzip 19.1），另 DataAdmin 6.54 / CategoryAdmin 5.48 / QuizPage 4.79 / StoryReaderPage 3.14 / GuidePage 2.73 kB；`built in 6.60s` |
-| `validate:content` | ✅ | **809 张 / 22 分类** + 659 条音频逐条存在；V1~V7 全生效（内容零变更） |
-| `prepare:pinyin` | ✅ | 3755 字（多音字 674，跳过 5）· 76.7 kB · gzip 19.1 kB；二次运行输出「未变化」（幂等） |
+| `test` | ✅ | **27 个测试文件、342 个用例全绿**（v0.9 以来 307 → 342：笔顺产物 5、笔顺入口 5、播放器 5、详情接入 2、CSV 解析 8、CSV 映射与整表拒绝 9，另产物自守 +1）；覆盖率未重跑，沿用 v0.4 实测（行 82.25% / 分支 80.14%） |
+| `build` | ✅ | 主 chunk `585.62 kB` → **gzip `197.56 kB`**（预算 197.58，余量 0.02）；CSS gzip **8.70**；`StrokePlayer` chunk 12.13；8 个笔顺数据 chunk 13.93 / 51.83 / 40.35 / 45.87 / 29.55 / 44.38 / **60.34** / 14.97；`built in 6.82s` |
+| `validate:content` | ✅ | **809 张 / 22 分类** + 659 条音频逐条存在；V1~V7 全生效（内容零变更，V8 待 T-X12） |
+| `prepare:pinyin` / `prepare:strokes` | ✅ | 拼音字典 3755 字 · gzip 19.1 kB；笔顺 321 字 / 8 组 / 727.5 kB（gzip 303.5），缺字 0，两个脚本重跑均输出「未变化」 |
 | PWA 产物 | ✅ | `manifest.webmanifest` + `sw.js` + 三档图标随 dist 输出（v0.8 未改 PWA 链路）；v0.7 已验证生产构建下断网 reload 首页完整 |
 
-> 偏差 D-1：方案预期「主 chunk 不增长」，实际主 chunk gzip +1.08 kB（分龄入口与 `AgePage` 按 §3.2 走静态 import，避免点一下先等 chunk）。判定可接受，详见 `NFR/v0.8` §5.1。
+> 历史偏差 D-1（v0.8）：方案预期「主 chunk 不增长」，实际 gzip +1.08 kB（分龄入口与 `AgePage` 静态 import），详见 `NFR/v0.8` §5.1。
+
+> **v0.9 实测口径**：主 chunk 197.08 → **197.56**（+0.48，详情页 `lazy` 桩与挂载），**余量只剩 0.02 kB**，后续往首屏加任何常量前先看 `NFR/v0.9` §7.1；`daily` 数据 chunk 60.34 超单组上限 0.34 kB（0.6%，记录在案）；CDP 的 CSV / 压缩 / 快照三项待对应任务落地后补测。
 
 > 离线能力只能在生产构建里验证（`npm run preview`）：dev 下 `import.meta.env.PROD` 为假，按设计不注册 SW。
 
@@ -349,6 +351,9 @@ npm run validate:content     # 等价于 node scripts/validate-content.mjs
 | 2026-10-31 | 坑位 | 「中文一改就作废已选音」只解决了**子组件内部**的串音，父组件的 `pinyin` 一个字也没变：点选生成 `píng guǒ` 后把中文改成「香蕉」，输入框仍是旧词的音且毫无提示。状态作废必须配一条显式提醒（复审 M2 已修） |
 | 2026-10-31 | 坑位 | 种子 `cards.ts` 的 `strokes` 字段有 6 处写错（不 5/4、鹊 11/13、蟹 17/19、龟 5/7、姨 13/9、警 16/19）；这类错字肉眼和词表都看不出，只有把字形数据的 `strokes.length` 与卡片字段对撞才会暴露。`prepare:strokes` 已在生成期做交叉核对并以非零码退出，门禁 V8 再兜一层 |
 | 2026-10-31 | 坑位 | 判断「这个字有没有笔顺」时不要读 `manifest.json`：它整体 9.2 kB / gzip 2.6 kB，一旦被主 chunk 静态引用就会把 v0.9 §7.1 的主 chunk 预算（197.08 + 0.5）直接顶穿，方案稿里「约 1 KB」的估算是错的。正确做法是查 `CHARACTER_GROUP_BY_ZH`（组表本来就在主 chunk 里），一致性由「manifest 键集合 === 组表键集合」用例 + 门禁 V3/V8 三处锁住；`manifest.json` 只给脚本与测试用 |
+| 2026-10-31 | 坑位 | CSV 解析器的行号必须数**物理行**：字段内带换行（引号包住的多行内容）会吃掉一行，后续记录的行号随之前移，家长看到的「第 5 行」才指得对；实现上引号内遇 `\n` 也要 `line += 1`，并用「引号内换行 → 下一条记录 line 4」的用例钉死 |
+| 2026-10-31 | 坑位 | CSV 逐行校验要先跑结构层再跑跨字段规则：行内列数不符、分类找不到、`strokes` 格式错这类一旦命中就 `continue`（用 `errorStart = errors.length` 记录本行起点），否则同一行会同时报「笔画数只能是 1–30」与「汉字卡必须填笔画数」一串派生错误，家长分不清到底该改哪一处 |
+| 2026-10-31 | 坑位 | CSV 判重是**跳过而非阻断**：同分类同 `zh` 的行只进 `duplicates` 列表给家长看，其余行照常产出；而校验失败（含任何一行）是**整表拒绝**——两者都「不写入」，但预览能否继续走完全相反。另：`CSV_PLACEHOLDER_IMAGE` 等新常量不放 `domain/constants.ts`（该文件必进主 chunk，余量仅 0.02 kB），只能放在管理区引用的模块里 |
 | 2026-10-31 | 待办 | 笔顺组 `daily` 的 chunk 实测 60.34 kB gzip，超单组 60 kB 上限 0.34 kB（0.6%）——原因是数据本身 59.9 kB 加模块包装与 §2a 的 Arphic 许可声明头。当前口径是「不裁数据、不改预算、记录在案」（NFR/v0.9 §7.1 备注），若后续再加字须把 `daily` 拆成两块；另主 chunk 余量只剩 0.02 kB，v0.9 剩余改动（CSV / 压缩 / 快照）不得再往首屏加静态 import |
 | 2026-10-31 | 待办 | 复审 L1：分类页当前龄段用不可交互的 `<span class="chip is-active">` 表达选中态，无 `aria-current`、视觉上又像按钮；建议加 `aria-current` 或改成描述文本 + 单个「看全部」按钮（排 v0.8.1） |
 | 2026-10-31 | 待办 | 复审 L2：`?band=` + 分类本身为空时，空态文案误报成「这一档还没有适合的卡片」并给「看全部 0 张」无效出口；判断顺序应先 `all.length === 0`（原分类空态）再 `list.length === 0 && band`（排 v0.8.1） |
@@ -442,3 +447,4 @@ npm run validate:content     # 等价于 node scripts/validate-content.mjs
 | 2026-10-31 | v0.9.0（规划） | 需求方「提交后继续大版本规划」，并选定「笔顺 + 生产工具合并为 v0.9」四问对齐口径（D-X1 引 `hanzi-writer` 不自写 / D-X2 按 8 主题组切片懒加载 / D-X3 CSV 整表拒绝 / D-X4 快照放 IndexedDB 保留 5 份）：① 先做 12 项代码事实核对——汉字 321 张分 8 组（25/55/44/38/38/44/61/16）、`Card` 只有 `strokes: number` 无笔顺路径、`hanzi-writer@3.7.3` MIT 零依赖与 `hanzi-writer-data@2.0.1` Arphic 32.3 MB（单字「一」0.4 KB /「赢」4.5 KB）、上传入口全站唯一（`CardForm` L373）且只校验不压缩、`auto-backup` 无读取入口、`bulkUpsert` 已就绪、`storage.replace` + `run()` 可复用、`resolveJsonModule` 已开；② 新增 `FR/v0.9/PRD-笔顺与生产工具.md`（US-X1~X9、验收 13 项、本版不做 8 条、口径 4 条已确认 + 细节 7 条）；③ 新增 `NFR/v0.9/技术方案-笔顺与生产工具.md`（笔顺管线：脚本 8 组模块 + `manifest.json` + 门禁 V8 三条；`StrokePlayer` 状态机 + `reduceMotion` + lazy；CSV RFC4180 子集解析 + 10 列映射 + 整表拒绝 + 同分类同 `zh` 判重；图片压缩档位与 `LIMITS` 新增三项；IndexedDB 快照端口 + 5 份 / 8 MB / 5 处自动触发；T-X1~T-X12、ADR-X1~X5、风险 6 条）；④ FR/NFR 两份 README 与本文三处同步（路线图 v0.8.1 并入 v0.9、技术栈新增笔顺与 IndexedDB 窄用途、门禁 V8、ADR X1–X5、§3 阶段 16、§4 四条速查、§8 本行）；⑤ 版本号**未**升（仍 0.8.0，按惯例代码开工时才升） | Agent |
 | 2026-10-31 | v0.9.0（T-X1 开工） | 需求方「先提交规划文档、再开工」：① 规划文档单独一次本地 commit（`61473f0`，5 文件 / +480/−7，未 push，`ahead 2`）；② 装 `hanzi-writer@3.7.3`（dependencies，MIT 零依赖）与 `hanzi-writer-data@2.0.1`（devDependencies，Arphic）；③ 新增 `THIRD-PARTY-NOTICES.md`（MIT 全文 + Arphic 全文 + §2.3 逐条复核表）与 `licenses/ARPHICPL.TXT`（与包内原文件 SHA256 一致，6900 字节）+ `.gitattributes` 对该文件关闭行尾转换；④ 版本号 0.8.0 → 0.9.0（`package.json` / `APP_VERSION` / `package-lock.json` 三处）；⑤ `scripts/build-stroke-data.mjs`（`prepare:strokes`）出 8 组模块 + `manifest.json`：321 字 / 727.5 kB / gzip 303.5 kB，缺字 0，幂等；⑥ 生成期交叉核对查出并修正 6 处笔画数错（不 / 鹊 / 蟹 / 龟 / 姨 / 警）；⑦ 新增 `strokes.test.ts` 5 例（307 → 312）；五道门禁全绿，主 chunk gzip 仍 197.08、`CardAdmin` 仍 25.89（笔顺数据尚未被引用，未增加首屏） | Agent |
 | 2026-10-31 | v0.9.0（笔顺链路） | 需求方「先提交 T-X1，再继续 T-X2 + T-X3 + T-X4」：① T-X1 单独一次本地 commit（`83c9e26`，24 文件 / +2698−13，未 push，`ahead 3`）；② `src/data/strokes/index.ts` 新增 `hasStrokeData` / `createGroupCache` / `loadStrokeGroup` / `loadCharStrokeData`——可用性查 `CHARACTER_GROUP_BY_ZH` 不读 manifest（省主 chunk 预算），8 个 `import('./group-*')` 字面量切 chunk，组级缓存只存成功 Promise、失败即摘除；③ `features/cards/ui/StrokePlayer.tsx` 五态（idle / loading / playing / stopped / done）+ `reduceMotion` 走 `showCharacter` + 说明句 + 失败回 idle 与一次 Toast，`runRef` 作废迟到 promise，尺寸变化 > 8px 才重建 writer（无 `ResizeObserver` 用首帧、量 0 兜底 160），先 `loadCharStrokeData` 再 `create` 让数据失败连 writer 都不建；④ `CardDetailPage` 汉字卡分支改 `hasStrokeData` + `lazy`/`Suspense`（fallback 即原大字，播放器**替换**原大字而非并排），`index.css` 新增 `.stroke-player` 一整套（`clamp(120px,36vw,220px)`）；⑤ 测试 307 → **325 例 / 25 文件**（`index.test.ts` 5 / `StrokePlayer.test.tsx` 5 / `strokes.test.ts` +1 / `cards.test.tsx` +2）；⑥ 五道门禁全绿（主 chunk gzip 197.56，余量 0.02；`StrokePlayer` 12.13；CSS 8.70），CDP 360 / 1440 / reduceMotion 94 ms / 断网 toast 与「组 chunk 点开才拉」实测通过；⑦ FR/PRD/NFR/两份 README 回写（NFR §7.1/§7.2 换「目标 / 实测」列，§11 记三条备注） | Agent |
+| 2026-10-31 | v0.9.0（CSV 录入内核） | 需求方「继续 T-X5（RFC4180 子集解析器 + 10 列映射 + 整表拒绝）」：① 新建 `src/domain/services/csv.ts`（108 行）——字符级状态机剥 BOM、`quoted` 模式与 `""` 反转义、字段内换行推进行号、CRLF / LF / 孤立 `\r` 三种行尾、尾随空行丢弃、末行无换行用 `started` 标志补录；单列或 `sep=` 开头报「表头不正确」、空文件报「CSV 是空的」、引号未闭合报「第 N 行的引号没有闭合」；② 新建 `src/domain/services/cardCsv.ts`（235 行）——`CARD_CSV_COLUMNS` 10 列 + `CARD_CSV_REQUIRED` 四列，表头大小写归一且缺列直接报「表头缺少 X 列」；逐行先跑结构层（列数 / 分类 / kind / difficulty / strokes / tags / words / image）再做跨字段 `validateCardRules`，结构错短路避免派生错误瀑；**整表拒绝**（一条错则不产出任何 `CardInput`，ADR-X3），同分类同 `zh` 只进 `duplicates` 不阻断；`image` 空值落 `CSV_PLACEHOLDER_IMAGE`、非空只收 `/`、`http(s)://`、`data:image/`；③ 新增 `csv.test.ts` 8 例 + `cardCsv.test.ts` 9 例（合计 +17），用例 325 → **342 例 / 27 文件**；④ 五道门禁全绿，主 chunk **仍 gzip 197.56**（新模块未被应用引用，被 tree-shake），CSS 8.70 不变；⑤ NFR v0.9 §7.1 / §8 / §11、PRD v0.9 §3 / §6、FR / NFR 两份 README 同步（325 → 342）；⑥ 边界：CSV 预览页与写入、模板下载、占位图生成留 T-X7，其中「写入前先建快照（来源 `csv-import`）」依赖 T-X10 的快照端口 | Agent |
