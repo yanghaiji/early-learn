@@ -8,6 +8,36 @@ export type Difficulty = 1 | 2 | 3;
 
 export const DIFFICULTIES: readonly Difficulty[] = [1, 2, 3];
 
+/**
+ * 龄段（v0.8）：直接消费既有 `difficulty`，不新增卡片字段。
+ * 难度 2 为重叠带：只取难度 1 时蔬菜 / 海洋动物 / 小虫子 / 职业 / 穿戴 5 类为 0 张（NFR v0.8 §2.1）。
+ */
+export type AgeBand = '1-3' | '3-6';
+
+export const AGE_BANDS: readonly AgeBand[] = ['1-3', '3-6'];
+
+export const AGE_BAND_LABEL: Record<AgeBand, string> = {
+  '1-3': '1–3 岁',
+  '3-6': '3–6 岁',
+};
+
+/** 一档一个词：入口卡片与分龄顶栏共用，避免家长分不出两档区别 */
+export const AGE_BAND_NAME: Record<AgeBand, string> = {
+  '1-3': '启蒙',
+  '3-6': '进阶',
+};
+
+export const AGE_BAND_TAGLINE: Record<AgeBand, string> = {
+  '1-3': '认物 · 认人 · 日常动作',
+  '3-6': '认字 · 读诗 · 讲成语',
+};
+
+/** 龄段 → 可看的难度。两档共用难度 2，同一张卡会在两处都出现（入口文案需说明） */
+export const AGE_BAND_DIFFICULTIES: Record<AgeBand, readonly Difficulty[]> = {
+  '1-3': [1, 2],
+  '3-6': [2, 3],
+};
+
 /** 故事段落：一段一句话，整个故事在一页读完（仅 kind=story，NFR/v0.2 §2） */
 export interface StoryPage {
   text: string;

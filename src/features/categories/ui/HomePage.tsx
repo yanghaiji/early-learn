@@ -1,48 +1,40 @@
 /** 首页 · 分类墙（PRD M1 / US-01） */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Github, Languages, Lock, Search } from 'lucide-react';
 import { useCatalog } from '../../../app/CatalogProvider';
 import { APP_SLOGAN, REPO_URL } from '../../../app/version';
-import type { Category } from '../../../domain/entities/category';
-import { ImageWithFallback } from '../../../shared/ui/ImageWithFallback';
-import { IconButton, Button } from '../../../shared/ui/Button';
+import {
+  AGE_BANDS,
+  AGE_BAND_LABEL,
+  AGE_BAND_NAME,
+  AGE_BAND_TAGLINE,
+} from '../../../domain/entities/card';
+import { countCardsByBand } from '../../../domain/services/catalog';
+import { Button, IconButton } from '../../../shared/ui/Button';
 import { EmptyState } from '../../../shared/ui/Feedback';
 import { Modal } from '../../../shared/ui/Modal';
 import { ParentGate } from '../../../shared/ui/ParentGate';
-import { categoryColorVar } from '../../../shared/utils/classNames';
 import { markGatePassed } from '../../admin/gateSession';
 import { ProgressEntries, ProgressStatsLine } from '../../learn/ui/ProgressStats';
 import { DisplayModeSwitch } from '../../settings/ui/DisplayModeSwitch';
-
-function CategoryTile({ category, count }: { category: Category; count: number }) {
-  return (
-    <Link className="cat-tile" to={`/c/${category.id}`} aria-label={`${category.name} ${count} 张卡片`}>
-      <div className="cat-tile__media" style={categoryColorVar(category.color)}>
-        <ImageWithFallback
-          src={category.cover}
-          alt={category.name}
-          fallbackText={category.name}
-          colorToken={category.color}
-          eager
-        />
-        {/* 张数压在封面角上：标题行只放名称，卡片高度全书一致（v0.7） */}
-        <span className="cat-tile__count">{count} 张</span>
-      </div>
-      <div className="cat-tile__foot">
-        <h2 className="cat-tile__name">{category.name}</h2>
-        {category.nameEn ? <span className="cat-tile__en">{category.nameEn}</span> : null}
-      </div>
-    </Link>
-  );
-}
+import { CategoryTile } from './CategoryTile';
 
 export function HomePage() {
-  const { categories, counts, isReadOnly } = useCatalog();
+  const { categories, cards, counts, isReadOnly } = useCatalog();
   const [displayOpen, setDisplayOpen] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
   const navigate = useNavigate();
+
+  // 分龄入口的张数（v0.8）：两档共用难度 2，计数允许交叠
+  const bandCounts = useMemo(
+    () => ({
+      '1-3': countCardsByBand(cards, '1-3'),
+      '3-6': countCardsByBand(cards, '3-6'),
+    }),
+    [cards],
+  );
 
   const onPass = () => {
     markGatePassed();
@@ -113,7 +105,19 @@ export function HomePage() {
           />
         ) : (
           <>
-            <p className="section-hint">选一个主题开始吧</p>
+            {/* 分龄入口（v0.8 US-W1）：分类墙上方两张大卡，窄屏上下堆叠 */}
+            <div className="band-row" role="group" aria-label="按年龄浏览">
+              {AGE_BANDS.map((band) => (
+                <Link key={band} className="band-card" to={`/age/${band}`}>
+                  <span className="band-card__label">
+                    {AGE_BAND_LABEL[band]} · {AGE_BAND_NAME[band]}
+                  </span>
+                  <span className="band-card__tagline">{AGE_BAND_TAGLINE[band]}</span>
+                  <span className="band-card__count">{bandCounts[band]} 张适龄</span>
+                </Link>
+              ))}
+            </div>
+            <p className="section-hint">或者选一个主题开始吧</p>
             <div className="grid-cats">
               {categories.map((category) => (
                 <CategoryTile key={category.id} category={category} count={counts[category.id] ?? 0} />

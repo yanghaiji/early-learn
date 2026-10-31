@@ -14,6 +14,7 @@ import { ImageWithFallback } from '../../../shared/ui/ImageWithFallback';
 import { Modal } from '../../../shared/ui/Modal';
 import { toast } from '../../../shared/store/toastStore';
 import { formatBytes, readImageAsDataUrl } from '../../../shared/utils/image';
+import { PinyinSuggest } from './PinyinSuggest';
 
 interface Props {
   initial?: Card;
@@ -333,6 +334,8 @@ export function CardForm({ initial, defaultCategoryId, onClose }: Props) {
           maxLength={LIMITS.PINYIN_MAX}
           onChange={(event) => setPinyin(event.target.value)}
         />
+        {/* 拼音候选（v0.8）：只在点选时写入，不监听中文静默填 */}
+        <PinyinSuggest zh={zh} value={pinyin} onPick={setPinyin} />
       </Field>
 
       {/* 成语卡没有英文（v0.6 PRD §4.4）：输入框隐藏，提交时 en 写空串 */}

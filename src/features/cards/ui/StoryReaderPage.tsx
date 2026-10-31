@@ -25,8 +25,9 @@ export function StoryReaderPage() {
   const fullText = paragraphs.join('');
 
   // 返回故事详情；详情把分类页 URL 透传下来，链路不断
+  // 查询串（?band= / ?group=）也必须带回，否则详情序列会退回整个分类（v0.8 修）
   const listUrl = (location.state as { listUrl?: string } | null)?.listUrl;
-  const detailUrl = card ? `/card/${card.id}` : '/';
+  const detailUrl = card ? `/card/${card.id}${location.search}` : '/';
   const back = useCallback(() => {
     navigate(detailUrl, listUrl ? { state: { listUrl } } : undefined);
   }, [detailUrl, listUrl, navigate]);

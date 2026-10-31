@@ -4,7 +4,8 @@ import { useMemo } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { useCatalog } from '../../../app/CatalogProvider';
-import { cardsOfCategory } from '../../../domain/services/catalog';
+import { AGE_BAND_LABEL } from '../../../domain/entities/card';
+import { cardsOfCategory, isAgeBand, matchesBand } from '../../../domain/services/catalog';
 import { IconButton } from '../../../shared/ui/Button';
 import { EmptyState } from '../../../shared/ui/Feedback';
 import { cx } from '../../../shared/utils/classNames';
@@ -20,7 +21,15 @@ export function CategoryPage() {
   const { categories, cards, groupOf, groupName } = useCatalog();
 
   const category = categories.find((item) => item.id === categoryId);
-  const list = useMemo(() => cardsOfCategory(cards, categoryId), [cards, categoryId]);
+  const all = useMemo(() => cardsOfCategory(cards, categoryId), [cards, categoryId]);
+
+  // 龄段筛选（v0.8 US-W3）：非法或缺失一律按「不限」处理，分页与分组都基于筛选后的 list
+  const requestedBand = searchParams.get('band');
+  const band = isAgeBand(requestedBand) ? requestedBand : '';
+  const list = useMemo(
+    () => (band ? all.filter((card) => matchesBand(card, band)) : all),
+    [all, band],
+  );
 
   // 同一分类里出现两个以上主题组时才展示筛选条（汉字七组、古诗两组）
   const groups = useMemo(() => {
@@ -42,25 +51,35 @@ export function CategoryPage() {
     Number.isInteger(requestedPage) && requestedPage > 0 ? Math.min(requestedPage, pageCount) : 1;
   const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const goto = (nextGroup: string, nextPage: number) => {
+  const goto = (nextGroup: string, nextPage: number, nextBand = band) => {
     const params = new URLSearchParams();
+    if (nextBand) params.set('band', nextBand);
     if (nextGroup) params.set('group', nextGroup);
     if (nextPage > 1) params.set('page', String(nextPage));
     setSearchParams(params);
     window.scrollTo({ top: 0 });
   };
 
+  // 顶栏副标题：带龄段时给出「适龄 / 全部」对比，让家长知道筛掉了多少
+  const subtitle = band
+    ? `${AGE_BAND_LABEL[band]} · ${list.length} / ${all.length} 张`
+    : `${all.length} 张卡片`;
+
   return (
     <>
       <header className="topbar topbar--bordered topbar--wide">
-        <IconButton label="返回分类" plain onClick={() => navigate('/')}>
+        <IconButton
+          label={band ? '返回分龄浏览' : '返回分类'}
+          plain
+          onClick={() => navigate(band ? `/age/${band}` : '/')}
+        >
           <ArrowLeft size={26} />
         </IconButton>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1 className="topbar__title">{category?.name ?? '分类不存在'}</h1>
           <p className="topbar__sub">
             {category?.nameEn ? `${category.nameEn} · ` : ''}
-            {list.length} 张卡片
+            {subtitle}
           </p>
         </div>
         {/* 搜索入口：从分类页直接换到全局搜，不用先回首页（v0.7 US-V2） */}
@@ -84,16 +103,39 @@ export function CategoryPage() {
         ) : list.length === 0 ? (
           <EmptyState
             emoji="🌱"
-            title="这个分类还没有卡片"
-            description="请家长进入管理区添加卡片，孩子的第一个词由你来定。"
+            title={band ? '这一档还没有适合的卡片' : '这个分类还没有卡片'}
+            description={
+              band
+                ? '换成全部年龄就能看到这个分类的所有内容。'
+                : '请家长进入管理区添加卡片，孩子的第一个词由你来定。'
+            }
             action={
-              <Link className="btn btn--primary" to="/admin/cards">
-                去添加卡片
-              </Link>
+              band ? (
+                <button type="button" className="btn btn--primary" onClick={() => goto('', 1, '')}>
+                  看全部 {all.length} 张
+                </button>
+              ) : (
+                <Link className="btn btn--primary" to="/admin/cards">
+                  去添加卡片
+                </Link>
+              )
             }
           />
         ) : (
           <>
+            {band ? (
+              <div className="chips" role="group" aria-label="按年龄筛选">
+                <span className="chip is-active">
+                  {AGE_BAND_LABEL[band]}
+                  <span className="chip__count">{list.length}</span>
+                </span>
+                <button type="button" className="chip" onClick={() => goto('', 1, '')}>
+                  看全部
+                  <span className="chip__count">{all.length}</span>
+                </button>
+              </div>
+            ) : null}
+
             {groups.length > 1 ? (
               <div className="chips" role="group" aria-label="按主题组筛选">
                 <button

@@ -4,8 +4,11 @@ import { describe, expect, it } from 'vitest';
 import {
   buildCardSequence,
   cardsOfCategory,
+  countCardsByBand,
   countCardsByCategory,
   firstChar,
+  isAgeBand,
+  matchesBand,
   nextSortOrder,
   searchCards,
   sortCards,
@@ -100,6 +103,43 @@ describe('countCardsByCategory', () => {
       makeCard({ id: 'f1', zh: '苹果', categoryId: 'fruit' }),
     ];
     expect(countCardsByCategory(cards)).toEqual({ animals: 2, fruit: 1 });
+  });
+});
+
+describe('分龄（v0.8）', () => {
+  const easy = makeCard({ id: 'easy', zh: '猫', difficulty: 1 });
+  const mid = makeCard({ id: 'mid', zh: '狗', difficulty: 2 });
+  const hard = makeCard({ id: 'hard', zh: '鹭', difficulty: 3 });
+  const cards = [easy, mid, hard];
+
+  it('should_accept_only_two_known_bands_when_parsing', () => {
+    expect(isAgeBand('1-3')).toBe(true);
+    expect(isAgeBand('3-6')).toBe(true);
+    expect(isAgeBand('1-6')).toBe(false);
+    expect(isAgeBand('')).toBe(false);
+    expect(isAgeBand(null)).toBe(false);
+  });
+
+  it('should_put_middle_difficulty_in_both_bands_when_overlapping', () => {
+    expect(matchesBand(mid, '1-3')).toBe(true);
+    expect(matchesBand(mid, '3-6')).toBe(true);
+  });
+
+  it('should_exclude_hard_cards_from_1_3_band', () => {
+    expect(matchesBand(hard, '1-3')).toBe(false);
+  });
+
+  it('should_exclude_easy_cards_from_3_6_band', () => {
+    expect(matchesBand(easy, '3-6')).toBe(false);
+  });
+
+  it('should_count_each_band_independently_when_difficulty_overlaps', () => {
+    expect(countCardsByBand(cards, '1-3')).toBe(2);
+    expect(countCardsByBand(cards, '3-6')).toBe(2);
+  });
+
+  it('should_return_zero_when_list_empty', () => {
+    expect(countCardsByBand([], '1-3')).toBe(0);
   });
 });
 

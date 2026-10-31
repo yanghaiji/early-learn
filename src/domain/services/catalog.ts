@@ -1,5 +1,6 @@
 /** 目录领域服务：纯函数，无副作用，可 100% 单测。对应 NFR §3.3 */
 
+import { AGE_BAND_DIFFICULTIES, type AgeBand } from '../entities/card';
 import type { Card, CardId } from '../entities/card';
 import type { Category, CategoryId } from '../entities/category';
 
@@ -49,6 +50,21 @@ export function countCardsByCategory(cards: readonly Card[]): Record<CategoryId,
   }, {});
 }
 
+/** 合法龄段判定：非法值一律视为「不限龄段」，不报错也不跳转（沿用 v0.7 对 `?q=` 的容错） */
+export function isAgeBand(value: string | null | undefined): value is AgeBand {
+  return value === '1-3' || value === '3-6';
+}
+
+/** 这张卡是否属于该龄段（难度 2 两档都命） */
+export function matchesBand(card: Card, band: AgeBand): boolean {
+  return AGE_BAND_DIFFICULTIES[band].includes(card.difficulty);
+}
+
+/** 某龄段可看的卡片总数（入口大卡与分龄顶栏用） */
+export function countCardsByBand(cards: readonly Card[], band: AgeBand): number {
+  return cards.reduce((sum, card) => (matchesBand(card, band) ? sum + 1 : sum), 0);
+}
+
 /** 管理区搜索：中文 / 英文 / 拼音（含无声调输入） */
 export function searchCards(cards: readonly Card[], keyword: string): Card[] {
   const raw = normalizeForCompare(keyword);
@@ -71,7 +87,7 @@ export interface CardSequence {
   hasNext: boolean;
 }
 
-/** 构建详情页翻页上下文：同分类内按 sortOrder 排序（可传入筛选器，如只看当前分组） */
+/** 构建详情页翻页上下文：同分类内按 sortOrder 排序（可传入筛选器，如只看当前分组 / 龄段） */
 export function buildCardSequence(
   cards: readonly Card[],
   cardId: CardId,

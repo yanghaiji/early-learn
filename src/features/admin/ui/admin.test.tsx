@@ -124,3 +124,113 @@ describe('管理区', () => {
     expect(screen.queryByRole('heading', { name: /分类（/ })).toBeNull();
   });
 });
+
+/** 拼音候选（v0.8 PRD §3）：按字列全部读音，点选才写入，不静默生成 */
+describe('拼音候选（v0.8）', () => {
+  /** 管理区懒加载 + 809 张卡列表：统一给到 20s */
+  async function openCardForm(user: ReturnType<typeof userEvent.setup>) {
+    markGatePassed();
+    window.location.hash = '#/admin/cards';
+    render(<AppRouter />);
+    await user.click(await screen.findByRole('button', { name: '新建卡片' }, { timeout: 5000 }));
+    return screen.findByRole('dialog', { name: '新建卡片' });
+  }
+
+  it('should_list_every_reading_when_multiple_pronunciation_char_typed', async () => {
+    const user = userEvent.setup();
+    const dialog = await openCardForm(user);
+
+    await user.type(within(dialog).getByLabelText('中文'), '长大');
+    const group = await within(dialog).findByRole('group', { name: '拼音候选' });
+
+    expect(within(group).getByRole('button', { name: '长 cháng' })).toBeInTheDocument();
+    expect(within(group).getByRole('button', { name: '长 zhǎng' })).toBeInTheDocument();
+    expect(within(group).getByRole('button', { name: '大 dà' })).toBeInTheDocument();
+    expect(within(group).getByRole('button', { name: '大 dài' })).toBeInTheDocument();
+  }, 20_000);
+
+  it('should_leave_pinyin_blank_when_only_chinese_typed', async () => {
+    const user = userEvent.setup();
+    const dialog = await openCardForm(user);
+
+    await user.type(within(dialog).getByLabelText('中文'), '长大');
+    await within(dialog).findByRole('group', { name: '拼音候选' });
+
+    // 不点候选就不写：多音字宁可空，也不静默猜
+    expect(within(dialog).getByLabelText('拼音（带声调）')).toHaveValue('');
+  }, 20_000);
+
+  it('should_fill_whole_pinyin_when_reading_clicked', async () => {
+    const user = userEvent.setup();
+    const dialog = await openCardForm(user);
+
+    await user.type(within(dialog).getByLabelText('中文'), '长大');
+    const group = await within(dialog).findByRole('group', { name: '拼音候选' });
+    const pinyinInput = within(dialog).getByLabelText('拼音（带声调）');
+
+    // 其余位取第一个读音兜底：一次点击就能得到完整拼音串
+    await user.click(within(group).getByRole('button', { name: '长 zhǎng' }));
+    expect(pinyinInput).toHaveValue('zhǎng dà');
+
+    await user.click(within(group).getByRole('button', { name: '大 dài' }));
+    expect(pinyinInput).toHaveValue('zhǎng dài');
+  }, 20_000);
+
+  it('should_keep_existing_syllables_when_one_reading_clicked', async () => {
+    const user = userEvent.setup();
+    const dialog = await openCardForm(user);
+
+    await user.type(within(dialog).getByLabelText('中文'), '长大');
+    const group = await within(dialog).findByRole('group', { name: '拼音候选' });
+    const pinyinInput = within(dialog).getByLabelText('拼音（带声调）');
+
+    // 家长已手输确认「长 zhǎng」：再点「大」不能把长改回 cháng
+    await user.type(pinyinInput, 'zhǎng');
+    await user.click(within(group).getByRole('button', { name: '大 dài' }));
+
+    expect(pinyinInput).toHaveValue('zhǎng dài');
+  }, 20_000);
+
+  it('should_warn_stale_pinyin_when_chinese_changed_after_pick', async () => {
+    const user = userEvent.setup();
+    const dialog = await openCardForm(user);
+
+    await user.type(within(dialog).getByLabelText('中文'), '苹果');
+    const group = await within(dialog).findByRole('group', { name: '拼音候选' });
+    const pinyinInput = within(dialog).getByLabelText('拼音（带声调）');
+    await user.click(within(group).getByRole('button', { name: '苹 píng' }));
+    expect(pinyinInput).toHaveValue('píng guǒ');
+
+    // 改词后旧拼音仍在框里（不静默改写，但必须明说）
+    const zhInput = within(dialog).getByLabelText('中文');
+    await user.clear(zhInput);
+    await user.type(zhInput, '香蕉');
+
+    expect(await within(dialog).findByText(/中文改过了，拼音还是上一个词的/)).toBeInTheDocument();
+    expect(pinyinInput).toHaveValue('píng guǒ');
+  }, 20_000);
+
+  it('should_name_missing_chars_when_dictionary_partially_covers', async () => {
+    const user = userEvent.setup();
+    const dialog = await openCardForm(user);
+
+    // 龘（U+9F98）在 GB2312 二级字，不在候选字典里；「大」在字典里
+    await user.type(within(dialog).getByLabelText('中文'), '龘大');
+
+    expect(await within(dialog).findByText(/「龘」不在字典里，请手动补/)).toBeInTheDocument();
+    // 缺字不影响已知字的点选
+    await user.click(within(dialog).getByRole('button', { name: '大 dà' }));
+    expect(within(dialog).getByLabelText('拼音（带声调）')).toHaveValue('dà');
+  }, 20_000);
+
+  it('should_hint_manual_input_when_char_outside_dictionary', async () => {
+    const user = userEvent.setup();
+    const dialog = await openCardForm(user);
+
+    // 龘（U+9F98）在 GB2312 二级字，不在候选字典里
+    await user.type(within(dialog).getByLabelText('中文'), '龘');
+
+    expect(await within(dialog).findByText(/「龘」不在字典里，请手输拼音/)).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('拼音（带声调）')).toHaveValue('');
+  }, 20_000);
+});

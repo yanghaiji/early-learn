@@ -525,6 +525,68 @@ a {
   text-overflow: ellipsis;
 }
 
+/* ---------- 首页分龄入口（v0.8）：分类墙上方两张并排大卡，窄屏上下堆叠 ---------- */
+.band-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+@media (min-width: 640px) {
+  .band-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.band-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 16px 18px;
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius-tile);
+  background: var(--c-surface);
+  box-shadow: var(--shadow-tile);
+  text-decoration: none;
+  color: inherit;
+  transition:
+    transform var(--motion-fast),
+    box-shadow var(--motion-fast),
+    border-color var(--motion-fast);
+}
+
+@media (hover: hover) {
+  .band-card:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--c-primary) 30%, var(--c-line));
+    box-shadow: var(--shadow-lift);
+  }
+}
+
+.band-card:active {
+  transform: scale(0.99);
+}
+
+.band-card__label {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.band-card__tagline {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--c-ink-soft);
+}
+
+.band-card__count {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--c-primary);
+}
+
 /* ---------- 页脚（v0.6.2：版本信息 + 源码地址） ---------- */
 .app-footer {
   display: flex;
@@ -1742,6 +1804,32 @@ a {
   gap: 8px;
   flex-wrap: wrap;
   margin-bottom: 16px;
+}
+
+/* 拼音候选（v0.8）：一字一行，点选后拼成带声调拼音 */
+.pinyin-suggest {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius-field);
+  background: var(--c-bg-soft);
+}
+
+.pinyin-suggest__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pinyin-suggest__char {
+  flex: 0 0 auto;
+  width: 20px;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
 }
 
 /* ---------- 家长门 ---------- */

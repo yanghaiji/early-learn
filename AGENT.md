@@ -24,14 +24,16 @@
 │  │  └─ 内容体系与首批卡片清单.md         分类体系、451 张卡片（汉字 241、古诗 30）、七个主题组、字段与图片规范
 │  ├─ v0.2/PRD-故事绘本.md                 50 本故事（一页读完）、US-S1~S6、故事页交互约束、pages/moral、综合图主体画风约束、边界与 DoD
 │  └─ v0.4/ · v0.5/ · v0.6/                听得准记得住 · 内容大扩容 · 成语词典（v0.6 词表在 PRD-成语词典.md：150 条 / 5 组 / 版式 / 出图 / DoD）
-│     └─ v0.7/PRD-搜索与离线.md            全局搜索 /search、PWA 安装与离线、路由懒加载、超宽屏与顶栏对齐（US-V1~V8）
+│     ├─ v0.7/PRD-搜索与离线.md            全局搜索 /search、PWA 安装与离线、路由懒加载、超宽屏与顶栏对齐（US-V1~V8）
+│     └─ v0.8/PRD-分龄与拼音辅助.md        分龄浏览（`/age/:band`）+ 分类筛龄 + 拼音候选（US-W1~W6；笔顺顺延 v0.8.1）
 ├─ NFR/                                   技术设计（版本化 + 总览）
 │  ├─ README.md                           技术总览：约束、技术栈、分层、目录、门禁、ADR 摘要
 │  ├─ v0.1/技术方案.md                      ADR、领域模型、数据模型、仓储、TTS、图片、任务拆解、风险、验证
 │  ├─ v0.2/技术方案-故事绘本.md             ADR-S1~S7、故事数据模型、故事页设计、综合图聚合管线、风险
 │  ├─ v0.3/技术方案-主体插画.md             ADR-C1、9 画师分层、CAST_TONES 同族色板、落脚线、尺度补偿、光晕退场
 │  └─ v0.4/ · v0.5/ · v0.6/                预录音频与学习进度 · 内容管线与门禁 V1~V5 · 成语词典（ADR-I1~I6、idiom 扩契约、内置分组表、门禁 V6/V7）
-│     └─ v0.7/技术方案-搜索与离线.md        搜索复用与 URL 唯一事实源、SW 两条策略、懒加载分块、顶栏反算对齐（ADR-V1~V5）
+│     ├─ v0.7/技术方案-搜索与离线.md        搜索复用与 URL 唯一事实源、SW 两条策略、懒加载分块、顶栏反算对齐（ADR-V1~V5）
+│     └─ v0.8/技术方案-分龄与拼音辅助.md    龄段复用 `difficulty`（难度 2 重叠带）、`?band=` URL 唯一事实源、`CategoryTile` 抽公用、拼音字典构建期生成（ADR-W1~W4 / 风险 R1~R5）
 ├─ scripts/
 │  ├─ lib/numerals.mjs                    中文数字解析纯函数（无副作用，可被测试直接 import）
 │  ├─ prepare-images.mjs                  内置素材生成：种子源码 → SVG → WebP（幂等，可 --force/--only）
@@ -136,6 +138,7 @@ graph LR
 | 12 内容大扩容（v0.5） | 汉字 241→321、数字 10→28、古诗 30→50、四个新分类各 10；出图/出音频全量重出 | 内容门禁 **659 张 / 21 分类** + 659 条音频；V1~V5 全绿；既有图逐字节不变 | T-C1–T-C14 | ✅（设备矩阵待真机） |
 | 13 成语词典（v0.6） | 第 22 分类「成语」+ 150 条（5 组各 30）：`meaning` / `examples` / `synonyms` / `antonyms` / `citation` 五个可选字段、内置分组表、详情页成语版式、管理区表单、听音选图排除、水墨四字卡出图 | 内容门禁 **809 张 / 22 分类** + 659 条音频；V1~V7 全绿；274 例全绿 | T-I1–T-I14 | ✅（设备矩阵待真机） |
 | 14 搜索与离线（v0.7） | `/search` 全局搜索（复用 `searchCards` + URL 唯一事实源）、`CardTile` 抽公用、manifest + 手写 `sw.js` + sharp 图标、六个低频页懒加载、超宽屏 1680 与顶栏反算对齐、详情页图与右列重心对齐 | 搜索 7 例全绿；主 chunk gzip 206.11 → **196.00**；CDP 四档顶栏对齐 + 断网 reload 首页完整 | T-V1–T-V8 | ✅（真机安装待验） |
+| 15 分龄与拼音辅助（v0.8） | 首页两档分龄大卡（1–3 岁 / 3–6 岁）+ `/age/:band` 分龄分类墙 + 分类页 `?band=` 筛选（含「看全部」）+ 详情页按龄翻页（全部复用既有 `difficulty`，零新字段）；`CategoryTile` 从 `HomePage` 抽出公用；管理区拼音候选（构建期字典 + 按字点选）；顺手修详情页翻页丢 `?group=`、`?band=` 的既有缺陷；工期中复审再修「详情 → 故事页 → 详情」返程丢参 | 22 个分类在 1–3 岁全部非空（576 张）；蔬菜 13 → 6；字典 gzip 19.1 kB、主 chunk gzip +1.08（偏差 D-1）；新增领域 6 例 / 页面 13 例 / 拼音 7 例 | T-W1–T-W12 | ✅（真机待验） |
 
 ### 3.1 关键实现顺序理由
 
@@ -176,6 +179,8 @@ graph LR
 | 全局搜索 | `/search`：直接复用 `searchCards`（中文 / 英文 / 带声调与去声拼音 / tags），**URL 是唯一事实源**（`?q=` + `?page=`，`replace: true`），不做防抖也不做 state↔URL 双向同步；每页 12 张 | NFR v0.7 §2 |
 | 离线 | `public/sw.js` 手写：导航请求网络优先并回退 `index.html`，同源 `.js/.css/.webp/.mp3/...` 缓存优先，跨源不拦；缓存名 `early-learn:v1`；注册带 `import.meta.env.PROD` 守卫（dev / vitest 不注册），失败静默降级 | NFR v0.7 §3 |
 | 顶栏对齐 | 顶栏用 `--topbar-max` + `--topbar-pad` 反算 `padding-inline`（`max()` 形式，≥1100px 生效），**必须排在 `.topbar--hero/--wide/--narrow/--story` 之后**（同为单类特异性，靠顺序覆盖）；用 `%` 不用 `100vw`（滚动条 8px 偏移） | NFR v0.7 §5 |
+| 分龄 | 龄段 `AgeBand`（`1-3` / `3-6`）**直接映射既有 `difficulty`**：`1-3` = 难度 1+2、`3-6` = 难度 2+3（难度 2 为重叠带，否则蔬菜 / 海洋动物 / 小虫子 / 职业 / 穿戴 5 类归零）；不加 `ageBand` 字段、不动 `schemaVersion` / `SEED_VERSION`；`?band=` 走 URL（非法即视为不限、不报错），详情页把 band 合进 `buildCardSequence` 的筛选器；**故事卡的「详情 → 故事页 → 详情」也必须带 `location.search`**，否则序列退回全分类 | NFR v0.8 §2 / §3.4 |
+| 拼音候选 | 字典由 `scripts/build-pinyin-dict.mjs` 在**构建期**生成（GB2312 一级字 3755 → `src/data/pinyin/dict.ts`，`pinyin-pro` 只作 devDependency），运行时零新依赖；`PinyinSuggest` 按字列**全部**读音，**点选才写入**，不监听中文静默填（守 `AGENT.md` §6）；点选按「被点位 > 本次已选 > 拼音框同位置音节 > 首读音」补齐，**不改写家长已确认的音** | NFR v0.8 §4 |
 
 ---
 
@@ -191,18 +196,25 @@ npm run build            # 产物构建 + 首屏 JS ≤ 350KB gzip
 npm run validate:content # 内容门禁（卡片/分类/图片/音频/分组）
 ```
 
-**最近一次实测（2026-10-30，v0.7.0）**
+**最近一次实测（2026-10-31，v0.8.0）**
 
 | 门禁 | 结果 | 关键数据 |
 | --- | --- | --- |
 | `typecheck` | ✅ | 0 error（strict：`noUncheckedIndexedAccess` / `verbatimModuleSyntax` / 未使用变量均开启） |
 | `lint` | ✅ | 0 error / 0 warning |
-| `test` | ✅ | **21 个测试文件、281 个用例全绿**（v0.7 +7：`search.test.tsx` 6 → 7；`admin.test.tsx` 因 `CardAdmin` 改懒加载，`findByRole` 显式放宽到 5000ms）；覆盖率本轮未重跑，沿用 v0.4 实测（行 82.25% / 分支 80.14%） |
-| `build` | ✅ | 主 chunk `580.27 kB` → **gzip `196.00 kB`**（v0.6.2：613.95 / 206.11）；CSS `38.25 kB` → gzip `8.36 kB`；另拆出 CardAdmin 16.45 / DataAdmin 6.38 / CategoryAdmin 5.35 / QuizPage 4.68 / StoryReaderPage 3.06 / GuidePage 2.67 kB（minify 后） |
-| `validate:content` | ✅ | **809 张 / 22 分类** + 659 条音频逐条存在；V1~V7 全生效；成语 150 条 / 5 组各 30 |
-| PWA 产物 | ✅ | `manifest.webmanifest` + `sw.js` + 三档图标随 dist 输出；生产构建下 `sw` 实测进入 `active`，`Network.emulateNetworkConditions{offline:true}` + reload 后首页 22 分类完整渲染 |
+| `test` | ✅ | **22 个测试文件、307 个用例全绿**（v0.8 +26：领域 `catalog.test.ts` +6、新 `age.test.tsx` 13、`admin.test.tsx` +7 拼音候选）；覆盖率未重跑，沿用 v0.4 实测（行 82.25% / 分支 80.14%） |
+| `build` | ✅（含偏差 D-1） | 主 chunk `584.11 kB` → **gzip `197.08 kB`**（v0.7：580.27 / 196.00；+1.08 来自分龄入口与 `AgePage` 的静态 import；复审后 gzip 无变化）；CSS `39.76 kB` → gzip `8.55 kB`；管理区 `CardAdmin` 73.57 kB / gzip 25.89（含拼音字典 gzip 19.1），另 DataAdmin 6.54 / CategoryAdmin 5.48 / QuizPage 4.79 / StoryReaderPage 3.14 / GuidePage 2.73 kB；`built in 6.60s` |
+| `validate:content` | ✅ | **809 张 / 22 分类** + 659 条音频逐条存在；V1~V7 全生效（内容零变更） |
+| `prepare:pinyin` | ✅ | 3755 字（多音字 674，跳过 5）· 76.7 kB · gzip 19.1 kB；二次运行输出「未变化」（幂等） |
+| PWA 产物 | ✅ | `manifest.webmanifest` + `sw.js` + 三档图标随 dist 输出（v0.8 未改 PWA 链路）；v0.7 已验证生产构建下断网 reload 首页完整 |
+
+> 偏差 D-1：方案预期「主 chunk 不增长」，实际主 chunk gzip +1.08 kB（分龄入口与 `AgePage` 按 §3.2 走静态 import，避免点一下先等 chunk）。判定可接受，详见 `NFR/v0.8` §5.1。
 
 > 离线能力只能在生产构建里验证（`npm run preview`）：dev 下 `import.meta.env.PROD` 为假，按设计不注册 SW。
+
+> **v0.8 CDP 三档（2026-10-31，生产构建 + headless Chrome 156，`Emulation.setDeviceMetricsOverride`）**：360×640 页面溢 0、`.band-row` 单列 332px（两卡 y=159 / 276 上下堆叠）、分类墙 2 列，`/c/vegetables?band=1-3` 为 6 张 + 「看全部 13」；1440×900 两卡并排 682.5×2、分类墙 6 列 214.5px、详情 `.detail` 960 居中；1826×1024 容器 1680、两卡 810×2 而高仍 105px（未被拉扁）、分类墙 6 列 257px。
+
+> **v0.8 复审 CDP 复核（2026-10-31，H1 修后，9 步全通过）**：360×780 蔬菜 `?band=1-3` → 6 张、「1–3 岁 · 6 / 13 张」、溢 0 → 详情「第 1 张，共 6 张」→ 连点「下一张」至「第 6 张，共 6 张」按钮禁用（不越界、不丢 band）→ 返回列表仍 6 张带 band；1440×900 故事 `?band=3-6` → 35 / 50 → 详情「共 35 张」→「开始阅读」后 `#/story/stories-ugly-duckling?band=3-6` → 返回详情仍「共 35 张」（修前为 50）。
 
 > v0.5.1 为纯版面调整（删首页横滑区 + 新增 `/recent` 页），用例 256 → 259，体积与内容计数不变。
 
@@ -322,6 +334,19 @@ npm run validate:content     # 等价于 node scripts/validate-content.mjs
 | 2026-10-30 | 坑位 | 连播这类「跨路由存活」的状态不能放 React：同路由换卡（`/card/a` → `/card/b`）是组件复用、跳去别的页再回来是销毁，`useState` 活不过每一次跳张；控制器要放**模块级**，由「页面重挂时 notify」单点驱动朗读与排程，定时器只负责跳张——否则 notify 与 timer 双通道会重复排程 |
 | 2026-10-30 | 坑位 | 模块级状态机自己把 `running` 置 false（末位卡播完）不会触发 React 重渲染，按钮会永远停在「停止连播」；必须留一个 listener 集合把状态回传组件，而不是靠组件每次渲染去轮询模块变量 |
 | 2026-10-30 | 坑位 | jsdom 里 `window.speechSynthesis` 存在但没有 `SpeechSynthesisUtterance`，机件构造即抛、链路降级成「点了不出声」，容易被误判成产品 bug；要测「连播能推进」必须 `Object.defineProperty(window, 'SpeechSynthesisUtterance', …)` 装桩并让 `speak` 同步触发 `onstart/onend`（已提取到 `src/test/helpers.ts`） |
+| 2026-10-31 | 坑位 | `pinyin-pro` 按频率返回读音，无调形式常排在最前（「啊」= `a/ā/á/ǎ/à`、「的」= `de/dì/dí/dī`）；若为「像拼音」把无调读音挪后，会把最常用的轻声改错。候选一律按词典原始顺序展示，**不做启发式重排** |
+| 2026-10-31 | 坑位 | GB2312 一级字按 0xB0A1–0xD7F9 逐位解时，尾部 0xD7FA–0xD7FE 在 CP936 下解出的是**私有区 U+E810–U+E814**（**不是 U+FFFD**，按 `ch !== '\uFFFD'` 判空是死代码）；这批位置无读音被 `pinyin-pro` 过滤，计为「跳过 5」。正确口径是显式排除 PUA（`\uE000–\uF8FF`）并把字数下限贴到真实值 3755，而不是 3700（少 55 字门禁仍绿）。本条为复审 L3 对前一条表述的纠正，代码未改 |
+| 2026-10-31 | 工具 | CDP 实测别让外部 shell 代管 Chrome：shell 被复用/回收时 Chrome 会跟着退出，脚本跑到一半报「CDP 连接已断开」。由脚本自己 `spawn` 并在结束时 `kill`；另 `Runtime.evaluate` 抛异常时 `result.value` 是 `undefined`，排查要打印整份 result |
+| 2026-10-31 | 坑位 | `/json/version` 给的是 **browser 目标** ws，接在上面的 `Page.enable` / `Runtime.evaluate` 会挂住不返回；必须从 `/json/list` 取 `type === 'page'` 的 `webSocketDebuggerUrl` 再连。另：命令尾部接 `Select-Object -Last N` 时输出会被缓冲到进程结束，脚本一挂就「什么都没打印」，排查时先 `*> .tmp/x.log` 再读文件 |
+| 2026-10-31 | 坑位 | 把筛选条件放进 `?band=` 后，**每一跳都必须带 `location.search`**：详情页 `goPrev/goNext` 修了，但「详情 → `/story/:id` → 详情」（`openStory` 与 `StoryReaderPage.detailUrl`）还是裸路径，回来时序列退回整个分类（页脚从「共 35 张」变「共 50 张」）。难点是列表返回靠 `state.listUrl` 依然正确，只看返回结果抓不到——验收必看序列计数（复审 H1 已修） |
+| 2026-10-31 | 坑位 | 拼音候选「未选位一律取首读音兜底」会把家长已确认的音改错：编辑一张 `长大 / zhǎng dà` 的卡，只点一下本来就对的「大 dà」就会写成 `cháng dà`，而校验只查「串里有声调符」直接放行。点选必须按位沿用父组件 `value` 里同位置的音节（被点位 > 本次已选 > `value[i]` > 首读音），且缺字时因位置对不上而**不沿用**（复审 H2 已修） |
+| 2026-10-31 | 坑位 | 拼音候选里被跳过的字不能「不留痕」：`slots` 只收有读音的字，`龘大` 只会得到 `dà` 一行，家长以为已经填完。必须把跳过的字收集起来点名（「「龘」不在字典里，请手动补这几个字的音节」），全缺时也点名而不是笼统一句（复审 M1 已修） |
+| 2026-10-31 | 坑位 | 「中文一改就作废已选音」只解决了**子组件内部**的串音，父组件的 `pinyin` 一个字也没变：点选生成 `píng guǒ` 后把中文改成「香蕉」，输入框仍是旧词的音且毫无提示。状态作废必须配一条显式提醒（复审 M2 已修） |
+| 2026-10-31 | 待办 | 复审 L1：分类页当前龄段用不可交互的 `<span class="chip is-active">` 表达选中态，无 `aria-current`、视觉上又像按钮；建议加 `aria-current` 或改成描述文本 + 单个「看全部」按钮（排 v0.8.1） |
+| 2026-10-31 | 待办 | 复审 L2：`?band=` + 分类本身为空时，空态文案误报成「这一档还没有适合的卡片」并给「看全部 0 张」无效出口；判断顺序应先 `all.length === 0`（原分类空态）再 `list.length === 0 && band`（排 v0.8.1） |
+| 2026-10-31 | 待办 | 复审 L3：`scripts/build-pinyin-dict.mjs` 的 `ch !== '\uFFFD'` 在本区间是死代码（尾部解出 PUA）、`MIN_CHARS = 3700` 偏松；改为显式排除 PUA 且下限贴 3755（排 v0.8.1） |
+| 2026-10-31 | 待办 | 复审 L4：测试缺口——拼音还缺「编辑既有卡点选不覆盖」与「同长度换字 / 删字后补回同一字」两类；`age.test.tsx` 的「墙内计数之和 == 顶栏数」与实现同源，近乎同义反复（应断言具体集合）（排 v0.8.1） |
+| 2026-10-31 | 待办 | 复审 L5：`CardDetailPage` 的 `buildCardSequence` 未 `useMemo`，每次渲染重排整分类（≤60 张）且回调身份抖动导致 keydown 监听重绑；`speaking` 变化会放大频率（排 v0.8.1） |
 | 2026-10-30 | 坑位 | Toast「合并」只对同文案生效：3.2s 存续期内不同文案必然并存；测试要断言「同文案不堆叠」，不要断言「上一条已消失」 |
 | 2026-10-30 | 决策 | 清除学习进度只 `repository.clear()` 删键、不写回空文档：删键与「从没用过」同形，不留下无意义记录，也让「只动 progress、不动 catalog」可被测试直接核对 |
 | 2026-10-30 | 坑位 | 出图脚本按「排列位置 + 1」推导数字卡的阿拉伯数字（`CN_NUMERAL[index]` 只有一~十）：分类加卡会静默错位（第 12 张画成 21），超过十张后中文行还会画成空串；v0.5 改为按卡片 `zh` 解析中文数字，解析失败即抛错（`NFR/v0.5/技术方案.md` §4.1） |
@@ -403,3 +428,6 @@ npm run validate:content     # 等价于 node scripts/validate-content.mjs
 | 2026-10-30 | v0.6.1 | 需求方「有些配图和内容完全不搭，没有真正表达出真实世界的物」+ 360px 窄屏核验：① 四字卡从「150 条 slug → 14 类意境」改为「每条 2 件实物意象」（`IDIOM_PROPS` 150 × 2 + `IDIOM_MOTIFS` 78 件），删掉 `idiomSceneMarkup`，新增 `motifMarkup` / `inkPerson` / `inkQuadruped` 骨架与 `idiomBackdrop`；② 151 张带 `--force` 重出，拼 4 张 48 格缩略图逐张目检，井 / 钟 / 龙 / 靴 / 手 / 足 / 柳 / 竹 / 山 / 台阶 / 画笔 各返工 1–3 版；按 170px 实测再修一轮：`inkPerson` 加 `DEEP` 轮廓与浅色头脸、手臂露出衫外，`scroll` 卷面改米色填充，`feet` 改大号脚印并排，`精卫填海` 改「鸟 + 海」、`黔驴技穷` 改「驴 + 虎」；③ 门禁 V6 改口径（0 件 / 超 2 件 / 未实现三种失败），解析对象改 `IDIOM_PROPS` + `IDIOM_MOTIFS`；④ 详情页图块改「stage 定高 + `height:100%; width:auto; aspect-ratio:1/1`」，修掉 `100cqh` 解析为 0 导致整站详情页图缩成 2px；⑤ 360 / 375 / 1440 三档 CDP 复测：无横向溢出、无越界元素，图块 170 / 153 / 207 且为正方形；⑥ 五道门禁全绿（274 例，JS gzip 205.63 KB、CSS gzip 7.14 KB）；⑦ PRD §6.1 / §10 / §13 与 NFR v0.6 §2.1 / §4.4 / §4.7 / §5 / §11 同步；⑧ 版本号 0.6.0 → 0.6.1 | Agent |
 | 2026-10-30 | v0.6.2 | 需求方「整体调整一下这个布局吧以及点击去的布局 感觉留白太多 换一个更好和更完美的布局颜色 在一个合适的位置加入源码地址」：① 容器分档 `--page-max` / `--page-max-wide` / `--page-max-narrow`，新增 `.page--wide`（1440）挂首页 / 分类 / 收藏 / 最近 4 页，`.detail` 1180 → 960；② 分类卡改「封面 + `.cat-tile__foot` + 角标」三件，卡片 `height:100%` 等高，22 张实测统一 205 / 178px；③ 首页顶栏 `topbar--hero`（标题 + 入口条 + 源码 + 语言），<960px 入口条换行横滑 + `mask-image` 右渐隐，`.topbar--hero .entry-bar .btn` 加 `flex:0 0 auto` 防竖排；④ 主色 `#3E7BFA` → `#2F6B57`、21 分类色降一档饱和、阴影改暖、`.chip.is-active` 改主色；⑤ `.grid-cards` 固定 2 / 4 / 6 列与每页 12 张整除；⑥ `.detail--idiom` 桌面三行网格（`stage words` / `stage idiom` / `stage actions`），图块 207 → 396px，释义块内部滚动；⑦ `REPO_URL` 三处入口（页脚 / 顶栏 / 设置页「关于」），页脚去 `aria-hidden`；⑧ `cards.test.tsx` 两处改按 `.card-tile` 计数；⑨ CDP 1440 / 360 实测无横向溢出；五道门禁全绿（274 例，CSS gzip 7.89KB / JS gzip 206.11KB）；⑩ 新增 `FR/v0.6/PRD-界面改版.md` + `NFR/v0.6/技术方案-界面改版.md`，§6 补 3 条坑位 / 1 条决策；⑪ 版本号 0.6.1 → 0.6.2 | Agent |
 | 2026-10-30 | v0.7.0 | 需求方「继续规划实现」（承接已确认口径：打磨包 + 能力包合并做 v0.7、超宽屏补一档 ≥1700px → 1680）：① 新增 `/search`（复用 `searchCards`、URL 唯一事实源 `?q=`/`?page=` + `replace`、12 张一页、分类角标、≤ 6 张给分类 chips / 0 张给「换个思路」出口）与 7 例测试（`should_offer_category_entries_when_nothing_matches`）；② `CardTile` 抽公用（`CategoryPage` / `FavoritesPage` / `RecentPage` 改 import）；③ PWA：`manifest.webmanifest` + 手写 `sw.js`（`early-learn:v1`：导航网络优先回退 `index.html`、同源静态缓存优先、跨源不拦）+ `scripts/build-icons.mjs`（sharp 出 192 / 512 / maskable）+ `src/app/pwa.ts`（`import.meta.env.PROD` 守卫、失败静默）；④ 六页 `lazy`（管理区三页 / Quiz / Story / Guide）+ `AppShell` 内 `Suspense` + `RouteFallback`（页脚不闪）；⑤ `--page-max-wide` 补 ≥1700px → 1680，顶栏 `--topbar-max` / `--topbar-pad` 反算 `padding-inline`（用 `%` 不用 `100vw`，排在四类修饰类之后）；⑥ 详情页普通卡改 `grid-template-rows: auto auto` + `align-content: center`（诗词 / 成语 `:not()` 排除），修掉图中心 468 与文字块 691 的 220px 重心错位；⑦ `tsconfig.json` types 加 `vite/client`；⑧ 五道门禁全绿（281 例 / 21 文件，CSS 38.25 kB gzip 8.36 / JS 580.27 kB gzip 196.00），CDP 四档 + 断网 reload 实测通过；⑨ FR/NFR 四份文档按实现逐条校准（无防抖、URL 唯一事实源、缓存名固定、角标右下角）；⑩ 版本号 0.6.2 → 0.7.0 | Agent |
+| 2026-10-31 | v0.8.0（规划） | 需求方「继续规划」，四问对齐口径（本版 = 多龄段 + 拼音辅助 / 笔顺 321 字全覆盖顺延 v0.8.1 / 分龄形态 = 首页两张分龄大卡 / 拼音 = 候选 + 人工确认）：① 先做代码事实核对，查出三件事——笔顺**没有任何路径数据**（`Card.strokes` 只是笔画数）、`difficulty` 自 v0.1 就写进实体与种子但**前台从未读取**、拼音无任何库且本文 §6 已禁自动生成；② 用脚本统计难度分布（实物 58/115/64、汉字 92/150/79、古诗 12/21/17、故事 15/31/4、成语 23/58/69，按分类最细处：蔬菜 / 海洋动物 / 小虫子 / 职业 / 穿戴的难度 1 均为 **0 张**），据此定 `AGE_BAND_DIFFICULTIES` 的难度 2 重叠带（58 → 173 张，18 类全非空）；③ 新增 `FR/v0.8/PRD-分龄与拼音辅助.md`（US-W1~W6、验收 11 项、本版不做 6 条、待确认口径 D-W1~D-W3）；④ 新增 `NFR/v0.8/技术方案-分龄与拼音辅助.md`（事实核对 8 条、`AgeBand` + `isAgeBand` / `matchesBand` / `countCardsByBand`、`?band=` URL 约定、首页 / 分龄墙 / 分类页 / 详情页四处改动、`CategoryTile` 抽公用、拼音构建期字典 + `PinyinSuggest`、任务 12 步、ADR-W1~W4、风险 R1~R5）；⑤ 顺手登记既有缺陷：详情页 `goPrev/goNext` 的 `navigate` 不带 `location.search`，翻页会丢 `?group=`；⑥ FR/NFR 两份 README 与本文三处同步（路线图 v0.8 / 新增 v0.8.1 笔顺、版本索引、ADR 摘要 W1–W4、变更记录）；版本号**未**升（仍 0.7.0，按惯例代码开工时才升） | Agent |
+| 2026-10-31 | v0.8.0（实现） | 需求方确认三条口径（D-W1 难度 2 重叠带 / D-W2 分类墙上方两张并排 / D-W3 `pinyin-pro` 仅 devDependency）并「直接按 T-W1~T-W12 实现」：① 领域新增 `AgeBand` / `AGE_BANDS` / `AGE_BAND_LABEL` / `AGE_BAND_NAME` / `AGE_BAND_TAGLINE` / `AGE_BAND_DIFFICULTIES` 与 `isAgeBand` / `matchesBand` / `countCardsByBand`；② `CategoryTile` 从首页抽到 `categories/ui/`（`countSuffix` / `search`），首页在其上方加 `.band-row` 两张分龄大卡（576 / 609 张适龄）；③ 新增 `AgePage` + 静态路由 `age/:band`（0 张分类不渲染、非法 band 空态）；④ `CategoryPage` 改 `all` / `list` 双层认 `?band=`，副标题「1–3 岁 · 6 / 13 张」+ 年龄 chips「看全部」（`goto` 加 `nextBand`），band 下 0 张给「看全部 N 张」出口；⑤ 详情页把 band 合进 `buildCardSequence` 筛选器，`goPrev/goNext/goCardById` 透传 `location.search` 与 `state`，顺手修掉 v0.7「翻页丢 `?group=`」；⑥ `npm i -D pinyin-pro` + `scripts/build-pinyin-dict.mjs`（GB2312 一级字 0xB0A1–0xD7F9 + `TextDecoder('gbk')`）出 `src/data/pinyin/dict.ts`（3755 字 / 76.7 kB / gzip 19.1 kB，幂等），`PinyinSuggest` 按字列全部读音、点选才 `onPick`、库外字提示手输；⑦ 新增 `.band-row` / `.band-card` / `.pinyin-suggest` 样式；⑧ 用例 281 → **303**（+领域 6 / 页面 12 / 拼音 4），五道门禁全绿（主 chunk gzip 197.08 kB、CSS gzip 8.55 kB）；⑨ CDP 360 / 1440 / 1826 三档无溢出，分龄卡高恒 105px；⑩ 版本号 0.7.0 → 0.8.0；偏差 D-1：主 chunk gzip +1.08 kB（分龄入口与 `AgePage` 静态 import） | Agent |
+| 2026-10-31 | v0.8.0（复审修订） | 全量 CodeReview（用户指定范围：领域 / 分龄四页 / `PinyinSuggest` / 字典脚本 / 样式 / 测试）后修 4 条：① **H1** 「详情 → 故事页 → 详情」往返丢 `?band=` / `?group=` —— `openStory` 与 `StoryReaderPage.detailUrl` 各补 `location.search`；② **H2** 拼音点选把未选位一律改回首读音 —— `PinyinSuggest` 加可选 `value`，按「被点位 > 已选 > `value[i]` > 首读音」补齐，缺字时不沿用；③ **M1** 缺字点名；④ **M2** 改词后旧拼音残留提示。用例 303 → **307**（age 13 / admin 7），H1/H2 新用例已验证旧实现会红；五道门禁全绿（主 chunk gzip 仍 197.08、`CardAdmin` gzip 25.89、`built in 6.60s`）；CDP 9 步复核（含故事往返）全通过；低优先 L1~L5 仅登记 §6 待办 | Agent |

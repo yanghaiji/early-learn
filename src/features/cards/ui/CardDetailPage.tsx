@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useCatalog } from '../../../app/CatalogProvider';
 import type { Card } from '../../../domain/entities/card';
-import { buildCardSequence } from '../../../domain/services/catalog';
+import { buildCardSequence, isAgeBand, matchesBand } from '../../../domain/services/catalog';
 import { useSwipe } from '../../../shared/hooks';
 import {
   hintReadOnlyOnce,
@@ -59,8 +59,10 @@ export function CardDetailPage() {
   const trackRecent = useProgressStore((state) => state.trackRecent);
   const { running: slideshowRunning, start: startSlideshow, stop: stopSlideshow } = useSlideshow();
 
-  // 分类页带过来的组筛选：详情页只在该组内翻页，不串到别的主题
+  // 分类页带过来的筛选：详情页只在该组 / 该龄段内翻页，不串到别的主题或年龄段
   const groupKey = searchParams.get('group');
+  const bandParam = searchParams.get('band');
+  const band = isAgeBand(bandParam) ? bandParam : '';
   const card = cards.find((item) => item.id === cardId);
   const category = card ? categories.find((item) => item.id === card.categoryId) : undefined;
   const sequence = card
@@ -68,9 +70,14 @@ export function CardDetailPage() {
         cards,
         card.id,
         card.categoryId,
-        groupKey ? (item) => groupOf(item) === groupKey : undefined,
+        (item) =>
+          (groupKey ? groupOf(item) === groupKey : true) &&
+          (band ? matchesBand(item, band) : true),
       )
     : null;
+
+  // 翻页与连播都要带着原查询串，否则 ?group= / ?band= 会在第一次翻页时丢掉（v0.8 修既有缺陷）
+  const search = location.search;
 
   // 返回到刚才那页（分组 + 页码），直接打开时退回同 group 的第一页
   const listUrl =
@@ -81,15 +88,15 @@ export function CardDetailPage() {
     if (!sequence?.hasPrev) return;
     stopSlideshow();
     const target = sequence.list[sequence.index - 1];
-    if (target) navigate(`/card/${target.id}`, { replace: true });
-  }, [navigate, sequence, stopSlideshow]);
+    if (target) navigate(`/card/${target.id}${search}`, { replace: true, state: location.state });
+  }, [location.state, navigate, search, sequence, stopSlideshow]);
 
   const goNext = useCallback(() => {
     if (!sequence?.hasNext) return;
     stopSlideshow();
     const target = sequence.list[sequence.index + 1];
-    if (target) navigate(`/card/${target.id}`, { replace: true });
-  }, [navigate, sequence, stopSlideshow]);
+    if (target) navigate(`/card/${target.id}${search}`, { replace: true, state: location.state });
+  }, [location.state, navigate, search, sequence, stopSlideshow]);
 
   const swipe = useSwipe({ onSwipeLeft: goNext, onSwipeRight: goPrev });
 
@@ -111,8 +118,8 @@ export function CardDetailPage() {
   );
 
   const goCardById = useCallback(
-    (id: string) => navigate(`/card/${id}`, { replace: true }),
-    [navigate],
+    (id: string) => navigate(`/card/${id}${search}`, { replace: true, state: location.state }),
+    [location.state, navigate, search],
   );
 
   // 每次渲染后刷新回调：设置里改语速 / 开关后，下一个节拍用新闭包
@@ -219,9 +226,9 @@ export function CardDetailPage() {
     hintIfReadOnly();
     markCard(card.id, status);
   };
-  // 进入故事页：带上分类页 URL，返回链路不断（v0.2 ADR-S5）
+  // 进入故事页：带上分类页 URL 与筛选串，返回链路不断（v0.2 ADR-S5 / v0.8 补 ?band=）
   const openStory = () => {
-    navigate(`/story/${card.id}`, listUrl ? { state: { listUrl } } : undefined);
+    navigate(`/story/${card.id}${search}`, listUrl ? { state: { listUrl } } : undefined);
   };
   const speechText = speechTextOf(card);
   const speechHint = !speech.isSupported()
