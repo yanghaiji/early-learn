@@ -1,7 +1,7 @@
 /** 管理区主流程测试（PRD US-07~US-10）：分类 CRUD、卡片检索、数据维护、只读降级 */
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AppRouter } from '../../../app/router';
 import { resetLocalStorage } from '../../../test/memoryStorage';
@@ -27,6 +27,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   if (originalLocalStorage) Object.defineProperty(window, 'localStorage', originalLocalStorage);
 });
 
@@ -232,5 +234,41 @@ describe('拼音候选（v0.8）', () => {
 
     expect(await within(dialog).findByText(/「龘」不在字典里，请手输拼音/)).toBeInTheDocument();
     expect(within(dialog).getByLabelText('拼音（带声调）')).toHaveValue('');
+  }, 20_000);
+});
+
+/** 上传图压缩（v0.9 T-X9）：选图后写进表单的是压缩后的 dataURL，不是原图 */
+describe('上传图压缩（v0.9）', () => {
+  it('should_store_compressed_data_url_when_photo_picked', async () => {
+    const user = userEvent.setup();
+    markGatePassed();
+    window.location.hash = '#/admin/cards';
+    render(<AppRouter />);
+    await user.click(await screen.findByRole('button', { name: '新建卡片' }, { timeout: 5000 }));
+    const dialog = await screen.findByRole('dialog', { name: '新建卡片' });
+
+    // jsdom 没有真 canvas / createImageBitmap：桩出「3000×2000 原图 → 1280×853 / 100 KB / WebP」
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
+      () => ({ drawImage: () => undefined }) as unknown as CanvasRenderingContext2D,
+    );
+    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/webp;base64,AAAA');
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(function (
+      this: HTMLCanvasElement,
+      callback: BlobCallback,
+      mime?: string,
+    ) {
+      callback(new Blob([new Uint8Array(100 * 1024)], { type: mime ?? 'image/webp' }));
+    } as HTMLCanvasElement['toBlob']);
+    vi.stubGlobal('createImageBitmap', vi.fn(async () => ({ width: 3000, height: 2000, close: vi.fn() })));
+
+    const fileInput = dialog.querySelector('input[type="file"]');
+    expect(fileInput).not.toBeNull();
+    fireEvent.change(fileInput as HTMLInputElement, {
+      target: { files: [new File([new Uint8Array(3 * 1024 * 1024)], 'photo.png', { type: 'image/png' })] },
+    });
+
+    expect(await screen.findByText(/图片已压缩：3\.0 MB → 100 KB · 1280×853/)).toBeInTheDocument();
+    // dataURL 不进文本框（那条路只填路径），缩略图拿到的是压缩后的 dataURL
+    expect(within(dialog).getByLabelText('图片路径')).toHaveValue('');
   }, 20_000);
 });

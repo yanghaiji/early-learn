@@ -13,7 +13,7 @@ import { Field } from '../../../shared/ui/Field';
 import { ImageWithFallback } from '../../../shared/ui/ImageWithFallback';
 import { Modal } from '../../../shared/ui/Modal';
 import { toast } from '../../../shared/store/toastStore';
-import { formatBytes, readImageAsDataUrl } from '../../../shared/utils/image';
+import { compressImageFile, formatBytes, IMAGE_RAW_MAX_BYTES, IMAGE_TARGET_BYTES } from '../../../shared/utils/image';
 import { PinyinSuggest } from './PinyinSuggest';
 
 interface Props {
@@ -66,15 +66,21 @@ export function CardForm({ initial, defaultCategoryId, onClose }: Props) {
   const [citation, setCitation] = useState(initial?.citation ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [picking, setPicking] = useState(false);
 
   const pickImage = async (file: File | undefined) => {
     if (!file) return;
+    setPicking(true);
     try {
-      const picked = await readImageAsDataUrl(file);
-      setImage(picked.dataUrl);
-      toast(`已选择图片（${formatBytes(picked.bytes)}）`);
+      const compressed = await compressImageFile(file);
+      setImage(compressed.dataUrl);
+      toast(
+        `图片已压缩：${formatBytes(compressed.originalBytes)} → ${formatBytes(compressed.bytes)} · ${compressed.width}×${compressed.height}`,
+      );
     } catch (error) {
-      toast(error instanceof Error ? error.message : '图片读取失败', 'error');
+      toast(error instanceof Error ? error.message : '图片处理失败', 'error');
+    } finally {
+      setPicking(false);
     }
   };
 
@@ -360,19 +366,29 @@ export function CardForm({ initial, defaultCategoryId, onClose }: Props) {
         />
       </Field>
 
-      <Field label="图片" error={errors.image} hint={`支持 jpg/png/webp，单张 ≤ ${formatBytes(LIMITS.IMAGE_MAX_BYTES)}`}>
+      <Field
+        label="图片"
+        error={errors.image}
+        hint={`支持 jpg/png/webp，原图 ≤ ${formatBytes(IMAGE_RAW_MAX_BYTES)}，自动压缩到 ≤ ${formatBytes(IMAGE_TARGET_BYTES)}`}
+      >
         <div className="inline">
           <div className="row__thumb" style={{ width: 72, height: 72 }}>
             <ImageWithFallback src={image} alt={zh || '卡片图片'} fallbackText={zh || '占位'} />
           </div>
-          <label className="btn" style={{ cursor: 'pointer' }}>
+          <label className="btn" style={{ cursor: picking ? 'progress' : 'pointer' }} aria-busy={picking}>
             <ImagePlus size={18} />
-            上传图片
+            {picking ? '压缩中…' : '上传图片'}
             <input
               type="file"
               accept="image/*"
               hidden
-              onChange={(event) => void pickImage(event.target.files?.[0])}
+              disabled={picking}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                // 清空 value：同一张图重选两次也要触发 onChange
+                event.target.value = '';
+                void pickImage(file);
+              }}
             />
           </label>
           {image ? (
