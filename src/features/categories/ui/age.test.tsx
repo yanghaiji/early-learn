@@ -24,9 +24,9 @@ describe('首页分龄入口（US-W1）', () => {
     expect(within(group).getByText(/3–6 岁 · 进阶/)).toBeInTheDocument();
     expect(within(group).getAllByText(/张适龄/)).toHaveLength(2);
 
-    // 分龄入口必须排在分类墙之前，分类墙本身不受影响
+    // 分龄入口必须排在段卡网格之前（v0.12：分类墙已搬到二级页，首页网格变成段卡）
     const bandRow = container.querySelector('.band-row');
-    const grid = container.querySelector('.grid-cats');
+    const grid = container.querySelector('.grid-groups');
     expect(bandRow).not.toBeNull();
     expect(grid).not.toBeNull();
     expect(

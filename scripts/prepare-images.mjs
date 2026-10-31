@@ -1778,9 +1778,63 @@ function cardSvg({ slug, categoryId, zh, kind }) {
   </svg>`;
 }
 
+/** 封面公共底：浅渐变 + 圆泡 + 云点 + 地带来（普通封面与 colors/shapes 特判封面共用） */
+function coverBackdrop(theme) {
+  const { width, height } = COVER_SIZE;
+  return `<defs><linearGradient id="vSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${theme.bg}"/><stop offset="1" stop-color="#FFFDF8"/>
+    </linearGradient></defs>
+    <rect width="${width}" height="${height}" fill="url(#vSky)"/>
+    <circle cx="${width - 54}" cy="52" r="96" fill="${theme.soft}" opacity="0.55"/>
+    <g fill="#FFFFFF" opacity="0.7"><circle cx="58" cy="54" r="15"/><circle cx="78" cy="46" r="20"/><circle cx="100" cy="56" r="14"/><rect x="58" y="54" width="44" height="16" rx="8"/></g>
+    <path d="M0 302 q120 -20 240 0 t240 0 V${height} H0 Z" fill="${theme.soft}" opacity="0.8"/>`;
+}
+
+/**
+ * 颜色封面（v0.12 L-3）：颜色卡主体走 cardSvg 的 colors 特判分支，
+ * slug 从未登记 CARD_SPECS，常规 coverSvg 取不到主体只剩背景。
+ * 这里按卡面同款的「色圆 + 白高光」排一排六色。
+ */
+function colorsCoverSvg(theme) {
+  const { width, height } = COVER_SIZE;
+  const hexes = Object.values(COLOR_HEX).slice(0, 6);
+  const circles = hexes
+    .map((hex, i) => {
+      const cx = 62 + i * 73;
+      return `<circle cx="${cx}" cy="168" r="34" fill="${hex}" stroke="${theme.accent}" stroke-opacity="0.18" stroke-width="3"/>
+        <circle cx="${cx - 10}" cy="158" r="9" fill="#FFFFFF" opacity="0.35"/>`;
+    })
+    .join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+    ${coverBackdrop(theme)}
+    ${circles}
+  </svg>`;
+}
+
+/** 形状封面（v0.12 L-3）：同 shapes 卡特判分支未登记的问题；几何一排复用 shapeMarkup 缩略 */
+function shapesCoverSvg(theme) {
+  const { width, height } = COVER_SIZE;
+  const palette = ['#E4483C', '#3E7BFA', '#F2C230', '#8A63C7', '#4C9A5B'];
+  const marks = ['circle', 'triangle', 'square', 'star', 'heart']
+    .map((slug, i) => {
+      const s = 0.34;
+      const cx = 72 + i * 84;
+      const cy = 168;
+      // shapeMarkup 以 (160,160) 为心画 320 卡面，先缩放再平移回封面坐标
+      return `<g transform="translate(${(cx - 160 * s).toFixed(1)} ${(cy - 160 * s).toFixed(1)}) scale(${s})">${shapeMarkup(slug, palette[i])}</g>`;
+    })
+    .join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+    ${coverBackdrop(theme)}
+    ${marks}
+  </svg>`;
+}
+
 function coverSvg(categoryId, slugs) {
   const theme = THEME[categoryId] ?? THEME.characters;
   const { width, height } = COVER_SIZE;
+  if (categoryId === 'colors') return colorsCoverSvg(theme);
+  if (categoryId === 'shapes') return shapesCoverSvg(theme);
   const picks = slugs.slice(0, 3);
   const spots = picks.length >= 3
     ? [{ cx: 240, size: 168 }, { cx: 120, size: 132 }, { cx: 362, size: 132 }]
@@ -1801,13 +1855,7 @@ function coverSvg(categoryId, slugs) {
     .join('');
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-    <defs><linearGradient id="vSky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="${theme.bg}"/><stop offset="1" stop-color="#FFFDF8"/>
-    </linearGradient></defs>
-    <rect width="${width}" height="${height}" fill="url(#vSky)"/>
-    <circle cx="${width - 54}" cy="52" r="96" fill="${theme.soft}" opacity="0.55"/>
-    <g fill="#FFFFFF" opacity="0.7"><circle cx="58" cy="54" r="15"/><circle cx="78" cy="46" r="20"/><circle cx="100" cy="56" r="14"/><rect x="58" y="54" width="44" height="16" rx="8"/></g>
-    <path d="M0 302 q120 -20 240 0 t240 0 V${height} H0 Z" fill="${theme.soft}" opacity="0.8"/>
+    ${coverBackdrop(theme)}
     ${subjects}
   </svg>`;
 }

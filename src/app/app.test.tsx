@@ -11,11 +11,12 @@ beforeEach(() => {
 });
 
 describe('AppRouter', () => {
-  it('should_render_seed_categories_on_home', async () => {
+  it('should_render_seed_group_cards_on_home', async () => {
     render(<AppRouter />);
     expect(await screen.findByRole('heading', { name: '童识 · 认知卡片' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /^动物/ })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /汉字/ })).toBeInTheDocument();
+    // v0.12：首页铺的是段卡而非分类墙，认物与字卡段都在
+    expect(screen.getByRole('link', { name: /^动物与植物/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^字卡/ })).toBeInTheDocument();
   });
 
   it('should_render_card_detail_with_pinyin_when_route_matches', async () => {

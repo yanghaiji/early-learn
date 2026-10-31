@@ -1,30 +1,27 @@
 /**
- * 分类块（v0.8 从 HomePage 抽出：首页与分龄墙共用同一套外观）。
- * 角标与链接都是可参数化的，首页行为保持原样。
- * v0.10 加 `row` 横排变体：首页字卡 / 诗文 / 绘本三段只有 1–2 张卡，
- * 按竖卡铺在 6 列网格里会留出大半行空白，改成横卡三列并排。
+ * 分类块（v0.8 从 HomePage 抽出：分龄墙与段页共用同一套外观）。
+ * 角标与链接都是可参数化的。
+ * v0.12：首页改版后不再直接铺分类墙，`row` 横排变体随双轨布局一并删除。
  */
 
 import { Link } from 'react-router-dom';
 import type { Category } from '../../../domain/entities/category';
 import { ImageWithFallback } from '../../../shared/ui/ImageWithFallback';
-import { categoryColorVar, cx } from '../../../shared/utils/classNames';
+import { categoryColorVar } from '../../../shared/utils/classNames';
 
 interface Props {
   category: Category;
   count: number;
-  /** 角标后缀：首页「12 张」、分龄区「6 张适龄」 */
+  /** 角标后缀：段页「12 张」、分龄区「6 张适龄」 */
   countSuffix?: string;
   /** 追加到链接的查询串：分龄区传 `?band=1-3` */
   search?: string;
-  /** 横排变体（v0.10）：封面缩成左侧方块，名称与张数在右 */
-  row?: boolean;
 }
 
-export function CategoryTile({ category, count, countSuffix = '张', search = '', row }: Props) {
+export function CategoryTile({ category, count, countSuffix = '张', search = '' }: Props) {
   return (
     <Link
-      className={cx('cat-tile', row && 'cat-tile--row')}
+      className="cat-tile"
       to={`/c/${category.id}${search}`}
       aria-label={`${category.name} ${count} ${countSuffix}卡片`}
     >

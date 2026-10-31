@@ -1,4 +1,4 @@
-/** 首页 · 分类墙（PRD M1 / US-01） */
+/** 首页 · 分类墙（PRD M1 / US-01；v0.12 改版：段卡 + 二级页） */
 
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -19,7 +19,7 @@ import { EmptyState } from '../../../shared/ui/Feedback';
 import { ImageWithFallback } from '../../../shared/ui/ImageWithFallback';
 import { markGatePassed } from '../../admin/gateSession';
 import { ProgressEntries, ProgressStatsLine } from '../../learn/ui/ProgressStats';
-import { CategoryTile } from './CategoryTile';
+import { GroupCard } from './GroupCard';
 
 /** 显示语言切换只有点开「语言」才需要，离开主 chunk（v0.10 首页改版腾预算） */
 const DisplayModeSwitch = lazy(() =>
@@ -36,12 +36,6 @@ const BAND_COVER: Record<AgeBand, string> = {
   '3-6': 'assets/images/covers/poems.webp',
 };
 
-/**
- * 三小段（v0.10）：字卡 / 诗文 / 绘本各只有 1–2 张分类，铺在 6 列网格里会空出大半行，
- * 改为三列并排、每列一张横卡；其余段（认物 / 更多）继续走整行分类墙。
- */
-const RAIL_GROUPS = new Set(['character', 'poem', 'story']);
-
 export function HomePage() {
   const { categories, cards, counts, isReadOnly } = useCatalog();
   const [displayOpen, setDisplayOpen] = useState(false);
@@ -57,7 +51,7 @@ export function HomePage() {
     [cards],
   );
 
-  // 分类墙分段（v0.10）：认物 / 字卡 / 诗文 / 绘本，管理区新建的分类落「更多」兜底组
+  // 分类墙分段（v0.12）：七个主题段，管理区新建的分类落兜底段「更多」
   const sections = useMemo(() => groupCategories(categories), [categories]);
 
   const onPass = () => {
@@ -151,48 +145,16 @@ export function HomePage() {
                 </Link>
               ))}
             </div>
-            {/* 分类墙分段（v0.10 H-2）：整行段（认物 / 更多）先排，三小段随后三列并排 */}
-            {sections
-              .filter((section) => !RAIL_GROUPS.has(section.group.id))
-              .map((section) => (
-                <section key={section.group.id} className="cat-section">
-                  <h2 className="cat-section__title">
-                    <span className="cat-section__name">{section.group.name}</span>
-                    <span className="cat-section__hint">{section.group.hint}</span>
-                  </h2>
-                  <div className="grid-cats">
-                    {section.items.map((category) => (
-                      <CategoryTile
-                        key={category.id}
-                        category={category}
-                        count={counts[category.id] ?? 0}
-                      />
-                    ))}
-                  </div>
-                </section>
+            {/* 段卡网格（v0.12 H-2）：一段一张摘要卡，张数取段内各分类合计 */}
+            <div className="grid-groups">
+              {sections.map((section) => (
+                <GroupCard
+                  key={section.group.id}
+                  section={section}
+                  cardCount={section.items.reduce((sum, item) => sum + (counts[item.id] ?? 0), 0)}
+                />
               ))}
-            {sections.some((section) => RAIL_GROUPS.has(section.group.id)) ? (
-              <div className="cat-row">
-                {sections
-                  .filter((section) => RAIL_GROUPS.has(section.group.id))
-                  .map((section) => (
-                    <section key={section.group.id} className="cat-section">
-                      <h2 className="cat-section__title">
-                        <span className="cat-section__name">{section.group.name}</span>
-                        <span className="cat-section__hint">{section.group.hint}</span>
-                      </h2>
-                      {section.items.map((category) => (
-                        <CategoryTile
-                          key={category.id}
-                          category={category}
-                          count={counts[category.id] ?? 0}
-                          row
-                        />
-                      ))}
-                    </section>
-                  ))}
-              </div>
-            ) : null}
+            </div>
           </>
         )}
 

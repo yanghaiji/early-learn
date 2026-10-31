@@ -1,9 +1,14 @@
 /**
- * 首页分类墙分段（v0.10）：22 个内置分类语义上分四种，平铺在一个网格里家长分不出
- * 「这是认物图卡还是字卡/诗文/绘本」。这里只做**归类**，不给分类加字段、不改 schemaVersion。
+ * 首页段卡清单（v0.12）：展示层静态映射，把 22 个内置分类归入七个段，
+ * 家长后台新建的分类落兜底段「更多」——新增分类零改动即可出现在首页。
  *
- * 管理区可以新建分类，新分类不会落进任何内置组，必须进「更多」兜底组 ——
- * 首页不能因为改版把家长自己建的分类吞掉。
+ * 与 v0.10 四段版的区别：认物 17 类按主题拆成四段（动物与植物 / 身边的物什 /
+ * 人物与动作 / 自然与概念），首页每段渲染一张摘要卡，点进去是二级页
+ * /group/:groupId；字卡 / 诗文 / 绘本三段与四段同网格，不再双轨。
+ *
+ * 段不是实体：不给 Category 加字段、不动 schemaVersion / SEED_VERSION。
+ * 段内 id 顺序即段页 tile 顺序，且**首分类充当段卡封面代表**
+ * （如诗文段 idioms 在前 → 段卡用成语封面），封面复用现有分类图，零新图。
  */
 
 import type { Category, CategoryId } from '../entities/category';
@@ -15,63 +20,94 @@ export interface CategoryGroupSpec {
   ids: readonly CategoryId[];
 }
 
-/** 内置分组：顺序即首页从上到下的顺序，组内顺序也由清单决定（不沿用分类 sortOrder） */
 export const CATEGORY_GROUPS: readonly CategoryGroupSpec[] = [
   {
-    id: 'object',
-    name: '认物',
-    hint: '看图认东西',
-    ids: [
-      'animals',
-      'fruit',
-      'vegetables',
-      'vehicles',
-      'daily',
-      'body',
-      'colors',
-      'shapes',
-      'family',
-      'weather',
-      'verbs',
-      'food',
-      'school',
-      'sea',
-      'insects',
-      'jobs',
-      'clothes',
-    ],
+    id: 'plants',
+    name: '动物与植物',
+    hint: '鱼虫瓜果蔬菜',
+    ids: ['animals', 'insects', 'sea', 'fruit', 'vegetables'],
   },
-  { id: 'character', name: '字卡', hint: '汉字与数字', ids: ['characters', 'numbers'] },
-  { id: 'poem', name: '诗文', hint: '古诗与成语', ids: ['poems', 'idioms'] },
-  { id: 'story', name: '绘本', hint: '一页一句的小故事', ids: ['stories'] },
+  {
+    id: 'things',
+    name: '身边的物什',
+    hint: '交通与日用品',
+    ids: ['vehicles', 'school', 'daily', 'food', 'clothes'],
+  },
+  {
+    id: 'people',
+    name: '人物与动作',
+    hint: '身体 · 家人 · 职业 · 动作',
+    ids: ['body', 'verbs', 'family', 'jobs'],
+  },
+  {
+    id: 'nature',
+    name: '自然与概念',
+    hint: '天气 · 颜色 · 形状',
+    ids: ['weather', 'colors', 'shapes'],
+  },
+  {
+    id: 'character',
+    name: '字卡',
+    hint: '汉字与数字',
+    ids: ['characters', 'numbers'],
+  },
+  {
+    id: 'poem',
+    name: '诗文',
+    hint: '成语与古诗',
+    ids: ['idioms', 'poems'],
+  },
+  {
+    id: 'story',
+    name: '绘本',
+    hint: '一页一句的小故事',
+    ids: ['stories'],
+  },
 ];
 
-/** 兜底组：不在任何内置组里的分类（管理区新建的）都落这里 */
+/** 兜底段：家长后台自建分类的归宿，恒排在最后 */
 export const FALLBACK_GROUP: CategoryGroupSpec = {
   id: 'more',
   name: '更多',
-  hint: '管理区新建的分类',
+  hint: '后台新建的分类',
   ids: [],
 };
 
-export interface CategorySection {
+/** 段 id 是否合法（含兜底段）；v0.10 的 'object' 已退役，不在列 */
+export function isGroupId(raw: string): boolean {
+  return raw === FALLBACK_GROUP.id || CATEGORY_GROUPS.some((group) => group.id === raw);
+}
+
+/** 按 id 查段规格（含兜底段）；未知返回 null */
+export function findGroup(raw: string): CategoryGroupSpec | null {
+  if (raw === FALLBACK_GROUP.id) {
+    return FALLBACK_GROUP;
+  }
+  return CATEGORY_GROUPS.find((group) => group.id === raw) ?? null;
+}
+
+export interface CategoryGroupSection {
   group: CategoryGroupSpec;
   items: Category[];
 }
 
-/**
- * 把分类按内置分组切开。空组不返回（新建分类只加在最后一组时，前面的空段不会占版面）。
- * 组内顺序按分组清单排（而不是分类的 sortOrder）：字卡组要让张数最多的汉字排在数字前面。
- */
-export function groupCategories(categories: readonly Category[]): CategorySection[] {
-  const known = new Set<CategoryId>(CATEGORY_GROUPS.flatMap((group) => group.ids));
-  const sections: CategorySection[] = CATEGORY_GROUPS.map((group) => ({
-    group,
-    items: categories
-      .filter((category) => group.ids.includes(category.id))
-      .sort((left, right) => group.ids.indexOf(left.id) - group.ids.indexOf(right.id)),
-  }));
-  const rest = categories.filter((category) => !known.has(category.id));
-  if (rest.length > 0) sections.push({ group: FALLBACK_GROUP, items: rest });
+/** 把分类按清单归段：段内按清单排序，未知分类进兜底段，空段过滤（纯函数） */
+export function groupCategories(categories: readonly Category[]): CategoryGroupSection[] {
+  const listed = new Set<CategoryId>(CATEGORY_GROUPS.flatMap((group) => [...group.ids]));
+  const sections = [...CATEGORY_GROUPS, FALLBACK_GROUP].map((group) => {
+    const items = categories
+      .filter((category) =>
+        group.ids.length > 0 ? group.ids.includes(category.id) : !listed.has(category.id),
+      )
+      .sort((a, b) => {
+        const index = group.ids.indexOf(a.id);
+        // 兜底段（ids 为空）与未列分类同权，退回 sortOrder 次序
+        if (index === -1) {
+          return a.sortOrder - b.sortOrder;
+        }
+        return index - group.ids.indexOf(b.id);
+      });
+    return { group, items };
+  });
   return sections.filter((section) => section.items.length > 0);
 }

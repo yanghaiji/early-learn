@@ -1,11 +1,15 @@
-/** 首页分类墙分段（v0.10）：22 个内置分类四段归类，新建分类落兜底组 */
+/** 首页段卡清单（v0.12）：22 个内置分类七段归类，自建分类落兜底段；段内首分类为封面代表 */
 
 import { describe, expect, it } from 'vitest';
 import { SEED_CATEGORIES } from '../../data/seed/categories';
 import type { Category } from '../entities/category';
-import { CATEGORY_GROUPS, FALLBACK_GROUP, groupCategories } from './categoryGroups';
-
-const OBJECT_IDS = CATEGORY_GROUPS[0]?.ids ?? [];
+import {
+  CATEGORY_GROUPS,
+  FALLBACK_GROUP,
+  findGroup,
+  groupCategories,
+  isGroupId,
+} from './categoryGroups';
 
 function customCategory(id: string): Category {
   return {
@@ -19,43 +23,69 @@ function customCategory(id: string): Category {
 }
 
 describe('groupCategories', () => {
-  it('should_sort_all_seed_categories_into_four_groups_without_loss_or_duplicate', () => {
+  it('should_sort_all_seed_categories_into_seven_groups_without_loss_or_duplicate', () => {
     const sections = groupCategories(SEED_CATEGORIES);
-    expect(sections).toHaveLength(4);
+    // 22 个内置分类全落前七段，兜底段空被过滤
+    expect(sections).toHaveLength(7);
 
     const ids = sections.flatMap((section) => section.items.map((item) => item.id));
     expect(ids).toHaveLength(SEED_CATEGORIES.length);
     expect(new Set(ids).size).toBe(SEED_CATEGORIES.length);
   });
 
-  it('should_order_sections_as_object_character_poem_story', () => {
+  it('should_order_sections_as_plants_things_people_nature_character_poem_story', () => {
     expect(groupCategories(SEED_CATEGORIES).map((section) => section.group.id)).toEqual([
-      'object',
+      'plants',
+      'things',
+      'people',
+      'nature',
       'character',
       'poem',
       'story',
     ]);
   });
 
-  it('should_order_items_by_group_list_instead_of_category_sort_order', () => {
-    const [object] = groupCategories(SEED_CATEGORIES);
-    expect(object?.items).toHaveLength(17);
-    // 组内顺序由分组清单决定，不按分类的 sortOrder 重排
-    expect(object?.items.map((item) => item.id)).toEqual([...OBJECT_IDS]);
+  it('should_put_object_categories_into_four_themed_groups_by_list_order', () => {
+    const byId = new Map(
+      groupCategories(SEED_CATEGORIES).map((section) => [section.group.id, section.items]),
+    );
+
+    expect(byId.get('plants')?.map((item) => item.id)).toEqual([
+      'animals',
+      'insects',
+      'sea',
+      'fruit',
+      'vegetables',
+    ]);
+    expect(byId.get('things')?.map((item) => item.id)).toEqual([
+      'vehicles',
+      'school',
+      'daily',
+      'food',
+      'clothes',
+    ]);
+    expect(byId.get('people')?.map((item) => item.id)).toEqual([
+      'body',
+      'verbs',
+      'family',
+      'jobs',
+    ]);
+    expect(byId.get('nature')?.map((item) => item.id)).toEqual(['weather', 'colors', 'shapes']);
   });
 
-  it('should_put_characters_poems_and_stories_in_their_own_groups', () => {
+  it('should_order_poem_group_with_idioms_first_as_cover_representative', () => {
     const sections = groupCategories(SEED_CATEGORIES);
     const byId = new Map(sections.map((section) => [section.group.id, section.items]));
 
+    // 诗文段封面取成语（内容量与入口权重更大），段内首分类即封面代表
+    expect(byId.get('poem')?.map((item) => item.id)).toEqual(['idioms', 'poems']);
     expect(byId.get('character')?.map((item) => item.id)).toEqual(['characters', 'numbers']);
-    expect(byId.get('poem')?.map((item) => item.id)).toEqual(['poems', 'idioms']);
     expect(byId.get('story')?.map((item) => item.id)).toEqual(['stories']);
   });
 
   it('should_move_custom_category_into_fallback_group_when_not_in_any_group', () => {
     const sections = groupCategories([...SEED_CATEGORIES, customCategory('my-topic')]);
-    expect(sections).toHaveLength(5);
+    expect(sections).toHaveLength(8);
 
     const last = sections.at(-1);
     expect(last?.group).toBe(FALLBACK_GROUP);
@@ -66,5 +96,36 @@ describe('groupCategories', () => {
     const sections = groupCategories([customCategory('only-one')]);
     expect(sections).toHaveLength(1);
     expect(sections[0]?.group.id).toBe('more');
+  });
+});
+
+describe('isGroupId', () => {
+  it('should_accept_every_listed_group_id_and_the_fallback', () => {
+    for (const group of CATEGORY_GROUPS) {
+      expect(isGroupId(group.id)).toBe(true);
+    }
+    expect(isGroupId('more')).toBe(true);
+  });
+
+  it('should_reject_retired_object_group_id_when_v012_replaced_it', () => {
+    // v0.10 的认物大段 id 已退役，旧链接不该再被二级页接受
+    expect(isGroupId('object')).toBe(false);
+  });
+
+  it('should_reject_unknown_id', () => {
+    expect(isGroupId('nope')).toBe(false);
+    expect(isGroupId('')).toBe(false);
+  });
+});
+
+describe('findGroup', () => {
+  it('should_return_spec_when_id_matches_a_listed_group', () => {
+    expect(findGroup('plants')?.name).toBe('动物与植物');
+    expect(findGroup('more')).toBe(FALLBACK_GROUP);
+  });
+
+  it('should_return_null_when_id_is_unknown', () => {
+    expect(findGroup('object')).toBeNull();
+    expect(findGroup('nope')).toBeNull();
   });
 });
