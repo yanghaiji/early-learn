@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import manifest from './manifest.json';
 import { getSeedCatalog } from '../seed';
+import { CHARACTER_GROUP_BY_ZH } from '../seed/characterGroups';
 
 /**
  * 笔顺数据产物自守（v0.9 NFR §2.2 / T-X1）。
@@ -41,5 +42,11 @@ describe('笔顺数据（v0.9）', () => {
     const perGroup = Object.values(manifest.groups).map((chars) => chars.length);
     expect(perGroup).toEqual([25, 55, 44, 38, 38, 44, 61, 16]);
     expect(perGroup.reduce((sum, count) => sum + count, 0)).toBe(321);
+  });
+
+  // 运行时用 CHARACTER_GROUP_BY_ZH 判「有没有按钮」（不把 manifest 拉进主 chunk），
+  // 这里把两份 321 字钉在一起，任何一边多字少字都会红
+  it('should_match_group_map_keys_when_runtime_checks_button', () => {
+    expect(new Set(manifestChars)).toEqual(new Set(CHARACTER_GROUP_BY_ZH.keys()));
   });
 });

@@ -143,6 +143,26 @@ describe('卡片详情', () => {
   });
 });
 
+/** 笔顺演示（v0.9 US-X1 / US-X2 / T-X4）：汉字卡有「看笔顺」，其余卡片不受影响 */
+describe('笔顺演示（v0.9）', () => {
+  it('should_render_stroke_player_when_character_card_opened', async () => {
+    window.location.hash = '#/card/characters-shou';
+    render(<AppRouter />);
+
+    expect(await screen.findByRole('button', { name: '看笔顺' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '笔顺演示' })).toBeInTheDocument();
+  });
+
+  it('should_keep_plain_char_without_player_when_card_not_character', async () => {
+    window.location.hash = '#/card/animals-cat';
+    render(<AppRouter />);
+
+    expect(await screen.findByRole('heading', { name: '猫' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '看笔顺' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: '笔顺演示' })).not.toBeInTheDocument();
+  });
+});
+
 /** 成语词典（v0.6 PRD §4.1 / §4.2）：无英文、不进出题池、详情多一块释义 */
 describe('成语词典（v0.6）', () => {
   it('should_list_150_idioms_in_five_theme_groups_when_category_opened', async () => {

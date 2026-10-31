@@ -1001,6 +1001,69 @@ a {
   flex-wrap: wrap;
 }
 
+/* ---------- 笔顺演示（v0.9 US-X1~US-X3）：与大字同位置，未播放时里面就是那张大字 ---------- */
+.stroke-player {
+  --stroke-size: clamp(120px, 36vw, 220px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.stroke-player__stage {
+  width: var(--stroke-size);
+  height: var(--stroke-size);
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--c-line);
+  border-radius: 12px;
+  background: var(--c-surface);
+  overflow: hidden;
+}
+
+.stroke-player__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* hidden 在 grid 子项上会被 display 覆盖，显式关掉 */
+.stroke-player__canvas[hidden] {
+  display: none;
+}
+
+/* 方块里的大字按方块比例缩放：窄屏不溢出，桌面端与原来的 detail__char 视觉接近 */
+.stroke-player__stage .detail__char {
+  font-size: calc(var(--stroke-size) * 0.72);
+  line-height: 1;
+}
+
+.stroke-player__bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stroke-player__note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--c-ink-soft);
+}
+
+/* 窄屏：方块落到 120px，按钮与说明上下排（§3.6） */
+@media (max-width: 560px) {
+  .stroke-player {
+    --stroke-size: 120px;
+  }
+
+  .stroke-player__bar {
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+
 /* ---------- 诗词卡（v0.2）---------- */
 /* 正文行多，图片不抢空间：给 stage 一个确定高度（高度靠 dvh 限住，宽度由 aspect-ratio 推出） */
 .detail--poem .detail__stage {

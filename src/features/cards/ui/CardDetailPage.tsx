@@ -1,6 +1,6 @@
 /** 卡片详情 · 单屏单卡（PRD M3/M4 / US-03~US-05) */
 
-import { useCallback, useEffect } from 'react';
+import { lazy, Suspense, useCallback, useEffect } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -14,6 +14,7 @@ import {
   Volume2,
 } from 'lucide-react';
 import { useCatalog } from '../../../app/CatalogProvider';
+import { hasStrokeData } from '../../../data/strokes';
 import type { Card } from '../../../domain/entities/card';
 import { buildCardSequence, isAgeBand, matchesBand } from '../../../domain/services/catalog';
 import { useSwipe } from '../../../shared/hooks';
@@ -36,6 +37,11 @@ import {
   useSlideshow,
 } from '../hooks/useSlideshow';
 import { useSpeech } from '../../speech/hooks/useSpeech';
+
+// 笔顺播放器连同 hanzi-writer 单独一个 chunk：只有汉字卡点进来看才载（NFR/v0.9 §3.4）
+const StrokePlayer = lazy(() =>
+  import('./StrokePlayer').then((module) => ({ default: module.StrokePlayer })),
+);
 
 /** 诗词朗读整首正文，成语读「成语 + 释义」，其余卡片（含故事）读中文名 */
 function speechTextOf(card: Card): string {
@@ -300,7 +306,14 @@ export function CardDetailPage() {
             ) : (
               <>
                 {card.kind === 'character' ? (
-                  <p className="detail__char">{card.zh}</p>
+                  hasStrokeData(card.zh) ? (
+                    // 回落就是原来那张大字：懒加载块未到位时布局不跳
+                    <Suspense fallback={<p className="detail__char">{card.zh}</p>}>
+                      <StrokePlayer zh={card.zh} />
+                    </Suspense>
+                  ) : (
+                    <p className="detail__char">{card.zh}</p>
+                  )
                 ) : (
                   <h1 className="detail__zh">{card.zh}</h1>
                 )}
