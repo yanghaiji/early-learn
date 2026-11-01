@@ -138,7 +138,7 @@ export function HomePage() {
           />
         ) : (
           <>
-            {/* 年龄双大卡（v0.13 H-1）：图上文下的主视觉，主纲从段卡上移到年龄档 */}
+            {/* 年龄双大卡（v0.13 H-1）：v0.14 S-1 改文字压图——body 叠进 media，遮罩白字挂图下缘 */}
             <div className="band-hero" role="group" aria-label="按年龄浏览">
               {AGE_BANDS.map((band) => (
                 <Link key={band} className="band-hero__card" to={`/age/${band}`}>
@@ -149,15 +149,15 @@ export function HomePage() {
                       fallbackText={AGE_BAND_NAME[band]}
                       eager
                     />
-                  </div>
-                  <div className="band-hero__body">
-                    <span className="band-hero__label">
-                      {AGE_BAND_LABEL[band]} · {AGE_BAND_NAME[band]}
-                    </span>
-                    <span className="band-hero__tagline">{AGE_BAND_TAGLINE[band]}</span>
-                    <span className="band-hero__count">
-                      {bandCounts[band]} 张适龄 · {bandSectionCounts[band]} 段
-                    </span>
+                    <div className="band-hero__body">
+                      <span className="band-hero__label">
+                        {AGE_BAND_LABEL[band]} · {AGE_BAND_NAME[band]}
+                      </span>
+                      <span className="band-hero__tagline">{AGE_BAND_TAGLINE[band]}</span>
+                      <span className="band-hero__count">
+                        {bandCounts[band]} 张适龄 · {bandSectionCounts[band]} 段
+                      </span>
+                    </div>
                   </div>
                 </Link>
               ))}

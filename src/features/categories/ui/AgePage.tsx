@@ -1,13 +1,15 @@
 /** 分龄浏览 · 分类墙（v0.8 US-W2）：只露出该龄段有卡的分类。
  * v0.13：平铺改「按段分组」——段是年龄页内的组织方式（首页不再铺段卡），
  * 段头链到 /group/:id 看该段全量（不带 band）。分组在 UI 层组合
- * `groupCategories` + 本档适龄计数，不加领域函数（技术方案 R-4）。 */
+ * `groupCategories` + 本档适龄计数，不加领域函数（技术方案 R-4）。
+ * v0.14：顶栏加档位切换 chips（S-3，URL 唯一事实源不加全局状态），
+ * 段头 meta 紧跟段名 + 行尾「看全部」CTA span（S-4，整行仍单链接）。 */
 
 import { useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useCatalog } from '../../../app/CatalogProvider';
-import { AGE_BAND_LABEL, AGE_BAND_NAME } from '../../../domain/entities/card';
+import { AGE_BANDS, AGE_BAND_LABEL, AGE_BAND_NAME } from '../../../domain/entities/card';
 import { isAgeBand, matchesBand } from '../../../domain/services/catalog';
 import { groupCategories } from '../../../domain/services/categoryGroups';
 import { IconButton } from '../../../shared/ui/Button';
@@ -86,6 +88,18 @@ export function AgePage() {
           </h1>
           <p className="topbar__sub">{total} 张适龄卡片</p>
         </div>
+        {/* 档位切换（v0.14 S-3）：复用分类页既有 .chip 样式，当前档 is-active */}
+        <div className="chips" role="group" aria-label="切换年龄档">
+          {AGE_BANDS.map((option) => (
+            <Link
+              key={option}
+              className={option === band ? 'chip is-active' : 'chip'}
+              to={`/age/${option}`}
+            >
+              {AGE_BAND_LABEL[option]}
+            </Link>
+          ))}
+        </div>
       </header>
 
       <main className="page page--wide">
@@ -114,7 +128,10 @@ export function AgePage() {
                   <span className="band-group__meta">
                     {items.length} 类 · 本档 {groupTotal} 张
                   </span>
-                  <ArrowRight size={20} aria-hidden />
+                  {/* v0.14 S-4：「看全部」是挂在整行 Link 内的 span，不是嵌套链接 */}
+                  <span className="band-group__cta">
+                    看全部 <ArrowRight size={18} aria-hidden />
+                  </span>
                 </Link>
                 <div className="grid-cats">
                   {items.map((category) => (

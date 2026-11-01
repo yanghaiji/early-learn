@@ -244,3 +244,32 @@ describe('详情页跟随龄段（US-W4）', () => {
     expect(screen.getByRole('button', { name: '上一张' })).toBeDisabled();
   }, 20_000);
 });
+
+describe('年龄页档位 chips 与段头 CTA（v0.14 US-S3 / US-S4）', () => {
+  it('should_mark_current_band_chip_active_when_band_page_opened', async () => {
+    window.location.hash = '#/age/1-3';
+    render(<AppRouter />);
+
+    await screen.findByRole('heading', { name: '1–3 岁 · 启蒙' });
+    // chips 作用域隔离：顶栏新增两枚 Link，不与段头 / tile 链接串断言（S-3）
+    const chipGroup = screen.getByRole('group', { name: '切换年龄档' });
+    const chips = within(chipGroup).getAllByRole('link');
+    expect(chips.map((chip) => chip.getAttribute('href'))).toEqual(['#/age/1-3', '#/age/3-6']);
+    expect(chips[0]).toHaveClass('is-active');
+    expect(chips[1]).not.toHaveClass('is-active');
+    expect(within(chipGroup).getByText('3–6 岁')).toBeInTheDocument();
+  });
+
+  it('should_render_see_all_cta_as_span_inside_group_head_when_grouped', async () => {
+    window.location.hash = '#/age/1-3';
+    render(<AppRouter />);
+
+    await screen.findByRole('heading', { name: '1–3 岁 · 启蒙' });
+    // 段头整行仍是单个 Link：「看全部」是挂在链接内的 span，不产生嵌套链接（S-4）
+    const plantsHead = screen.getByRole('link', { name: /动物与植物/ });
+    const cta = plantsHead.querySelector('.band-group__cta');
+    expect(cta).not.toBeNull();
+    expect(cta?.textContent).toContain('看全部');
+    expect(plantsHead.querySelectorAll('a')).toHaveLength(0);
+  });
+});

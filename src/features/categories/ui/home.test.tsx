@@ -43,6 +43,19 @@ describe('首页年龄双大卡（v0.13 H-1）', () => {
     expect(covers).toEqual(['assets/images/covers/fruit.webp', 'assets/images/covers/poems.webp']);
     expect(container.querySelectorAll('.band-hero__card')).toHaveLength(2);
   });
+
+  it('should_nest_hero_body_inside_media_when_home_opened', async () => {
+    window.location.hash = '#/';
+    const { container } = render(<AppRouter />);
+
+    await screen.findByRole('group', { name: '按年龄浏览' });
+    // v0.14 S-1：文字压图——body 必须叠在 media 内（遮罩白字挂在图下缘）
+    const bodies = container.querySelectorAll('.band-hero__body');
+    expect(bodies).toHaveLength(2);
+    bodies.forEach((body) => {
+      expect(body.closest('.band-hero__media')).not.toBeNull();
+    });
+  });
 });
 
 describe('首页日常玩法区（v0.13 H-2）', () => {
