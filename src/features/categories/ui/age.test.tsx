@@ -14,7 +14,7 @@ beforeEach(() => {
 });
 
 describe('首页分龄入口（US-W1）', () => {
-  it('should_show_two_band_cards_above_category_wall_when_home_opened', async () => {
+  it('should_show_two_band_cards_before_play_row_when_home_opened', async () => {
     window.location.hash = '#/';
     const { container } = render(<AppRouter />);
 
@@ -22,15 +22,14 @@ describe('首页分龄入口（US-W1）', () => {
     expect(within(group).getAllByRole('link')).toHaveLength(2);
     expect(within(group).getByText(/1–3 岁 · 启蒙/)).toBeInTheDocument();
     expect(within(group).getByText(/3–6 岁 · 进阶/)).toBeInTheDocument();
-    expect(within(group).getAllByText(/张适龄/)).toHaveLength(2);
 
-    // 分龄入口必须排在段卡网格之前（v0.12：分类墙已搬到二级页，首页网格变成段卡）
-    const bandRow = container.querySelector('.band-row');
-    const grid = container.querySelector('.grid-groups');
-    expect(bandRow).not.toBeNull();
-    expect(grid).not.toBeNull();
+    // 年龄双大卡排在日常玩法区之前（v0.13：首页主纲是年龄档，段卡已下沉年龄页）
+    const hero = container.querySelector('.band-hero');
+    const play = container.querySelector('.play-row');
+    expect(hero).not.toBeNull();
+    expect(play).not.toBeNull();
     expect(
-      bandRow && grid && bandRow.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING,
+      hero && play && hero.compareDocumentPosition(play) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
@@ -76,6 +75,59 @@ describe('分龄浏览区（US-W2）', () => {
 
     expect(await screen.findByText('没有这一档年龄')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '返回首页' })).toBeInTheDocument();
+  });
+});
+
+describe('分龄墙按段分组（v0.13 US-R2）', () => {
+  it('should_split_band_wall_into_seven_theme_groups_when_band_page_opened', async () => {
+    window.location.hash = '#/age/1-3';
+    const { container } = render(<AppRouter />);
+
+    await screen.findByRole('heading', { name: '1–3 岁 · 启蒙' });
+    // 种子 22 个分类恰好分属七个段，两档都非空 → 七个分组
+    expect(container.querySelectorAll('.band-group')).toHaveLength(7);
+  });
+
+  it('should_link_group_header_to_full_section_page_when_grouped', async () => {
+    window.location.hash = '#/age/1-3';
+    render(<AppRouter />);
+
+    await screen.findByRole('heading', { name: '1–3 岁 · 启蒙' });
+    // 段头是链到段页的 Link（蔬菜属「动物与植物」段）
+    const plantsHead = screen.getByRole('link', { name: /动物与植物/ });
+    expect(plantsHead).toHaveAttribute('href', '#/group/plants');
+    expect(screen.getByRole('link', { name: /字卡/ })).toHaveAttribute('href', '#/group/character');
+  });
+
+  it('should_keep_group_tile_sum_equal_to_band_total_when_grouped', async () => {
+    window.location.hash = '#/age/3-6';
+    render(<AppRouter />);
+
+    await screen.findByRole('heading', { name: '3–6 岁 · 进阶' });
+    const total = Number(screen.getByText(/张适龄卡片$/).textContent?.replace(/\D/g, ''));
+    // 分组后各分类 tile 角标（「N 张适龄」）之和仍 == 顶栏总数（段头文案不带「张适龄」）
+    const tileSum = screen
+      .getAllByText(/张适龄$/)
+      .map((node) => Number(node.textContent?.replace(/\D/g, '')))
+      .reduce((sum, count) => sum + count, 0);
+    expect(total).toBe(609);
+    expect(tileSum).toBe(total);
+  });
+
+  it('should_carry_band_query_on_tiles_but_not_group_header_when_grouped', async () => {
+    window.location.hash = '#/age/1-3';
+    render(<AppRouter />);
+
+    await screen.findByRole('heading', { name: '1–3 岁 · 启蒙' });
+    // 分类 tile 仍带 band 透传，段头链到不带 band 的全量段页
+    expect(screen.getByRole('link', { name: '蔬菜 6 张适龄卡片' })).toHaveAttribute(
+      'href',
+      '#/c/vegetables?band=1-3',
+    );
+    expect(screen.getByRole('link', { name: /动物与植物/ })).toHaveAttribute(
+      'href',
+      '#/group/plants',
+    );
   });
 });
 

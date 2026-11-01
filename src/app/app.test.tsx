@@ -11,12 +11,12 @@ beforeEach(() => {
 });
 
 describe('AppRouter', () => {
-  it('should_render_seed_group_cards_on_home', async () => {
+  it('should_render_seed_band_hero_and_play_row_on_home', async () => {
     render(<AppRouter />);
     expect(await screen.findByRole('heading', { name: '童识 · 认知卡片' })).toBeInTheDocument();
-    // v0.12：首页铺的是段卡而非分类墙，认物与字卡段都在
-    expect(screen.getByRole('link', { name: /^动物与植物/ })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /^字卡/ })).toBeInTheDocument();
+    // v0.13：首页主纲是年龄双大卡 + 日常玩法区，段卡网格已全部下沉到年龄页
+    expect(screen.getByRole('group', { name: '按年龄浏览' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: '日常玩法' })).toBeInTheDocument();
   });
 
   it('should_render_card_detail_with_pinyin_when_route_matches', async () => {

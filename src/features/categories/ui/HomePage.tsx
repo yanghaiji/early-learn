@@ -1,8 +1,8 @@
-/** 首页 · 分类墙（PRD M1 / US-01；v0.12 改版：段卡 + 二级页） */
+/** 首页 · 年龄主纲（PRD M1 / US-01；v0.13 改版：年龄双大卡作主视觉 + 日常玩法区，段卡网格下沉年龄页） */
 
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Github, Languages, Lock, Search } from 'lucide-react';
+import { Github, Headphones, Languages, Lock, RotateCcw, Search } from 'lucide-react';
 import { useCatalog } from '../../../app/CatalogProvider';
 import { APP_SLOGAN, REPO_URL } from '../../../app/version';
 import {
@@ -12,14 +12,13 @@ import {
   AGE_BAND_TAGLINE,
   type AgeBand,
 } from '../../../domain/entities/card';
-import { countCardsByBand } from '../../../domain/services/catalog';
+import { countCardsByBand, matchesBand } from '../../../domain/services/catalog';
 import { groupCategories } from '../../../domain/services/categoryGroups';
 import { Button, IconButton } from '../../../shared/ui/Button';
 import { EmptyState } from '../../../shared/ui/Feedback';
 import { ImageWithFallback } from '../../../shared/ui/ImageWithFallback';
 import { markGatePassed } from '../../admin/gateSession';
 import { ProgressEntries, ProgressStatsLine } from '../../learn/ui/ProgressStats';
-import { GroupCard } from './GroupCard';
 
 /** 显示语言切换只有点开「语言」才需要，离开主 chunk（v0.10 首页改版腾预算） */
 const DisplayModeSwitch = lazy(() =>
@@ -30,19 +29,22 @@ const AdminGateModal = lazy(() =>
   import('../../admin/ui/AdminGateModal').then((m) => ({ default: m.AdminGateModal })),
 );
 
-/** 分龄卡封面（v0.10）：复用已有的分类封面，不新出图 */
+/** 分龄大卡封面（v0.10 起复用已有分类封面，不新出图；决策 R-5） */
 const BAND_COVER: Record<AgeBand, string> = {
   '1-3': 'assets/images/covers/fruit.webp',
   '3-6': 'assets/images/covers/poems.webp',
 };
 
+/** 日常玩法区绘本卡封面：复用绘本段 stories 封面，零新图 */
+const STORY_COVER = 'assets/images/covers/stories.webp';
+
 export function HomePage() {
-  const { categories, cards, counts, isReadOnly } = useCatalog();
+  const { categories, cards, isReadOnly } = useCatalog();
   const [displayOpen, setDisplayOpen] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
   const navigate = useNavigate();
 
-  // 分龄入口的张数（v0.8）：两档共用难度 2，计数允许交叠
+  // 分龄入口的适龄张数（v0.8）：两档共用难度 2，计数允许交叠
   const bandCounts = useMemo(
     () => ({
       '1-3': countCardsByBand(cards, '1-3'),
@@ -53,6 +55,19 @@ export function HomePage() {
 
   // 分类墙分段（v0.12）：七个主题段，管理区新建的分类落兜底段「更多」
   const sections = useMemo(() => groupCategories(categories), [categories]);
+
+  // 每档有适龄卡的段数（v0.13 大卡上的「M 段」）：段内至少一张卡命中该档才计入
+  const bandSectionCounts = useMemo(() => {
+    const countFor = (band: AgeBand): number => {
+      const active = new Set(
+        cards.filter((card) => matchesBand(card, band)).map((card) => card.categoryId),
+      );
+      return sections.filter((section) =>
+        section.items.some((category) => active.has(category.id)),
+      ).length;
+    };
+    return { '1-3': countFor('1-3'), '3-6': countFor('3-6') };
+  }, [cards, sections]);
 
   const onPass = () => {
     markGatePassed();
@@ -123,18 +138,11 @@ export function HomePage() {
           />
         ) : (
           <>
-            {/* 分龄入口（v0.10 H-1）：两张带封面的分龄大卡，与下方分类卡同一套视觉语言 */}
-            <div className="band-row" role="group" aria-label="按年龄浏览">
+            {/* 年龄双大卡（v0.13 H-1）：图上文下的主视觉，主纲从段卡上移到年龄档 */}
+            <div className="band-hero" role="group" aria-label="按年龄浏览">
               {AGE_BANDS.map((band) => (
-                <Link key={band} className="band-card" to={`/age/${band}`}>
-                  <div className="band-card__body">
-                    <span className="band-card__label">
-                      {AGE_BAND_LABEL[band]} · {AGE_BAND_NAME[band]}
-                    </span>
-                    <span className="band-card__tagline">{AGE_BAND_TAGLINE[band]}</span>
-                    <span className="band-card__count">{bandCounts[band]} 张适龄</span>
-                  </div>
-                  <div className="band-card__media">
+                <Link key={band} className="band-hero__card" to={`/age/${band}`}>
+                  <div className="band-hero__media">
                     <ImageWithFallback
                       src={BAND_COVER[band]}
                       alt=""
@@ -142,19 +150,46 @@ export function HomePage() {
                       eager
                     />
                   </div>
+                  <div className="band-hero__body">
+                    <span className="band-hero__label">
+                      {AGE_BAND_LABEL[band]} · {AGE_BAND_NAME[band]}
+                    </span>
+                    <span className="band-hero__tagline">{AGE_BAND_TAGLINE[band]}</span>
+                    <span className="band-hero__count">
+                      {bandCounts[band]} 张适龄 · {bandSectionCounts[band]} 段
+                    </span>
+                  </div>
                 </Link>
               ))}
             </div>
-            {/* 段卡网格（v0.12 H-2）：一段一张摘要卡，张数取段内各分类合计 */}
-            <div className="grid-groups">
-              {sections.map((section) => (
-                <GroupCard
-                  key={section.group.id}
-                  section={section}
-                  cardCount={section.items.reduce((sum, item) => sum + (counts[item.id] ?? 0), 0)}
-                />
-              ))}
-            </div>
+
+            {/* 日常玩法区（v0.13 H-2）：收口绘本 / 听音 / 复习三个既有路由，零新功能（决策 R-3） */}
+            <section className="play-section">
+              <h2 className="section__title">日常玩法</h2>
+              <div className="play-row" role="group" aria-label="日常玩法">
+                <Link className="play-card play-card--story" to="/group/story">
+                  <div className="play-card__media">
+                    <ImageWithFallback src={STORY_COVER} alt="" fallbackText="绘本" eager />
+                  </div>
+                  <span className="play-card__label">绘本故事</span>
+                  <span className="play-card__hint">一页一句的小故事</span>
+                </Link>
+                <Link className="play-card play-card--quiz" to="/quiz">
+                  <div className="play-card__icon">
+                    <Headphones size={26} />
+                  </div>
+                  <span className="play-card__label">听音选图</span>
+                  <span className="play-card__hint">听声音，选出对应的卡</span>
+                </Link>
+                <Link className="play-card play-card--review" to="/review">
+                  <div className="play-card__icon">
+                    <RotateCcw size={26} />
+                  </div>
+                  <span className="play-card__label">练一练不熟的</span>
+                  <span className="play-card__hint">把还不熟的卡练熟</span>
+                </Link>
+              </div>
+            </section>
           </>
         )}
 

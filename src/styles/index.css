@@ -373,41 +373,51 @@ a {
   }
 }
 
-/* ---------- 段卡（v0.12）：首页七段 + 兜底段统一进一个网格，替代 v0.10 的整行段 + 横卡轨双轨 ---------- */
-.grid-groups {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+/* ---------- 日常玩法区（v0.13 H-2）：首页一行三卡收口绘本 / 听音 / 复习既有路由，零新功能（决策 R-3）---------- */
+.play-section {
   margin-top: 22px;
 }
 
+.play-section .section__title {
+  margin-bottom: 6px;
+}
+
+.play-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
 @media (min-width: 720px) {
-  .grid-groups {
+  .play-row {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
   }
 }
 
 @media (min-width: 1200px) {
-  .grid-groups {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .play-row {
     gap: 18px;
   }
 }
 
-.group-card {
+/* 日常区横向卡：左边 60×60 小盒子（封面或图标）+ 右边标题/提示两行，高度锁在 82px 以下 */
+.play-card {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  height: 100%;
-  padding: 10px;
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  row-gap: 4px;
+  align-items: center;
+  padding: 10px 12px;
   border: 1px solid var(--c-line);
   border-radius: var(--radius-tile);
   background: var(--c-surface);
   box-shadow: var(--shadow-tile);
   text-decoration: none;
   color: inherit;
+  min-width: 0;
   transition:
     transform var(--motion-fast),
     box-shadow var(--motion-fast),
@@ -415,51 +425,41 @@ a {
 }
 
 @media (hover: hover) {
-  .group-card:hover {
+  .play-card:hover {
     transform: translateY(-2px);
     border-color: color-mix(in srgb, var(--c-primary) 30%, var(--c-line));
     box-shadow: var(--shadow-lift);
   }
 }
 
-.group-card:active {
+.play-card:active {
   transform: scale(0.98);
 }
 
-/* 封面取段内首分类的 cover（清单顺序保证代表分类在前） */
-.group-card__media {
-  position: relative;
-  aspect-ratio: 4 / 3;
-  border-radius: 18px;
+/* 绘本卡用现有 stories 封面（决策 R-5）：与听音 / 复习的图标同尺寸同圆角 */
+.play-card__media,
+.play-card__icon {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
   overflow: hidden;
-  background: var(--cat-color, var(--c-bg-soft));
+  background: var(--c-bg-soft);
 }
 
-.group-card__count {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-  font-size: 12px;
+.play-card__icon {
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--c-primary) 12%, var(--c-bg-soft));
+  color: var(--c-primary);
+}
+
+.play-card__label {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: 15px;
   font-weight: 700;
-  line-height: 1.6;
-  color: var(--c-ink);
-  background: color-mix(in srgb, var(--c-surface) 84%, transparent);
-  border-radius: 999px;
-  padding: 1px 9px;
-  backdrop-filter: blur(4px);
-}
-
-.group-card__foot {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  padding: 0 4px 2px;
-}
-
-.group-card__name {
-  font-size: 17px;
-  font-weight: 800;
   line-height: 1.3;
   margin: 0;
   white-space: nowrap;
@@ -467,8 +467,9 @@ a {
   text-overflow: ellipsis;
 }
 
-/* 段内前三个分类名串成一行，超出用 +N 收口：家长不点进二级页也能扫一眼内容 */
-.group-card__preview {
+.play-card__hint {
+  grid-column: 2;
+  grid-row: 2;
   font-size: 12px;
   font-weight: 600;
   color: var(--c-ink-soft);
@@ -476,6 +477,55 @@ a {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ---------- 分龄段分组（v0.13 US-R2）：年龄页内按段组织，段头链到段页，段内复用 .grid-cats ---------- */
+.band-group {
+  margin-top: 22px;
+}
+
+.band-group:first-of-type {
+  margin-top: 4px;
+}
+
+.band-group__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: background var(--motion-fast);
+}
+
+@media (hover: hover) {
+  .band-group__head:hover {
+    background: color-mix(in srgb, var(--c-primary) 8%, transparent);
+  }
+}
+
+.band-group__name {
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.3;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.band-group__meta {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-ink-soft);
+  text-align: right;
+}
+
+.band-group__head svg {
+  flex: none;
+  color: var(--c-ink-soft);
 }
 
 /* 卡片墙每页 12 张：列数取 2 / 4 / 6，保证每页都是整行（不留半行空白） */
@@ -630,24 +680,31 @@ a {
   text-overflow: ellipsis;
 }
 
-/* ---------- 首页分龄入口（v0.10：左文右图的大卡，与分类卡同一套视觉语言） ---------- */
-.band-row {
+/* ---------- 首页年龄双大卡（v0.13 H-1）：图上文下主视觉，主纲从段卡上移到年龄档 ---------- */
+.band-hero {
   display: grid;
   grid-template-columns: 1fr;
   gap: 12px;
-  margin-bottom: 22px;
+  margin-top: 4px;
 }
 
 @media (min-width: 640px) {
-  .band-row {
+  .band-hero {
     grid-template-columns: 1fr 1fr;
+    gap: 16px;
   }
 }
 
-.band-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 88px;
-  align-items: stretch;
+@media (min-width: 1200px) {
+  .band-hero {
+    gap: 18px;
+  }
+}
+
+.band-hero__card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--c-line);
   border-radius: var(--radius-tile);
@@ -661,52 +718,48 @@ a {
     border-color var(--motion-fast);
 }
 
-@media (min-width: 640px) {
-  .band-card {
-    grid-template-columns: minmax(0, 1fr) 104px;
-  }
-}
-
-.band-card__body {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 3px;
-  min-width: 0;
-  padding: 14px 12px 14px 18px;
-}
-
-.band-card__media {
-  position: relative;
-  background: var(--c-bg-soft);
-}
-
 @media (hover: hover) {
-  .band-card:hover {
+  .band-hero__card:hover {
     transform: translateY(-2px);
     border-color: color-mix(in srgb, var(--c-primary) 30%, var(--c-line));
     box-shadow: var(--shadow-lift);
   }
 }
 
-.band-card:active {
+.band-hero__card:active {
   transform: scale(0.99);
 }
 
-.band-card__label {
+/* 16:9 media 与首页段卡 / cat-tile 的 4/3 同调：家长一屏能扫完两卡 + 日常区 */
+.band-hero__media {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--c-bg-soft);
+}
+
+.band-hero__body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 10px 16px 12px;
+}
+
+.band-hero__label {
   font-size: 20px;
   font-weight: 700;
   line-height: 1.3;
 }
 
-.band-card__tagline {
+.band-hero__tagline {
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--c-ink-soft);
 }
 
-.band-card__count {
+.band-hero__count {
   font-size: 13px;
   font-weight: 700;
   color: var(--c-primary);

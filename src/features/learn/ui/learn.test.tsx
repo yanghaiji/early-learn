@@ -130,8 +130,9 @@ describe('收藏与首页入口', () => {
     expect(screen.getByRole('link', { name: '练一练不熟的（1）' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '听音选图' })).toBeInTheDocument();
     expect(screen.getByText('已标记 2 张 · 其中 1 张还不熟')).toBeInTheDocument();
-    // 分类墙仍是主体，没被新增块挤掉
-    expect(screen.getByRole('heading', { name: /^动物/ })).toBeInTheDocument();
+    // v0.13：首页主纲为年龄双大卡 + 日常玩法区（分类墙已下沉年龄页）
+    expect(screen.getByRole('group', { name: '按年龄浏览' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: '日常玩法' })).toBeInTheDocument();
   });
 });
 

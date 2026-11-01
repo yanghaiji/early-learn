@@ -1,11 +1,15 @@
-/** 分龄浏览 · 分类墙（v0.8 US-W2）：只露出该龄段有卡的分类 */
+/** 分龄浏览 · 分类墙（v0.8 US-W2）：只露出该龄段有卡的分类。
+ * v0.13：平铺改「按段分组」——段是年龄页内的组织方式（首页不再铺段卡），
+ * 段头链到 /group/:id 看该段全量（不带 band）。分组在 UI 层组合
+ * `groupCategories` + 本档适龄计数，不加领域函数（技术方案 R-4）。 */
 
 import { useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useCatalog } from '../../../app/CatalogProvider';
 import { AGE_BAND_LABEL, AGE_BAND_NAME } from '../../../domain/entities/card';
 import { isAgeBand, matchesBand } from '../../../domain/services/catalog';
+import { groupCategories } from '../../../domain/services/categoryGroups';
 import { IconButton } from '../../../shared/ui/Button';
 import { EmptyState } from '../../../shared/ui/Feedback';
 import { CategoryTile } from './CategoryTile';
@@ -30,7 +34,18 @@ export function AgePage() {
     () => [...counts.values()].reduce((sum, count) => sum + count, 0),
     [counts],
   );
-  const items = categories.filter((category) => (counts.get(category.id) ?? 0) > 0);
+
+  // 按段分组：段内只留本档有卡的分类，整段无卡则过滤掉（顺序沿用 CATEGORY_GROUPS 清单）
+  const groups = useMemo(() => {
+    if (!isAgeBand(band)) return [];
+    return groupCategories(categories)
+      .map((section) => {
+        const items = section.items.filter((category) => (counts.get(category.id) ?? 0) > 0);
+        const groupTotal = items.reduce((sum, category) => sum + (counts.get(category.id) ?? 0), 0);
+        return { group: section.group, items, groupTotal };
+      })
+      .filter((section) => section.items.length > 0);
+  }, [band, categories, counts]);
 
   if (!isAgeBand(band)) {
     return (
@@ -74,7 +89,7 @@ export function AgePage() {
       </header>
 
       <main className="page page--wide">
-        {items.length === 0 ? (
+        {groups.length === 0 ? (
           <EmptyState
             emoji="🌱"
             title="这一档还没有内容"
@@ -87,18 +102,33 @@ export function AgePage() {
           />
         ) : (
           <>
-            <p className="section-hint">按主题挑一个，只显示这一档能看的卡</p>
-            <div className="grid-cats">
-              {items.map((category) => (
-                <CategoryTile
-                  key={category.id}
-                  category={category}
-                  count={counts.get(category.id) ?? 0}
-                  countSuffix="张适龄"
-                  search={`?band=${band}`}
-                />
-              ))}
-            </div>
+            <p className="section-hint">按主题段浏览，点段名可看该段全部</p>
+            {groups.map(({ group, items, groupTotal }) => (
+              <section key={group.id} className="band-group">
+                <Link
+                  className="band-group__head"
+                  to={`/group/${group.id}`}
+                  aria-label={`${group.name} 全部 ${groupTotal} 张卡片`}
+                >
+                  <h2 className="band-group__name">{group.name}</h2>
+                  <span className="band-group__meta">
+                    {items.length} 类 · 本档 {groupTotal} 张
+                  </span>
+                  <ArrowRight size={20} aria-hidden />
+                </Link>
+                <div className="grid-cats">
+                  {items.map((category) => (
+                    <CategoryTile
+                      key={category.id}
+                      category={category}
+                      count={counts.get(category.id) ?? 0}
+                      countSuffix="张适龄"
+                      search={`?band=${band}`}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
           </>
         )}
       </main>
