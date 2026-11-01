@@ -1,7 +1,7 @@
 /** 浏览链路测试（PRD US-02 / US-03 / US-05）：卡片墙、详情、上下张切换、空态 */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AppRouter } from '../../../app/router';
 import { useSettingsStore } from '../../../shared/store/settingsStore';
@@ -141,6 +141,19 @@ describe('卡片详情', () => {
     expect(await screen.findByLabelText('第 1 张，共 44 张')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '上一张' })).toBeDisabled();
   });
+
+  // v0.15 T-3：顶栏补当前卡名（非 heading），正文 h1 仍是唯一 heading 不破 findByRole 断言
+  it('should_show_current_card_name_in_topbar_without_extra_heading_when_detail_opened', async () => {
+    window.location.hash = '#/card/animals-cat';
+    const { container } = render(<AppRouter />);
+
+    // 顶栏可见当前卡名「猫」（作用域限定顶栏，避免与正文 h1 撞）
+    const topbar = container.querySelector('.topbar') as HTMLElement;
+    expect(within(topbar).getByText('猫')).toBeInTheDocument();
+    // 顶栏内不得出现 heading（卡名用非 heading 元素），正文标题仍是全局唯一 heading
+    expect(within(topbar).queryByRole('heading')).toBeNull();
+    expect(screen.getAllByRole('heading', { name: '猫' })).toHaveLength(1);
+  });
 });
 
 /** 笔顺演示（v0.9 US-X1 / US-X2 / T-X4）：汉字卡有「看笔顺」，其余卡片不受影响 */
@@ -160,6 +173,28 @@ describe('笔顺演示（v0.9）', () => {
     expect(await screen.findByRole('heading', { name: '猫' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '看笔顺' })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: '笔顺演示' })).not.toBeInTheDocument();
+  });
+
+  // v0.15 T-1：汉字卡把笔顺播放器升为左栏主视觉，不再渲染近乎空白的封面图
+  it('should_host_stroke_player_in_stage_without_cover_when_character_opened', async () => {
+    window.location.hash = '#/card/characters-shou';
+    const { container } = render(<AppRouter />);
+
+    await screen.findByRole('region', { name: '笔顺演示' });
+    const stage = container.querySelector('.detail__stage');
+    // 主视觉（笔顺播放器）落在 stage 内，且 stage 不再出现封面 <img>
+    expect(stage?.querySelector('[aria-label="笔顺演示"]')).not.toBeNull();
+    expect(stage?.querySelector('img')).toBeNull();
+  });
+
+  // v0.15 T-1 回归护栏：普通卡仍以封面图为左栏主视觉（不受汉字卡改版影响）
+  it('should_keep_cover_image_in_stage_when_object_card_opened', async () => {
+    window.location.hash = '#/card/animals-cat';
+    const { container } = render(<AppRouter />);
+
+    await screen.findByRole('heading', { name: '猫' });
+    const stage = container.querySelector('.detail__stage');
+    expect(stage?.querySelector('.detail__media-btn img')).not.toBeNull();
   });
 });
 

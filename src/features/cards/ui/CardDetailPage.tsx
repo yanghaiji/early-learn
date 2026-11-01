@@ -216,6 +216,7 @@ export function CardDetailPage() {
   const isPoem = card.kind === 'poem';
   const isStory = card.kind === 'story';
   const isIdiom = card.kind === 'idiom';
+  const isCharacter = card.kind === 'character';
   // 成语卡没有英文：看英文模式下仍显示中文块，否则整页只剩一张图
   const showChinese = mode !== 'en' || isIdiom;
   // 只读模式（存储不可用）首次写入提一次「不会保存」（PRD §6.3）
@@ -252,32 +253,52 @@ export function CardDetailPage() {
         <div style={{ flex: 1, minWidth: 0 }}>
           <p className="topbar__sub" style={{ margin: 0 }}>
             {category?.name ?? '卡片'}
+            {' · '}
+            {/* v0.15 T-3：深链进入时顶栏补当前卡名（非 heading，正文 h1 仍是唯一 heading） */}
+            <span className="topbar__card">{card.zh}</span>
           </p>
         </div>
       </header>
 
       <main
-        className={cx('detail', isPoem && 'detail--poem', isIdiom && 'detail--idiom')}
+        className={cx(
+          'detail',
+          isPoem && 'detail--poem',
+          isIdiom && 'detail--idiom',
+          isCharacter && 'detail--character',
+        )}
         {...swipe}
         aria-label={`${card.zh} 卡片详情`}
       >
         <div className="detail__stage">
-          <button
-            type="button"
-            className={cx('detail__media-btn', speaking === 'zh-CN' && 'is-speaking')}
-            style={categoryColorVar(category?.color)}
-            onClick={() => void speak(speechText, 'zh-CN', card.id)}
-            aria-label={`朗读 ${card.zh}`}
-            disabled={!enabled}
-          >
-            <ImageWithFallback
-              src={card.image}
-              alt={card.zh}
-              fallbackText={card.zh}
-              colorToken={category?.color}
-              eager
-            />
-          </button>
+          {isCharacter ? (
+            // 汉字卡以笔顺播放器为左栏主视觉（v0.15 T-1）：不再渲染近乎空白的封面图；
+            // 未播时方块里就是静态大字（同原封面位置的 fallback），无数据时回落大字
+            hasStrokeData(card.zh) ? (
+              <Suspense fallback={<p className="detail__char">{card.zh}</p>}>
+                <StrokePlayer zh={card.zh} />
+              </Suspense>
+            ) : (
+              <p className="detail__char">{card.zh}</p>
+            )
+          ) : (
+            <button
+              type="button"
+              className={cx('detail__media-btn', speaking === 'zh-CN' && 'is-speaking')}
+              style={categoryColorVar(category?.color)}
+              onClick={() => void speak(speechText, 'zh-CN', card.id)}
+              aria-label={`朗读 ${card.zh}`}
+              disabled={!enabled}
+            >
+              <ImageWithFallback
+                src={card.image}
+                alt={card.zh}
+                fallbackText={card.zh}
+                colorToken={category?.color}
+                eager
+              />
+            </button>
+          )}
         </div>
 
         <div className="detail__words">
@@ -305,24 +326,14 @@ export function CardDetailPage() {
               </>
             ) : (
               <>
-                {card.kind === 'character' ? (
-                  hasStrokeData(card.zh) ? (
-                    // 回落就是原来那张大字：懒加载块未到位时布局不跳
-                    <Suspense fallback={<p className="detail__char">{card.zh}</p>}>
-                      <StrokePlayer zh={card.zh} />
-                    </Suspense>
-                  ) : (
-                    <p className="detail__char">{card.zh}</p>
-                  )
-                ) : (
-                  <h1 className="detail__zh">{card.zh}</h1>
-                )}
+                {/* 汉字卡的字形主视觉已在左栏 stage（v0.15 T-1），右列不再重复渲染，只留拼音 */}
+                {isCharacter ? null : <h1 className="detail__zh">{card.zh}</h1>}
                 <p className="detail__pinyin">{card.pinyin}</p>
               </>
             )
           ) : null}
           {mode !== 'zh' && card.en ? <p className="detail__en">{card.en}</p> : null}
-          {card.kind === 'character' && showChinese ? (
+          {isCharacter && showChinese ? (
             <p className="detail__meta">
               {card.strokes ? <span>{card.strokes} 画</span> : null}
               {card.words && card.words.length > 0 ? <span>{card.words.join(' / ')}</span> : null}

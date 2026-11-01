@@ -732,13 +732,14 @@ a {
   background: var(--c-bg-soft);
 }
 
-/* 伪元素渐变遮罩（零 DOM 增量）：v0.14.1 补丁改「底部实色」——过渡带收窄到下半 1/3、
-   终点 78%，消除浅色封面上半截灰雾带；色底兜底时同样成立 */
+/* 伪元素渐变遮罩（零 DOM 增量）：v0.14.1 补丁改「底部实色」消除浅色封面上半截灰雾带；
+   v0.15 T-4 避让——实色带起点上移（66%→55%）、终点加深（78%→84%），让底部档位标签
+   落在更深的遮罩区，避开右大卡封面（poems.webp）树形插画压字 */
 .band-hero__media::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(transparent 66%, rgb(0 0 0 / 78%));
+  background: linear-gradient(transparent 55%, rgb(0 0 0 / 84%));
   pointer-events: none;
 }
 
@@ -1571,13 +1572,17 @@ a {
     max-height: 100%;
   }
 
-  /* 普通卡：行高交给内容、整组垂直居中（v0.7）。
-     原来 rows 是 1fr / auto：图列撑满整列居中，右列却贴着首行底、次行顶，
-     实测图中心 468 而文字块中心 691，左右两截重心上下错开 220px。
-     诗词 / 成语卡内容会超出容器，居中会让溢出部分滚不到，故排除。 */
-  .detail:not(.detail--poem):not(.detail--idiom) {
+  /* 普通卡 / 故事卡 / 汉字卡 / 古诗卡（成语卡另有三行模板）：行高交给内容、整组垂直居中，
+     左栏主视觉与右栏文字块共享同一居中基线（v0.7 修 220px 错重心，v0.15 T-2 并入 poem）。
+     内容会超出容器的成语卡不在此列——硬居中会把溢出部分顶到滚不到的位置（v0.7 已记坑）。 */
+  .detail:not(.detail--idiom) {
     grid-template-rows: auto auto;
     align-content: center;
+  }
+
+  /* 汉字卡（v0.15 T-1）：笔顺播放器即左栏主视觉，方块放大到接近旧封面尺寸（仅宽屏，窄屏沿用 120px） */
+  .detail--character .stroke-player {
+    --stroke-size: clamp(200px, 46vh, 340px);
   }
 
   .detail__words {
@@ -1596,14 +1601,16 @@ a {
     width: 100%;
   }
 
-  /* 成语卡（v0.6.2）：释义/例句一大块，单独给它一格并允许内部滚动；图占满左列整高，不再只占 200px */
+  /* 成语卡（v0.15 T-2）：三行都用 auto 而非 1fr 拉伸，配 align-content:center 让右栏内容流
+     （标题→释义→例句→出处→操作）自然堆叠居中，消除原 1fr 行把「中文」按钮推到底的悬空空档。 */
   .detail--idiom {
     grid-template-columns: minmax(0, 1fr) minmax(360px, 1.05fr);
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto auto;
     grid-template-areas:
       'stage words'
       'stage idiom'
       'stage actions';
+    align-content: center;
   }
 
   .detail--idiom .detail__stage {
@@ -1620,11 +1627,8 @@ a {
 
   .detail--idiom .detail__idiom {
     grid-area: idiom;
-    align-self: stretch;
     max-width: none;
     margin: 0;
-    overflow-y: auto;
-    padding-right: 6px;
   }
 }
 
